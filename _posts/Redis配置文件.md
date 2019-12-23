@@ -1,4 +1,14 @@
 ---
+author: djaigo
+title: redis conf 说明
+date: 2019-12-10 14:43:35
+update: 
+img: https://img-1251474779.cos.ap-beijing.myqcloud.com/redis.png
+categories: 
+  - redis
+tags: 
+  - redis
+  - config
 enable html: true
 ---
 

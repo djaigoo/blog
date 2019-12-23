@@ -1,12 +1,13 @@
 ---
 author: djaigo
-title: 20191210144335
+title: git stash
 date: 2019-12-10 14:43:35
 update: 
 img: https://img-1251474779.cos.ap-beijing.myqcloud.com/golang.png
 categories: 
   - git
 tags: 
+  - git
   - cmd
 ---
 
@@ -33,7 +34,6 @@ show    -- 展示在stash中的修改记录的差异
 
 ## 与commit的区别
 commit会记录在历史记录中，而stash不会
-
 
 实体包：数据传输结构体定义
 工具包：功能函数实现

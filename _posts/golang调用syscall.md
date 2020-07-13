@@ -1,0 +1,296 @@
+---
+author: djaigo
+title: golang调用syscall
+img: 'https://img-1251474779.cos.ap-beijing.myqcloud.com/golang.png'
+categories:
+  - golang
+tags:
+  - syscall
+  - linux
+  - syscall6
+  - rawsyscall
+  - rawsyscall6
+date: 2020-04-17 10:04:41
+updated: 2020-04-17 10:04:41
+---
+
+# 环境说明
+OS：linux
+ARCH：amd64
+GOVERSION：1.14.1
+
+# syscall实现
+
+在linux下golang调用syscall的接口，文件路径`syscall/syscall_unix.go`
+```go
+func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
+func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
+func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
+func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
+```
+这些函数的实现都是汇编，按照 linux 的 syscall 调用规范，我们只要在汇编中把参数依次传入寄存器，并调用 SYSCALL 指令即可进入内核处理逻辑，系统调用执行完毕之后，返回值放在 RAX 中：
+
+| RDI   | RSI   | RDX   | R10   | R8    | R9    | RAX              |
+| ---   | ----- | ----  | ---   | ---   | ---   | ---              |
+| 参数一 | 参数二 | 参数三 | 参数四 | 参数五 | 参数六 | 系统调用编号/返回值 |
+
+这些函数的底层实现都是汇编代码，文件路径`syscall/asm_linux_amd64.s`
+```s
+TEXT ·Syscall(SB),NOSPLIT,$0-56
+	CALL	runtime·entersyscall(SB)
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	trap+0(FP), AX	// syscall entry
+	SYSCALL
+	// 0xfffffffffffff001 是 linux MAX_ERRNO 取反 转无符号，http://lxr.free-electrons.com/source/include/linux/err.h#L17
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok
+	MOVQ	$-1, r1+32(FP)
+	MOVQ	$0, r2+40(FP)
+	NEGQ	AX
+	MOVQ	AX, err+48(FP)
+	CALL	runtime·exitsyscall(SB)
+	RET
+ok:
+	MOVQ	AX, r1+32(FP)
+	MOVQ	DX, r2+40(FP)
+	MOVQ	$0, err+48(FP)
+	CALL	runtime·exitsyscall(SB)
+	RET
+
+// func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr)
+TEXT ·Syscall6(SB),NOSPLIT,$0-80
+	CALL	runtime·entersyscall(SB)
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	a4+32(FP), R10
+	MOVQ	a5+40(FP), R8
+	MOVQ	a6+48(FP), R9
+	MOVQ	trap+0(FP), AX	// syscall entry
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok6
+	MOVQ	$-1, r1+56(FP)
+	MOVQ	$0, r2+64(FP)
+	NEGQ	AX
+	MOVQ	AX, err+72(FP)
+	CALL	runtime·exitsyscall(SB)
+	RET
+ok6:
+	MOVQ	AX, r1+56(FP)
+	MOVQ	DX, r2+64(FP)
+	MOVQ	$0, err+72(FP)
+	CALL	runtime·exitsyscall(SB)
+	RET
+```
+
+可以看到Syscall和Syscall6函数没有区别，只是在传参的个数上有区别，且在开始系统和结束系统调用时会调用`runtime·entersyscall(SB)`和`runtime·exitsyscall(SB)`，这样可以让系统调用和runtime进行沟通，让runtime进行调度当前正在调用syscall的g。
+
+```s
+// func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2, err uintptr)
+TEXT ·RawSyscall(SB),NOSPLIT,$0-56
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	trap+0(FP), AX	// syscall entry
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok1
+	MOVQ	$-1, r1+32(FP)
+	MOVQ	$0, r2+40(FP)
+	NEGQ	AX
+	MOVQ	AX, err+48(FP)
+	RET
+ok1:
+	MOVQ	AX, r1+32(FP)
+	MOVQ	DX, r2+40(FP)
+	MOVQ	$0, err+48(FP)
+	RET
+
+// func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2, err uintptr)
+TEXT ·RawSyscall6(SB),NOSPLIT,$0-80
+	MOVQ	a1+8(FP), DI
+	MOVQ	a2+16(FP), SI
+	MOVQ	a3+24(FP), DX
+	MOVQ	a4+32(FP), R10
+	MOVQ	a5+40(FP), R8
+	MOVQ	a6+48(FP), R9
+	MOVQ	trap+0(FP), AX	// syscall entry
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok2
+	MOVQ	$-1, r1+56(FP)
+	MOVQ	$0, r2+64(FP)
+	NEGQ	AX
+	MOVQ	AX, err+72(FP)
+	RET
+ok2:
+	MOVQ	AX, r1+56(FP)
+	MOVQ	DX, r2+64(FP)
+	MOVQ	$0, err+72(FP)
+	RET
+```
+
+RawSyscall和RawSyscall6函数也只是只有传参数目的不同，但是Syscall和RawSyscall的区别在于没有调用`runtime·entersyscall(SB)`和`runtime·exitsyscall(SB)`，这样 runtime 理论上是没有办法通过调度把这个 g 的 m 的 p 调度走的，所以如果用户代码使用了 RawSyscall 来做一些阻塞的系统调用，是有可能阻塞其它的 g 的，下面是官方开发的原话:
+
+> Yes, if you call RawSyscall you may block other goroutines from running. The system monitor may start them up after a while, but I think there are cases where it won't. I would say that Go programs should always call Syscall. RawSyscall exists to make it slightly more efficient to call system calls that never block, such as getpid. But it's really an internal mechanism.
+
+# syscall管理
+golang实现了部分系统调用，定义在`syscall/syscall_linux.go`中。
+可以把系统调用分为三类:
+*   阻塞系统调用
+*   非阻塞系统调用
+*   wrapped 系统调用
+
+这里截取部分代码注释
+```go
+//sys	Setpriority(which int, who int, prio int) (err error)
+//sys	Setxattr(path string, attr string, data []byte, flags int) (err error)
+//sys	Sync()
+//sysnb	Sysinfo(info *Sysinfo_t) (err error)
+//sys	Tee(rfd int, wfd int, len int, flags int) (n int64, err error)
+//sysnb	Tgkill(tgid int, tid int, sig Signal) (err error)
+//sysnb	Times(tms *Tms) (ticks uintptr, err error)
+//sysnb	Umask(mask int) (oldmask int)
+//sysnb	Uname(buf *Utsname) (err error)
+//sys	Unmount(target string, flags int) (err error) = SYS_UMOUNT2
+//sys	Unshare(flags int) (err error)
+//sys	write(fd int, p []byte) (n int, err error)
+//sys	exitThread(code int) (err error) = SYS_EXIT
+//sys	readlen(fd int, p *byte, np int) (n int, err error) = SYS_READ
+//sys	writelen(fd int, p *byte, np int) (n int, err error) = SYS_WRITE
+```
+
+其中有`//sys`表示阻塞的系统调用，`//sysnb`表示非阻塞系统调用。然后，根据这些注释，mksyscall.pl 脚本会生成对应的平台的具体实现。mksyscall.pl 是一段 perl 脚本，感兴趣的同学可以自行查看，这里就不再赘述了。生成的代码前面会有一段`// THIS FILE IS GENERATED BY THE COMMAND AT THE TOP; DO NOT EDIT`的注释。
+如果是标记为阻塞的系统调用生成的代码是调用`Syscall`和`Syscall6`，标记为非阻塞的系统调用会`RawSyscall`和`RawSyscall6`。
+wrapped系统调用是封装了一层系统调用，可能是觉得命名风格不是很golang。
+
+# runtime中的syscall
+除了上面提到的阻塞非阻塞和 wrapped syscall，runtime 中还定义了一些 low-level 的 syscall，这些是不暴露给用户的。
+提供给用户的 syscall 库，在使用时，会使 goroutine 和 p 分别进入 Gsyscall 和 Psyscall 状态。但 runtime 自己封装的这些 syscall 无论是否阻塞，都不会调用 entersyscall 和 exitsyscall。虽说是 “low-level” 的 syscall，不过和暴露给用户的 syscall 本质是一样的。
+runtime定义的系统调用列表，定义在`runtime/sys_linux_arm64.s`中。
+
+```golang
+#define SYS_exit		93
+#define SYS_read		63
+#define SYS_write		64
+#define SYS_openat		56
+#define SYS_close		57
+#define SYS_pipe2		59
+#define SYS_fcntl		25
+#define SYS_nanosleep		101
+#define SYS_mmap		222
+#define SYS_munmap		215
+#define SYS_setitimer		103
+#define SYS_clone		220
+#define SYS_sched_yield		124
+#define SYS_rt_sigreturn	139
+#define SYS_rt_sigaction	134
+#define SYS_rt_sigprocmask	135
+#define SYS_sigaltstack		132
+#define SYS_madvise		233
+#define SYS_mincore		232
+#define SYS_getpid		172
+#define SYS_gettid		178
+#define SYS_kill		129
+#define SYS_tgkill		131
+#define SYS_futex		98
+#define SYS_sched_getaffinity	123
+#define SYS_exit_group		94
+#define SYS_epoll_create1	20
+#define SYS_epoll_ctl		21
+#define SYS_epoll_pwait		22
+#define SYS_clock_gettime	113
+#define SYS_faccessat		48
+#define SYS_socket		198
+#define SYS_connect		203
+#define SYS_brk			214
+```
+
+这些 syscall 理论上都是不会在执行期间被调度器剥离掉 p 的，所以执行成功之后 goroutine 会继续执行，而不像用户的 goroutine 一样，若被剥离 p 会进入等待队列。
+
+# 调度交互
+既然要和调度交互，那友好地通知我要 syscall 了: entersyscall，我完事了: exitsyscall。
+所以这里的交互指的是用户代码使用 syscall 库时和调度器的交互。**runtime 里的 syscall 不走这套流程。**
+
+文件路径`runtime/proc.go:2974`
+```golang
+// Standard syscall entry used by the go syscall library and normal cgo calls.
+//
+// This is exported via linkname to assembly in the syscall package.
+//
+//go:nosplit
+//go:linkname entersyscall
+func entersyscall() {
+	reentersyscall(getcallerpc(), getcallersp())
+}
+```
+
+```golang
+//go:nosplit
+func reentersyscall(pc, sp uintptr) {
+	_g_ := getg()
+
+	// Disable preemption because during this function g is in Gsyscall status,
+	// but can have inconsistent g->sched, do not let GC observe it.
+	_g_.m.locks++
+
+	// Entersyscall must not call any function that might split/grow the stack.
+	// (See details in comment above.)
+	// Catch calls that might, by replacing the stack guard with something that
+	// will trip any stack check and leaving a flag to tell newstack to die.
+	_g_.stackguard0 = stackPreempt
+	_g_.throwsplit = true
+
+	// Leave SP around for GC and traceback.
+	save(pc, sp)
+	_g_.syscallsp = sp
+	_g_.syscallpc = pc
+	casgstatus(_g_, _Grunning, _Gsyscall)
+	if _g_.syscallsp < _g_.stack.lo || _g_.stack.hi < _g_.syscallsp {
+		systemstack(func() {
+			print("entersyscall inconsistent ", hex(_g_.syscallsp), " [", hex(_g_.stack.lo), ",", hex(_g_.stack.hi), "]\n")
+			throw("entersyscall")
+		})
+	}
+
+	if trace.enabled {
+		systemstack(traceGoSysCall)
+		// systemstack itself clobbers g.sched.{pc,sp} and we might
+		// need them later when the G is genuinely blocked in a
+		// syscall
+		save(pc, sp)
+	}
+
+	if atomic.Load(&sched.sysmonwait) != 0 {
+		systemstack(entersyscall_sysmon)
+		save(pc, sp)
+	}
+
+	if _g_.m.p.ptr().runSafePointFn != 0 {
+		// runSafePointFn may stack split if run on this stack
+		systemstack(runSafePointFn)
+		save(pc, sp)
+	}
+
+	_g_.m.syscalltick = _g_.m.p.ptr().syscalltick
+	_g_.sysblocktraced = true
+	_g_.m.mcache = nil
+	pp := _g_.m.p.ptr()
+	pp.m = 0
+	_g_.m.oldp.set(pp)
+	_g_.m.p = 0
+	atomic.Store(&pp.status, _Psyscall)
+	if sched.gcwaiting != 0 {
+		systemstack(entersyscall_gcwait)
+		save(pc, sp)
+	}
+
+	_g_.m.locks--
+}
+```
+
+# 参考文献
+[曹春晖：谈一谈 Go 和 Syscall]([https://juejin.im/post/5cdd56f6e51d456e8b07de5e](https://juejin.im/post/5cdd56f6e51d456e8b07de5e))

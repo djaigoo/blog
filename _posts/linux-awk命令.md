@@ -1,7 +1,8 @@
 ---
 author: djaigo
 title: Linux awk命令
-date: 2019-12-19 14:10:10
+date: 2019-12-19
+updated: 2020-01-14
 img: https://img-1251474779.cos.ap-beijing.myqcloud.com/linux.png
 categories: 
   - linux
@@ -62,6 +63,18 @@ awk option -f scriptfile file1 file2 ...
 
 awk的操作对象既可以是文本文件，也可以是标准输入重定向得到，亦或是命令行参数传入。
 
+## 命令行参数
+常用命令行参数说明：
+
+| 参数 | 说明 |
+|---|---|
+|-f|  执行awk脚本文件路径  |
+|-F|输入域分隔符   |
+|-v|传入shell变量   |
+|-b|字符按照字节区分   |
+|-h|帮助文档   |
+|-V|显示版本   |
+
 ## 正则表达式
 script一般格式为`/pattern/{actions}`，pattern表示正则表达式，actions表示一系列操作。awk利用正则表达式pattern匹配出需要执行actions的行，如果没有pattern表示每一行都执行actions。
 
@@ -108,6 +121,21 @@ script一般格式为`/pattern/{actions}`，pattern表示正则表达式，actio
 
 print表示打印；`$1`表示第一列，`$2`表示第二列，以此类推，`$0`表示当前行。
 
+awk利用运算符`~`表示符合正则运算，`!~`表示不符合正则运算。
+示例：
+```sh
+➜ seq 20 | awk '$1 !~ /1/{print $1}'            
+2
+3
+4
+5
+6
+7
+8
+9
+20
+```
+
 ## 数学运算
 awk支持使用数学条件筛选，支持运算符表格：
 
@@ -139,20 +167,6 @@ awk支持使用数学条件筛选，支持运算符表格：
 20 Y
 ```
 
-awk利用运算符`~`表示符合正则运算，`!~`表示不符合正则运算。
-示例：
-```sh
-➜ seq 20 | awk '$1 !~ /1/{print $1}'            
-2
-3
-4
-5
-6
-7
-8
-9
-20
-```
 
 awk还支持算术函数
 

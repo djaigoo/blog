@@ -9,7 +9,9 @@ tags:
 date: 2020-04-23 15:32:37
 updated: 2020-04-23 15:32:37
 ---
+# 简介
 
+# protobuf类型
 | .proto Type | Notes |  Go Type |
 | --- | --- | --- | --- |
 | double | float64 | |  
@@ -28,3 +30,9 @@ updated: 2020-04-23 15:32:37
 | string | A string must always contain UTF-8 encoded or 7-bit ASCII text, and cannot be longer than 232. |  string |
 | bytes | May contain any arbitrary sequence of bytes no longer than 232. |  []byte | 
 
+* sint，对负数的编码结果更优秀，如果用int存小负数会占用4字节，用sint能像正数一样占少量空间
+* fixed，对应位数占固定字节数
+* sfixed，对应位数占固定字节数，使用sint的编码格式
+
+# 参考文献
+* [proto3 guide](https://developers.google.com/protocol-buffers/docs/proto3)

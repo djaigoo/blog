@@ -6,29 +6,31 @@ categories:
   - protobuf
 tags:
   - protobuf
+  - proto3
 date: 2020-04-23 15:32:37
 updated: 2020-04-23 15:32:37
 ---
 # 简介
-
+`protocol buffer`是一种与语言无关，与平台无关的可扩展机制，用于序列化结构化数据。它通过定义`.proto`文件，使用`protoc`工具生成指定代码的文件，让程序猿没有了心智负担。与json相比，它编码和解码快，生成数据体积小。
 # protobuf类型
-| .proto Type | Notes |  Go Type |
-| --- | --- | --- | --- |
-| double | float64 | |  
-| float |  float32 |  | 
-| int32 | int32 | Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint32 instead. | 
-| int64 | int64 | Uses variable-length encoding. Inefficient for encoding negative numbers – if your field is likely to have negative values, use sint64 instead. | 
-| uint32 | Uses variable-length encoding. | uint32 |
-| uint64 | Uses variable-length encoding. | uint64 | 
-| sint32 | Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int32s. | int32 | 
-| sint64 | Uses variable-length encoding. Signed int value. These more efficiently encode negative numbers than regular int64s. |  int64 |
-| fixed32 | Always four bytes. More efficient than uint32 if values are often greater than 228. | uint32 | Fixnum or Bignum (as required) | uint | 
-| fixed64 | Always eight bytes. More efficient than uint64 if values are often greater than 256. |  uint64 |
-| sfixed32 | Always four bytes. |  int32 |
-| sfixed64 | Always eight bytes. |  int64 |
-| bool |  |  bool | 
-| string | A string must always contain UTF-8 encoded or 7-bit ASCII text, and cannot be longer than 232. |  string |
-| bytes | May contain any arbitrary sequence of bytes no longer than 232. |  []byte | 
+
+| .proto Type | Notes | Go Type |
+| --- | --- | --- |
+| double |  | float64 |
+| float |   | float32 |
+| int32 | 使用可变长度编码。负数编码效率低下–如果您的字段可能具有负值，请改用sint32。 | int32 |
+| int64 |  使用可变长度编码。负数编码效率低下，如果您的字段可能具有负值，请改用sint64。 | int64 |
+| uint32 | 使用可变长度编码。 | uint32 |
+| uint64 | 使用可变长度编码。 | uint64 |
+| sint32 | 使用可变长度编码。有符号的int值。与常规int32相比，它们更有效地编码负数。 | int32 |
+| sint64 | 使用可变长度编码。有符号的int值。与常规int64相比，它们更有效地编码负数。 |  int64 |
+| fixed32 | 始终为八个字节。如果值通常大于$2^{28}$，则比uint32更有效。 | uint32 |
+| fixed64 | 始终为八个字节。如果值通常大于$2^{56}$，则比uint64更有效。 |  uint64 |
+| sfixed32 | 始终为4字节。 |  int32 |
+| sfixed64 | 始终为8字节。 |  int64 |
+| bool |  |  bool |
+| string | 字符串必须始终包含UTF-8编码或7位ASCII文本，并且不能超过$2^{32}$。 |  string |
+| bytes | 可以包含不超过$2^{32}$的字节序列。 | []byte | 
 
 * sint，对负数的编码结果更优秀，如果用int存小负数会占用4字节，用sint能像正数一样占少量空间
 * fixed，对应位数占固定字节数

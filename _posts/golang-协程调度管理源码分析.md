@@ -1628,8 +1628,19 @@ func releasep() *p {
 `m`自旋，即`m`阻塞于`schedule()`的`findrunnable()`，`m`会一直尝试获取可执行的`g`去工作。
 
 ## g0栈复用
+`g0`的栈在golang中不同系统采用不同的初始化方式。
+```go
+if iscgo || GOOS == "solaris" || GOOS == "illumos" || GOOS == "windows" || GOOS == "plan9" || GOOS == "darwin" || GOOS == "ios" {
+		// 如果是上面的情况 g0栈是用的 pthread_create 线程栈
+		mp.g0 = malg(-1)
+	} else {
+		mp.g0 = malg(8192 * sys.StackGuardMultiplier)
+	}
+```
 
+
+每次切到`g0`栈执行指令时，`g0->sched.sp`在初始化后没有修改该过，所以每次切换到g0时栈起始值相同，每次调用`mcall`都会从指定栈位置开始执行相关操作，以此来复用g0栈。
 
 # 参考文献
 * [详尽干货！从源码角度看 Golang 的调度](https://mp.weixin.qq.com/s?__biz=MzU1ODEzNjI2NA==&mid=2247487178&amp;idx=2&amp;sn=121f293c1502b10e7569a0e7216de79e&source=41#wechat_redirect)
-* x[](https://zboya.github.io/post/go_scheduler/)
+* [深入golang runtime的调度](https://zboya.github.io/post/go_scheduler/)

@@ -11,12 +11,8 @@ date: 2020-09-29 17:54:01
 updated: 2020-09-29 17:54:01
 ---
 
-# P有限状态机
+去掉了cgo和GC的相关状态转化
 
-_Prunning
-* releasep，解绑m和p，将p的状态置为_Pidle
-* procresize，修改p的个数的时候，如果当前id小于修改值，则保留_Prunning状态
+# P状态机
 
-
-_Pidle
-* 
+# G状态机

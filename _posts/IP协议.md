@@ -2,7 +2,6 @@
 author: djaigo
 title: IP协议
 date: 2019-12-10 16:08:53
-update: 2019-12-12 16:08:53
 img: https://img-1251474779.cos.ap-beijing.myqcloud.com/net.png
 categories: 
   - net

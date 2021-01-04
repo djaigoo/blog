@@ -8,7 +8,6 @@ tags:
   - cmd
   - command
 date: 2020-01-15 10:09:36
-updated: 2020-01-15
 enable html: false
 ---
 

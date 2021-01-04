@@ -2,7 +2,6 @@
 author: djaigo
 title: Linux awk命令
 date: 2019-12-19
-updated: 2020-01-14
 img: https://img-1251474779.cos.ap-beijing.myqcloud.com/linux.png
 categories: 
   - linux

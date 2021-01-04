@@ -8,7 +8,6 @@ tags:
   - cmd
   - command
 date: 2020-09-17 18:18:17
-updated: 2020-09-17 18:18:17
 ---
 
 sed是linux行文本处理命令，默认选项是`-e`

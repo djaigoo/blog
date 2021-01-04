@@ -1,13 +1,12 @@
 ---
 author: djaigo
-title: git stash
+title: git-stash命令
 date: 2019-12-10 14:43:35
-update: 
 img: https://img-1251474779.cos.ap-beijing.myqcloud.com/golang.png
 categories: 
   - git
 tags: 
-  - git
+  - command
   - cmd
 ---
 

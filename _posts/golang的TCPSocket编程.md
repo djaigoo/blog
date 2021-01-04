@@ -8,7 +8,6 @@ tags:
   - net
   - tcp
 date: 2020-04-09 12:22:55
-updated: 2020-04-09 12:22:55
 ---
 
 golang版本：1.14.1
@@ -60,6 +59,14 @@ func main() {
 dial tcp 172.217.160.78:443: i/o timeout
 ```
 
+## cannot assign requested address
+无法申请端口建立socket连接。
+当前机器没有可用端口哦，由系统返回该错误。
+可以修改系统配置，增加可用端口范围，来缓解端口不足的问题
+```text
+# vi /etc/sysctl.conf
+net.ipv4.ip_local_port_range = 1024     65535
+```
 
 # Read
 ## EOF

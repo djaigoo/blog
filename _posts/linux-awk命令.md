@@ -6,8 +6,7 @@ img: https://img-1251474779.cos.ap-beijing.myqcloud.com/linux.png
 categories: 
   - linux
 tags: 
-  - cmd
-  - command
+  - shell
 mathjax: true
 ---
 

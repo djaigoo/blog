@@ -5,8 +5,6 @@ img: 'https://img-1251474779.cos.ap-beijing.myqcloud.com/git.png'
 categories:
   - git
 tags:
-  - command
-  - cmd
 date: 2020-11-09 14:18:16
 ---
 `git`常用命令手册（速查表）

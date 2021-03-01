@@ -5,8 +5,7 @@ img: 'https://img-1251474779.cos.ap-beijing.myqcloud.com/golang.png'
 categories:
   - linux
 tags:
-  - cmd
-  - command
+  - shell
 date: 2020-09-16 18:18:17
 ---
 

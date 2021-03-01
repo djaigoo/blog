@@ -3,9 +3,8 @@ author: djaigo
 title: git-remote命令
 img: 'https://img-1251474779.cos.ap-beijing.myqcloud.com/git.png'
 categories:
-  - null
-tags:
   - git
+tags:
 date: 2021-01-04 13:50:48
 ---
 

@@ -5,8 +5,7 @@ img: 'https://img-1251474779.cos.ap-beijing.myqcloud.com/linux.png'
 categories:
   - linux
 tags:
-  - cmd
-  - command
+  - shell
 date: 2020-10-14 19:50:16
 ---
 

@@ -7,8 +7,8 @@ date: 2022-10-14 11:34:21
 tags:
 ---
 
-泛型，对类型的集合附加某些代码，使这些类型拥有相同逻辑，可以理解为对类型的第二个维度的描述。
-`golang`是在编译时将相应的类型都会具体实现一遍，多个类型的笛卡尔积会导致编译速度慢编译后文件大。
+泛型，将类型看成变量，定义类型约束，使类型约束的所有类型皆具有相关代码，是对类型第二个维度的描述。
+`golang`中的泛型称做类型参数（Type Parameter）是在编译时将使用的类型都会具体实现一遍，类型越多就会导致编译速度变慢，编译后文件变大。
 
 # 函数
 ```go
@@ -27,18 +27,44 @@ func Add[T       int|uint] (arg1, arg2 T)         T
 ```
 
 与普通的Add函数相比，泛型函数多了对参数和返回值类型的定义：
+* `[]` 表示声明泛型约束
 * `T` 表示类型形参（`type arguments`）
 * `int|uint`、`float32|float64` 表示类型约束，多个类型约束用`|`隔开，表示只允许类型约束列表中的类型能作为类型实参
 * `a K, b V`表示类型为`K`和`V`的函数形参
 * 多个类型参数用`,`隔开
 * `~`表示底层类型（`underlying type`），`type MyInt int`表示类型名`MyInt`，底层类型为`int`
 
-调用时，须对类型参数实例化，既可显式写出类型实参，也可由编译器自动填充，两者等价
+## 类型推导
+类型推导允许调用泛型函数不需要显示传入类型实参，看起来和调用普通函数没有区别
+
+调用泛型函数时，需对类型参数实例化，既可显式写出类型实参，也可由编译器推导，两者等价
 ```go
 Add(1, 2)
 Add[int](1, 2)
 ```
 
+类型约束推导，允许多个相关联的类型约束调用时，不需要显示传入类型实参
+```go
+// 定义切片类型
+type intSlice []int
+func (intSlice) String() string {}
+
+// 定义函数，函数参数类型可以确定返回值类型
+func scale[S ~[]E, E int | uint](s S, e E) S {}
+
+// 可以通过函数参数即可确定返回值类型，也即可以调用String方法
+scale(intSlice{}, 0).String()
+
+// 参数无法确定类型参数
+func toSlice[S ~[]E, E int | uint](e E) S {
+    return append(S{}, e)
+}
+
+// 则必须显式声明类型才能使用成员方法，默认会推导成[]int，其没有String方法
+toSlice[intSlice, int](1).String()
+```
+
+## 匿名函数
 匿名函数不支持泛型，但是支持已经定义好的类型参数
 ```go
 // ❌ 匿名函数不支持泛型
@@ -53,6 +79,7 @@ func Func[T int | uint](a, b T) T {
 }
 ```
 
+## 类型断言
 在泛型函数中不能对类型参数所对应的函数形参进行类型断言，但支持反射（需要思考是否值得）
 ```go
 // ❌ a和b是类型为T的Add函数的形参，不允许类型断言
@@ -74,12 +101,13 @@ func Add[T int | uint](a, b T) T {
 ```
 
 # 结构
-结构定义，类型必须显式声明，编译器不会自动填充
+声明结构与声明方法类似，在结构名后面添加类型约束
+实例化对象时类型必须显式声明，编译器不会推导
 ```go
-// 声明泛型类型
+// 声明泛型结构
 type Slice[T int|uint|string] []T
 
-// 实例化类型
+// 实例化对象
 var arr = Slice[int]{}
 var arr Slice[int] = []int{}
 ```
@@ -97,9 +125,9 @@ var s = Struct[int, []int]{
 }
 ```
 
-如果泛型约束为子集则可以嵌套声明`type IntSlice[T int|uint] Slice[T]`，因为`IntSlice`的类型约束是`Slice`类型约束的子集，所以允许嵌套声明；如果不是子集`type IntSlice[T int|int8] Slice[T]`则不允许嵌套声明。
+如果泛型约束为子集，则可以嵌套声明`type IntSlice[T int|uint] Slice[T]`，因为`IntSlice`的类型约束是`Slice`类型约束的子集，所以允许嵌套声明；如果不是子集`type IntSlice[T int|int8] Slice[T]`则不允许嵌套声明。
 
-错误实现类型声明
+## 声明示例
 ```go
 // ❌ 类型形参不能单独使用
 type Type[T int|uint] T
@@ -116,13 +144,14 @@ var s Struct[int, []uint]
 // ✅ 类型定义必须相同
 var s Struct[int, []int]
 
-// ❌ 匿名类型不支持泛型
+// ❌ 匿名结构不支持泛型
 var s = struct[T int|uint] {
     t T
     s []T
 }{}
 ```
 
+## 成员方法
 成员方法，会对每一个类型约束都实现相应的方法
 ```go
 func (s *Slice[T]) Sum() T {}
@@ -141,7 +170,15 @@ func (s *Slice[T]) Push[V int|uint](v V)
 func (s *Slice[T]) Pop() T
 ```
 
-做参数返回值
+## 参数返回值
+当泛型结构做参数和返回值时，需要将泛型结构特化成指定类型的结构，也可以使用函数的类型约束
+```go
+// 特化类型为int，与普通函数没有区别
+func append(s Slice[int], i int) Slice[int] {}
+
+// append函数的类型约束必须是Slice类型约束的子集
+func append[T int|uint](s Slice[T], t T) Slice[T] {}
+```
 
 # 接口
 接口用于定义类型约束的集合
@@ -189,7 +226,7 @@ type Number interface {
 ## 接口分类
 * 基本接口，表示只有方法约束的接口，`1.18`之前的`interface`
 * 一般接口，不止包含方法约束还包括类型约束，只能用于类型约束，不能用于变量声明
-* 泛型接口，声明时包含类型形参的接口
+* 泛型接口，声明时包含类型约束的接口
 
 ```go
 // 基本接口
@@ -235,7 +272,7 @@ type ReadWriter interface {
 错误示例
 ```go
 type Invalid interface {
-    // ❌ MyInt的底层类型不是MyInt所以不能使用~ ，不允许对其他类型或接口使用
+    // ❌ ~不能对底层类型不是自己的类型使用，也不可以对接口使用
     ~MyInt
     ~error
     // ❌ 类型参数不能作为类型约束
@@ -244,7 +281,7 @@ type Invalid interface {
     // ❌ 不能自己嵌套自己
     Invalid
     int | Invalid
-    // ❌ 接口方法不能拥有类型参数
+    // ❌ 接口方法不能拥有类型约束列表
     Func[T int]()
 }
 
@@ -304,7 +341,7 @@ func read[T ReadWriter](reader T) {
     reader.Read(nil)
 }
 
-// ❌ 一般接口只能用于类型约束
+// ❌ 一般接口只能用于类型约束，不能用于实例化对象
 var rwer ReadWriter
 ```
 
@@ -335,3 +372,4 @@ func intAdd[T IntAdd[int]](a,b T) T
 # 参考文献
 1. [The Go Programming Language Specification](https://go.dev/ref/spec)
 2. [Go 1.18 泛型全面讲解：一篇讲清泛型的全部](https://segmentfault.com/a/1190000041634906)
+3. [Go泛型是怎么实现的?](https://colobu.com/2021/08/30/how-is-go-generic-implemented/)

@@ -35,7 +35,7 @@ func Add[T       int|uint] (arg1, arg2 T)         T
 * `~`表示底层类型（`underlying type`），`type MyInt int`表示类型名`MyInt`，底层类型为`int`
 
 ## 类型推导
-类型推导允许调用泛型函数不需要显示传入类型实参，看起来和调用普通函数没有区别
+类型推导允许调用泛型函数不需要显式传入类型实参，看起来和调用普通函数没有区别
 
 调用泛型函数时，需对类型参数实例化，既可显式写出类型实参，也可由编译器推导，两者等价
 ```go
@@ -43,7 +43,7 @@ Add(1, 2)
 Add[int](1, 2)
 ```
 
-类型约束推导，允许多个相关联的类型约束调用时，不需要显示传入类型实参
+类型约束推导，允许多个相关联的类型约束调用时，不需要显式传入类型实参
 ```go
 // 定义切片类型
 type intSlice []int
@@ -80,11 +80,24 @@ func Func[T int | uint](a, b T) T {
 ```
 
 ## 类型断言
-在泛型函数中不能对类型参数所对应的函数形参进行类型断言，但支持反射（需要思考是否值得）
+在泛型函数中不能对类型参数所对应的函数形参进行类型断言
+但是支持：
+* 先将参数转换成any再进行类型断言
+* 支持反射（需要思考是否值得）
+* 支持类型转换。
+
 ```go
 // ❌ a和b是类型为T的Add函数的形参，不允许类型断言
 func Add[T int | uint](a, b T) T {
     switch a.(type) {
+    case int:
+    case uint:
+    }
+}
+
+// ✅ a和b是类型为T的Add函数的形参，先转换为any类型，再进行类型断言
+func Add[T int | uint](a, b T) T {
+    switch any(a).(type) {
     case int:
     case uint:
     }
@@ -97,6 +110,12 @@ func Add[T int | uint](a, b T) T {
     case reflect.Int:
     case reflect.Uint:
     }
+}
+
+// ✅ 支持类型转换
+func Add[T int | uint](a T, b any) T {
+    bb, _ := b.(T)
+    return a + bb
 }
 ```
 

@@ -1,9 +1,9 @@
 ---
 author: djaigo
 title: go-redis
+date: 2022-04-12 13:56:00
 categories:
   - golang
-date: 2022-04-12 13:56:00
 tags:
   - redis
 ---

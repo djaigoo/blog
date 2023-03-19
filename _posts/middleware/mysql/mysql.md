@@ -1803,6 +1803,21 @@ hash索引和B-Tree索引
 
 ## 主从架构
 
+搭建主从服务
+建立主从专用用户
+开启binlog日志
+
+启动主从节点
+
+配置主从信息
+
+从节点注册
+```sql
+change master to master_user='root', master_password='123456', master_host='172.17.0.2', master_log_file='mysql-bin.000003', master_log_pos=2067;
+```
+
+一旦执行binlog某一条语句出错则后面的语句则不会再执行
+
 最快的复制一张表
 mysqldump方法
 导出csv文件
@@ -1902,8 +1917,14 @@ innoDB刷脏页的控制策略
 
 ### 优化数据库结构
 饮鸩止渴提高性能方法
+
 短连接风暴
+
 慢查询性能
+查看慢日志
+log_output 参数是指定日志的存储方式。log_output='FILE'表示将日志存入文件，默认值是'FILE'。log_output='TABLE'表示将日志存入数据库，这样日志信息就会被写入到mysql.slow_log表中。MySQL数据库支持同时两种日志存储方式，配置的时候以逗号隔开即可，如：log_output='FILE,TABLE'。日志记录到系统的专用日志表中，要比记录到文件耗费更多的系统资源，因此对于需要启用慢查询日志，又需要能够获得更高的系统性能，那么建议优先记录到文件。
+
+
 qps突增
 
 ### 优化数据库服务器

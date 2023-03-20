@@ -181,7 +181,7 @@ SQL（Structured Query Language，结构化查询语言），SQL 是一种数据
 |优先级由低到高排列 |运算符|
 |-|-|
 |1 | `=`(赋值运算）、`:=`|
-|2 | `||`、`OR`|
+|2 | `\|\|`、`OR`|
 |3 | `XOR`|
 |4 | `&&`、`AND`|
 |5 | `NOT`|
@@ -857,29 +857,18 @@ PREPARE STMT FROM 'SELECT * FROM tbl LIMIT ?, ?';
 EXECUTE STMT USING @skip, @numrows;
 ```
 
-
 有两个参数，第一个参数指定要返回的第一行的偏移量，第二个参数指定要返回的最大行数。初始行的偏移量为 0（不是 1）
 要检索从某个偏移量到结果集末尾的所有行，您可以为第二个参数使用一些较大的数字。
 使用一个参数，该值指定从结果集开头返回的行数，也就是说，LIMIT row_count 相当于 LIMIT 0, row_count。
 为了与 PostgreSQL 兼容，MySQL 还支持 LIMIT row_count OFFSET 偏移语法。
 
-
-
-
-
-
-
-
-
 通常，使用的子句必须完全按照语法描述中显示的顺序给出。
 例如，HAVING 子句必须位于任何 GROUP BY 子句之后和任何 ORDER BY 子句之前。 
 INTO 子句（如果存在）可以出现在语法描述指示的任何位置，但在给定语句中只能出现一次，不能出现在多个位置。
 
-
-
 去重
 设置别名
-限制查询
+限制查询结果条数
 条件查询
 模糊查询
 范围查询
@@ -960,37 +949,37 @@ having
 
 |格式 | 描述|
 |--|--|
-|`%a` | 缩写星期名
-|`%b` | 缩写月名
-|`%c` | 月，数值
-|`%D` | 带有英文前缀的月中的天
-|`%d` | 月的天，数值(00-31)
-|`%e` | 月的天，数值(0-31)
-|`%f` | 微秒
-|`%H` | 小时 (00-23)
-|`%h` | 小时 (01-12)
-|`%I` | 小时 (01-12)
-|`%i` | 分钟，数值(00-59)
-|`%j` | 年的天 (001-366)
-|`%k` | 小时 (0-23)
-|`%l` | 小时 (1-12)
-|`%M` | 月名
-|`%m` | 月，数值(00-12)
-|`%p` | AM 或 PM
-|`%r` | 时间，12-小时（hh:mm:ss AM 或 PM）
-|`%S` | 秒(00-59)
-|`%s` | 秒(00-59)
-|`%T` | 时间, 24-小时 (hh:mm:ss)
-|`%U` | 周 (00-53) 星期日是一周的第一天
-|`%u` | 周 (00-53) 星期一是一周的第一天
-|`%V` | 周 (01-53) 星期日是一周的第一天，与 %X 使用
-|`%v` | 周 (01-53) 星期一是一周的第一天，与 %x 使用
-|`%W` | 星期名
-|`%w` | 周的天 （0=星期日, 6=星期六）
-|`%X` | 年，其中的星期日是周的第一天，4 位，与 %V 使用
-|`%x` | 年，其中的星期一是周的第一天，4 位，与 %v 使用
-|`%Y` | 年，4 位
-|`%y` | 年，2 位
+|`%a` | 缩写星期名 |
+|`%b` | 缩写月名 |
+|`%c` | 月，数值 |
+|`%D` | 带有英文前缀的月中的天 |
+|`%d` | 月的天，数值(00-31) |
+|`%e` | 月的天，数值(0-31) |
+|`%f` | 微秒 |
+|`%H` | 小时 (00-23) |
+|`%h` | 小时 (01-12) |
+|`%I` | 小时 (01-12) |
+|`%i` | 分钟，数值(00-59) |
+|`%j` | 年的天 (001-366) |
+|`%k` | 小时 (0-23) |
+|`%l` | 小时 (1-12) |
+|`%M` | 月名 |
+|`%m` | 月，数值(00-12) |
+|`%p` | AM 或 PM |
+|`%r` | 时间，12-小时（hh:mm:ss AM 或 PM） |
+|`%S` | 秒(00-59) |
+|`%s` | 秒(00-59) |
+|`%T` | 时间, 24-小时 (hh:mm:ss) |
+|`%U` | 周 (00-53) 星期日是一周的第一天 |
+|`%u` | 周 (00-53) 星期一是一周的第一天 |
+|`%V` | 周 (01-53) 星期日是一周的第一天，与 %X 使用 |
+|`%v` | 周 (01-53) 星期一是一周的第一天，与 %x 使用 |
+|`%W` | 星期名 |
+|`%w` | 周的天 （0=星期日, 6=星期六） |
+|`%X` | 年，其中的星期日是周的第一天，4 位，与 %V 使用 |
+|`%x` | 年，其中的星期一是周的第一天，4 位，与 %v 使用 |
+|`%Y` | 年，4 位 |
+|`%y` | 年，2 位 |
 
 ```sql
 select date_format(now(), '%Y-%m-%d %H:%i:%s');
@@ -1021,6 +1010,7 @@ select from_unixtime('1234567890');
 
 
 ### 聚合函数
+聚合函数是指将查询到的所有结果进行相应的操作
 
 | 函数      | 含义    |
 | --------- | -------- |
@@ -1033,6 +1023,7 @@ select from_unixtime('1234567890');
 
 
 ### 流程控制函数
+流程控制函数是指语句按指定条件进行执行
 
 | 函数      | 含义    |
 | --------- | -------- |
@@ -1150,7 +1141,9 @@ CREATE VIEW <视图名> AS <SELECT语句>
 * 更新主键的代价很高，因为将会导致被更新的行移动。因此，对于InnoDB表，我们一般定义主键为不可更新
 * 二级索引访问需要两次索引查找，第一次找到主键值，第二次根据主键值找到行数据。
   二级索引的叶节点存储的是主键值，而不是行指针（非聚簇索引存储的是指针或者说是地址），这是为了减少当出现行移动或数据页分裂时二级索引的维护工作，但会让二级索引占用更多的空间。
-* 采用聚簇索引插入新值比采用非聚簇索引插入新值的速度要慢很多，因为插入要保证主键不能重复，判断主键不能重复，采用的方式在不同的索引下面会有很大的性能差距，聚簇索引遍历所有的叶子节点，非聚簇索引也判断所有的叶子节点，但是聚簇索引的叶子节点除了带有主键还有记录值，记录的大小往往比主键要大的多。这样就会导致聚簇索引在判定新记录携带的主键是否重复时进行昂贵的I/O代价。
+* 采用聚簇索引插入新值比采用非聚簇索引插入新值的速度要慢很多，因为插入要保证主键不能重复，判断主键不能重复，采用的方式在不同的索引下面会有很大的性能差距，
+* 聚簇索引遍历所有的叶子节点，非聚簇索引也判断所有的叶子节点，但是聚簇索引的叶子节点除了带有主键还有记录值，记录的大小往往比主键要大的多。
+* 这样就会导致聚簇索引在判定新记录携带的主键是否重复时进行昂贵的I/O代价。
 
 
 由于聚簇索引是将数据跟索引结构放到一块，因此一个表仅有一个聚簇索引
@@ -1165,10 +1158,13 @@ InnoDB也使用B+Tree作为索引结构，但具体实现方式却与MyISAM截�
 MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址。
 而在InnoDB中，表数据文件本身就是按B+Tree组织的一个索引结构，这棵树的叶节点data域保存了完整的数据记录。
 这个索引的key是数据表的主键，因此InnoDB表数据文件本身就是主索引。
-叶节点包含了完整的数据记录。这种索引叫做聚集索引。因为InnoDB的数据文件本身要按主键聚集，所以InnoDB要求表必须有主键（MyISAM可以没有），如果没有显式指定，则MySQL系统会自动选择一个可以唯一标识数据记录的列作为主键，如果不存在这种列，则MySQL自动为InnoDB表生成一个隐含字段作为主键，这个字段长度为6个字节，类型为长整形。
+叶节点包含了完整的数据记录。这种索引叫做聚集索引。因为InnoDB的数据文件本身要按主键聚集，所以InnoDB要求表必须有主键（MyISAM可以没有），
+如果没有显式指定，则MySQL系统会自动选择一个可以唯一标识数据记录的列作为主键，
+如果不存在这种列，则MySQL自动为InnoDB表生成一个隐含字段作为主键，这个字段长度为6个字节，类型为长整形。
 InnoDB的辅助索引
    InnoDB的所有辅助索引都引用主键作为data域。
-InnoDB 表是基于聚簇索引建立的。因此InnoDB 的索引能提供一种非常快速的主键查找性能。不过，它的辅助索引（Secondary Index， 也就是非主键索引）也会包含主键列，所以，如果主键定义的比较大，其他索引也将很大。如果想在表上定义 、很多索引，则争取尽量把主键定义得小一些。InnoDB 不会压缩索引。
+InnoDB 表是基于聚簇索引建立的。因此InnoDB 的索引能提供一种非常快速的主键查找性能。不过，它的辅助索引（Secondary Index， 也就是非主键索引）也会包含主键列，
+所以，如果主键定义的比较大，其他索引也将很大。如果想在表上定义 、很多索引，则争取尽量把主键定义得小一些。InnoDB 不会压缩索引。
 文字符的ASCII码作为比较准则。聚集索引这种实现方式使得按主键的搜索十分高效，但是辅助索引搜索需要检索两遍索引：首先检索辅助索引获得主键，然后用主键到主索引中检索获得记录。
 不同存储引擎的索引实现方式对于正确使用和优化索引都非常有帮助，例如知道了InnoDB的索引实现后，就很容易明白：
 1. 为什么不建议使用过长的字段作为主键，因为所有辅助索引都引用主索引，过长的主索引会令辅助索引变得过大。再例如，
@@ -1509,10 +1505,13 @@ trigger_order: { FOLLOWS | PRECEDES } other_trigger_name
 
 
 BEFORE | AFTER
-BEFORE 和 AFTER，触发器被触发的时刻，表示触发器是在激活它的语句之前或之后触发。若希望验证新数据是否满足条件，则使用 BEFORE 选项；若希望在激活触发器的语句执行之后完成几个或更多的改变，则通常使用 AFTER 选项。
+BEFORE 和 AFTER，触发器被触发的时刻，表示触发器是在激活它的语句之前或之后触发。若希望验证新数据是否满足条件，则使用 BEFORE 选项；
+若希望在激活触发器的语句执行之后完成几个或更多的改变，则通常使用 AFTER 选项。
 
 表名
-与触发器相关联的表名，此表必须是永久性表，不能将触发器与临时表或视图关联起来。在该表上触发事件发生时才会激活触发器。同一个表不能拥有两个具有相同触发时刻和事件的触发器。例如，对于一张数据表，不能同时有两个 BEFORE UPDATE 触发器，但可以有一个 BEFORE UPDATE 触发器和一个 BEFORE INSERT 触发器，或一个 BEFORE UPDATE 触发器和一个 AFTER UPDATE 触发器。
+与触发器相关联的表名，此表必须是永久性表，不能将触发器与临时表或视图关联起来。在该表上触发事件发生时才会激活触发器。
+同一个表不能拥有两个具有相同触发时刻和事件的触发器。
+例如，对于一张数据表，不能同时有两个 BEFORE UPDATE 触发器，但可以有一个 BEFORE UPDATE 触发器和一个 BEFORE INSERT 触发器，或一个 BEFORE UPDATE 触发器和一个 AFTER UPDATE 触发器。
 
 触发器主体
 触发器动作主体，包含触发器激活时将要执行的 MySQL 语句。如果要执行多个语句，可使用 BEGIN…END 复合语句结构。
@@ -1586,10 +1585,172 @@ interval:
 
 ## 变量
 ### 局部变量
+局部变量一般用在sql语句块中，比如存储过程的begin/end。其作用域仅限于该语句块，在该语句块执行完毕后，局部变量就消失了。declare语句专门用于定义局部变量，可以使用default来说明默认值。set语句是设置不同类型的变量，包括会话变量和全局变量。 
+局部变量定义语法形式
+```sql
+declare var_name [, var_name]... data_type [ DEFAULT value ];
+```
+例如在begin/end语句块中添加如下一段语句，接受函数传进来的a/b变量然后相加，通过set语句赋值给c变量。 
+
+set语句语法形式set var_name=expr [, var_name=expr]...; set语句既可以用于局部变量的赋值，也可以用于用户变量的申明并赋值。
+```sql
+declare c int default 0;
+set c=a+b;
+select c as C;
+```
+或者用select …. into…形式赋值
+```sql
+select col_name[,...] into var_name[,...] table_expr [where...];
+```
 ### 用户变量
+
+MySQL中用户变量不用事前申明，在用的时候直接用“@变量名”使用就可以了。 
+第一种用法：set @num=1; 或set @num:=1; //这里要使用set语句创建并初始化变量，直接使用@num变量 
+第二种用法：select @num:=1; 或 select @num:=字段名 from 表名 where ……， 
+
+select语句一般用来输出用户变量，比如select @变量名，用于输出数据源不是表格的数据。
+注意上面两种赋值符号，使用set时可以用“=”或“:=”，但是使用select时必须用“:=赋值”
+用户变量与数据库连接有关，在连接中声明的变量，在存储过程中创建了用户变量后一直到数据库实例接断开的时候，变量就会消失。
+在此连接中声明的变量无法在另一连接中使用。
+
+用户变量的变量名的形式为@varname的形式。
+名字必须以@开头。
+声明变量的时候需要使用set语句，比如下面的语句声明了一个名为@a的变量。
+```sql
+set @a = 1;
+```
+
+声明一个名为@a的变量，并将它赋值为1，MySQL里面的变量是不严格限制数据类型的，它的数据类型根据你赋给它的值而随时变化 。（SQL SERVER中使用declare语句声明变量，且严格限制数据类型。） 
+
+我们还可以使用select语句为变量赋值 。 
+
+比如：
+```sql
+set @name = '';
+select @name:=password from user limit 0,1;
+```
+
+#从数据表中获取一条记录password字段的值给@name变量。在执行后输出到查询结果集上面。
+（注意等于号前面有一个冒号，后面的limit 0,1是用来限制返回结果的，表示可以是0或1个。相当于SQL SERVER里面的top 1） 
+
+如果直接写：`select @name:=password from user;`
+
+如果这个查询返回多个值的话，那@name变量的值就是最后一条记录的password字段的值 。 
+
+用户变量可以作用于当前整个连接，但当当前连接断开后，其所定义的用户变量都会消失。 
+
+用户变量使用如下（我们无须使用declare关键字对用户变量进行定义，可以直接这样使用）定义，变量名必须以@开始：
+```sql
+-- 定义
+select @变量名  或者 select @变量名:= 字段名 from 表名 where 过滤语句;
+set @变量名;
+-- 赋值 @num为变量名，value为值
+set @num=value;或select @num:=value;
+```
+
+对用户变量赋值有两种方式，一种是直接用”=”号，另一种是用”:=”号。其区别在于使用set命令对用户变量进行赋值时，两种方式都可以使用；当使用select语句对用户变量进行赋值时，只能使用”:=”方式，因为在select语句中，”=”号declare语句专门用于定义局部变量。set语句是设置不同类型的变量，包括会话变量和全局变量。
+
+例如：
+```sql
+begin
+    declare c int default 0;
+    set @var1=143;  #定义一个用户变量，并初始化为143
+    set @var2=34;
+    set c=a+b;
+    set @d=c;
+    select @sum:=(@var1+@var2) as sum, @dif:=(@var1-@var2) as dif, @d as C;#使用用户变量。@var1表示变量名
+
+    set c=100;
+    select c as CA;
+end
+```
+
+#在查询中执行下面语句段
+call `order`(12,13);  #执行上面定义的存储过程
+select @var1;  #看定义的用户变量在存储过程执行完后，是否还可以输出，结果是可以输出用户变量@var1,@var2两个变量的。
+select @var2;
+复制代码
+在执行完order存储过程后，在存储过程中新建的var1，var2用户变量还是可以用select语句输出的，但是存储过程里面定义的局部变量c不能识别。
+
 ### 系统变量
-会话变量
-全局变量
+系统变量又分为全局变量与会话变量。
+
+全局变量在MySQL启动的时候由服务器自动将它们初始化为默认值，这些默认值可以通过更改my.ini这个文件来更改。
+
+会话变量在每次建立一个新的连接的时候，由MySQL来初始化。MySQL会将当前所有全局变量的值复制一份。来做为会话变量。
+
+（也就是说，如果在建立会话以后，没有手动更改过会话变量与全局变量的值，那所有这些变量的值都是一样的。）
+
+全局变量与会话变量的区别就在于，对全局变量的修改会影响到整个服务器，但是对会话变量的修改，只会影响到当前的会话（也就是当前的数据库连接）。
+
+我们可以利用
+
+show session variables;
+语句将所有的会话变量输出（可以简写为show variables，没有指定是输出全局变量还是会话变量的话，默认就输出会话变量。）如果想输出所有全局变量：
+
+show global variables
+有些系统变量的值是可以利用语句来动态进行更改的，但是有些系统变量的值却是只读的。
+
+对于那些可以更改的系统变量，我们可以利用set语句进行更改。
+
+系统变量在变量名前面有两个@； 
+
+如果想要更改会话变量的值，利用语句：
+`set session varname = value;`或者`set @@session.varname = value;`
+
+
+#### 会话变量
+
+服务器为每个连接的客户端维护一系列会话变量。在客户端连接数据库实例时，使用相应全局变量的当前值对客户端的会话变量进行初始化。设置会话变量不需要特殊权限，但客户端只能更改自己的会话变量，而不能更改其它客户端的会话变量。会话变量的作用域与用户变量一样，仅限于当前连接。当当前连接断开后，其设置的所有会话变量均失效。
+
+设置会话变量有如下三种方式更改会话变量的值：
+
+```sql
+set session var_name = value;
+set @@session.var_name = value;
+set var_name = value;  -- 缺省session关键字默认认为是session
+```
+
+
+查看所有的会话变量
+```sql
+show session variables;
+```
+查看一个会话变量也有如下三种方式：
+```sql
+select @@var_name;
+select @@session.var_name;
+show session variables like "%var%";
+```
+
+凡是上面提到的session，都可以用local这个关键字来代替。 
+```sql
+select @@local.sort_buffer_size 
+```
+
+无论是在设置系统变量还是查询系统变量值的时候，只要没有指定到底是全局变量还是会话变量。都当做会话变量来处理。 
+
+
+#### 全局变量
+
+全局变量影响服务器整体操作。当服务器启动时，它将所有全局变量初始化为默认值。这些默认值可以在选项文件中或在命令行中指定的选项进行更改。要想更改全局变量，必须具有super权限。全局变量作用于server的整个生命周期，但是不能跨重启。即重启后所有设置的全局变量均失效。要想让全局变量重启后继续生效，需要更改相应的配置文件。
+
+要设置一个全局变量，有如下两种方式：
+```sql
+set global var_name = value; -- 注意：此处的global不能省略。根据手册，set命令设置变量时若不指定GLOBAL、SESSION或者LOCAL，默认使用SESSION
+set @@global.var_name = value; -- 同上
+```
+
+查看所有的全局变量 
+```sql
+show global variables; 
+```
+
+要想查看一个全局变量，有如下两种方式：
+```sql
+select @@global.var_name;
+show global variables like “%var%”;
+```
 
 
 # 进阶知识
@@ -1735,9 +1896,268 @@ BNL转BKA
 
 
 ## mysql锁
+
+锁机制
+根据不同机制可以将锁分为共享锁与排他锁
+* 共享锁（读锁）：其他事务可以读，但不能写。
+* 排他锁（写锁） ：其他事务不能读取，也不能写。
+
+粒度锁
+MySQL 不同的存储引擎支持不同的锁机制，所有的存储引擎都以自己的方式显现了锁机制，服务器层完全不了解存储引擎中的锁实现：
+
+* MyISAM 和 MEMORY 存储引擎采用的是表级锁（table-level locking）
+* BDB 存储引擎采用的是页面锁（page-level locking），但也支持表级锁
+* InnoDB 存储引擎既支持行级锁（row-level locking），也支持表级锁，但默认情况下是采用行级锁。
+
+默认情况下，表锁和行锁都是自动获得的， 不需要额外的命令。
+但是在有的情况下， 用户需要明确地进行锁表或者进行事务的控制， 以便确保整个事务的完整性，这样就需要使用事务控制和锁定语句来完成。
+
+不同粒度锁的比较：
+* 表级锁：开销小，加锁快；不会出现死锁；锁定粒度大，发生锁冲突的概率最高，并发度最低。 
+  - 这些存储引擎通过总是一次性同时获取所有需要的锁以及总是按相同的顺序获取表锁来避免死锁。
+  - 表级锁更适合于以查询为主，并发用户少，只有少量按索引条件更新数据的应用，如Web 应用
+* 行级锁：开销大，加锁慢；会出现死锁；锁定粒度最小，发生锁冲突的概率最低，并发度也最高。
+  - 最大程度的支持并发，同时也带来了最大的锁开销。
+  - 在 InnoDB 中，除单个 SQL 组成的事务外，锁是逐步获得的，这就决定了在 InnoDB 中发生死锁是可能的。
+  - 行级锁只在存储引擎层实现，而Mysql服务器层没有实现。行级锁更适合于有大量按索引条件并发更新少量不同数据，同时又有并发查询的应用，如一些在线事务处理（OLTP）系统
+* 页面锁：开销和加锁时间界于表锁和行锁之间；会出现死锁；锁定粒度界于表锁和行锁之间，并发度一般。
+
+
+MyISAM 表锁
+MyISAM表级锁模式：
+* 表共享读锁 （Table Read Lock）：不会阻塞其他用户对同一表的读请求，但会阻塞对同一表的写请求；
+* 表独占写锁 （Table Write Lock）：会阻塞其他用户对同一表的读和写操作；
+
+MyISAM 表的读操作与写操作之间，以及写操作之间是串行的。当一个线程获得对一个表的写锁后， 只有持有锁的线程可以对表进行更新操作。 其他线程的读、 写操作都会等待，直到锁被释放为止。
+
+可以设置改变读锁和写锁的优先级：
+
+* 通过指定启动参数low-priority-updates，使MyISAM引擎默认给予读请求以优先的权利。
+* 通过执行命令SET LOW_PRIORITY_UPDATES=1，使该连接发出的更新请求优先级降低。
+* 通过指定INSERT、UPDATE、DELETE语句的LOW_PRIORITY属性，降低该语句的优先级。
+* 给系统参数max_write_lock_count设置一个合适的值，当一个表的读锁达到这个值后，MySQL就暂时将写请求的优先级降低，给读进程一定获得锁的机会。
+
+
+InnoDB行级锁和表级锁
+InnoDB锁模式：
+InnoDB 实现了以下两种类型的行锁：
+
+共享锁（S）：允许一个事务去读一行，阻止其他事务获得相同数据集的排他锁。
+排他锁（X）：允许获得排他锁的事务更新数据，阻止其他事务取得相同数据集的共享读锁和排他写锁。
+为了允许行锁和表锁共存，实现多粒度锁机制，InnoDB 还有两种内部使用的意向锁（Intention Locks），这两种意向锁都是表锁：
+
+意向共享锁（IS）：事务打算给数据行加行共享锁，事务在给一个数据行加共享锁前必须先取得该表的 IS 锁。
+意向排他锁（IX）：事务打算给数据行加行排他锁，事务在给一个数据行加排他锁前必须先取得该表的 IX 锁。
+
+InnoDB加锁方法：
+意向锁是 InnoDB 自动加的， 不需用户干预。
+对于 UPDATE、 DELETE 和 INSERT 语句， InnoDB
+会自动给涉及数据集加排他锁（X)；
+对于普通 SELECT 语句，InnoDB 不会加任何锁；
+事务可以通过以下语句显式给记录集加共享锁或排他锁：
+共享锁（S）：SELECT * FROM table_name WHERE ... LOCK IN SHARE MODE。 其他 session 仍然可以查询记录，并也可以对该记录加 share mode 的共享锁。但是如果当前事务需要对该记录进行更新操作，则很有可能造成死锁。
+排他锁（X)：SELECT * FROM table_name WHERE ... FOR UPDATE。其他 session 可以查询该记录，但是不能对该记录加共享锁或排他锁，而是等待获得锁
+
+
+隐式锁定：
+InnoDB在事务执行过程中，使用两阶段锁协议：
+
+随时都可以执行锁定，InnoDB会根据隔离级别在需要的时候自动加锁；
+
+锁只有在执行commit或者rollback的时候才会释放，并且所有的锁都是在同一时刻被释放。
+
+显式锁定 ：
+```sql
+select ... lock in share mode //共享锁 
+select ... for update //排他锁 
+```
+select for update：
+
+在执行这个 select 查询语句的时候，会将对应的索引访问条目进行上排他锁（X 锁），也就是说这个语句对应的锁就相当于update带来的效果。
+
+`select *** for update` 的使用场景：为了让自己查到的数据确保是最新数据，并且查到后的数据只允许自己来修改的时候，需要用到 for update 子句。
+
+select lock in share mode ：in share mode 子句的作用就是将查找到的数据加上一个 share 锁，这个就是表示其他的事务只能对这些数据进行简单的select 操作，并不能够进行 DML 操作。select *** lock in share mode 使用场景：为了确保自己查到的数据没有被其他的事务正在修改，也就是说确保查到的数据是最新的数据，并且不允许其他人来修改数据。但是自己不一定能够修改数据，因为有可能其他的事务也对这些数据 使用了 in share mode 的方式上了 S 锁。
+
+性能影响：
+select for update 语句，相当于一个 update 语句。在业务繁忙的情况下，如果事务没有及时的commit或者rollback 可能会造成其他事务长时间的等待，从而影响数据库的并发使用效率。
+select lock in share mode 语句是一个给查找的数据上一个共享锁（S 锁）的功能，它允许其他的事务也对该数据上S锁，但是不能够允许对该数据进行修改。如果不及时的commit 或者rollback 也可能会造成大量的事务等待。
+
+for update 和 lock in share mode 的区别：
+
+前一个上的是排他锁（X 锁），一旦一个事务获取了这个锁，其他的事务是没法在这些数据上执行 for update ；后一个是共享锁，多个事务可以同时的对相同数据执行 lock in share mode。
+
+InnoDB 行锁实现方式：
+InnoDB 行锁是通过给索引上的索引项加锁来实现的，这一点 MySQL 与 Oracle 不同，后者是通过在数据块中对相应数据行加锁来实现的。InnoDB 这种行锁实现特点意味着：只有通过索引条件检索数据，InnoDB 才使用行级锁，否则，InnoDB 将使用表锁！
+不论是使用主键索引、唯一索引或普通索引，InnoDB 都会使用行锁来对数据加锁。
+只有执行计划真正使用了索引，才能使用行锁：即便在条件中使用了索引字段，但是否使用索引来检索数据是由 MySQL 通过判断不同执行计划的代价来决定的，如果 MySQL 认为全表扫描效率更高，比如对一些很小的表，它就不会使用索引，这种情况下 InnoDB 将使用表锁，而不是行锁。因此，在分析锁冲突时，
+别忘了检查 SQL 的执行计划（可以通过 explain 检查 SQL 的执行计划），以确认是否真正使用了索引。（更多阅读：MySQL索引总结）
+由于 MySQL 的行锁是针对索引加的锁，不是针对记录加的锁，所以虽然多个session是访问不同行的记录， 但是如果是使用相同的索引键， 是会出现锁冲突的（后使用这些索引的session需要等待先使用索引的session释放锁后，才能获取锁）。 应用设计的时候要注意这一点。
+InnoDB的间隙锁：
+当我们用范围条件而不是相等条件检索数据，并请求共享或排他锁时，InnoDB会给符合条件的已有数据记录的索引项加锁；对于键值在条件范围内但并不存在的记录，叫做“间隙（GAP)”，InnoDB也会对这个“间隙”加锁，这种锁机制就是所谓的间隙锁（Next-Key锁）。
+
+很显然，在使用范围条件检索并锁定记录时，InnoDB这种加锁机制会阻塞符合条件范围内键值的并发插入，这往往会造成严重的锁等待。因此，在实际应用开发中，尤其是并发插入比较多的应用，我们要尽量优化业务逻辑，尽量使用相等条件来访问更新数据，避免使用范围条件。
+
+InnoDB使用间隙锁的目的：
+
+防止幻读，以满足相关隔离级别的要求；
+满足恢复和复制的需要：
+MySQL 通过 BINLOG 录入执行成功的 INSERT、UPDATE、DELETE 等更新数据的 SQL 语句，并由此实现 MySQL 数据库的恢复和主从复制。MySQL 的恢复机制（复制其实就是在 Slave Mysql 不断做基于 BINLOG 的恢复）有以下特点：
+
+一是 MySQL 的恢复是 SQL 语句级的，也就是重新执行 BINLOG 中的 SQL 语句。
+
+二是 MySQL 的 Binlog 是按照事务提交的先后顺序记录的， 恢复也是按这个顺序进行的。
+
+由此可见，MySQL 的恢复机制要求：在一个事务未提交前，其他并发事务不能插入满足其锁定条件的任何记录，也就是不允许出现幻读。
+
+InnoDB 在不同隔离级别下的一致性读及锁的差异：
+锁和多版本数据（MVCC）是 InnoDB 实现一致性读和 ISO/ANSI SQL92 隔离级别的手段。
+
+因此，在不同的隔离级别下，InnoDB 处理 SQL 时采用的一致性读策略和需要的锁是不同的：
+
+
+对于许多 SQL，隔离级别越高，InnoDB 给记录集加的锁就越严格（尤其是使用范围条件的时候），产生锁冲突的可能性也就越高，从而对并发性事务处理性能的 影响也就越大。
+
+因此， 我们在应用中， 应该尽量使用较低的隔离级别， 以减少锁争用的机率。实际上，通过优化事务逻辑，大部分应用使用 Read Commited 隔离级别就足够了。对于一些确实需要更高隔离级别的事务， 可以通过在程序中执行 SET SESSION TRANSACTION ISOLATION
+
+LEVEL REPEATABLE READ 或 SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE 动态改变隔离级别的方式满足需求。
+
+获取 InnoDB 行锁争用情况：
+可以通过检查 InnoDB_row_lock 状态变量来分析系统上的行锁的争夺情况：
+
+```sql
+mysql> show status like 'innodb_row_lock%';
++-------------------------------+-------+
+| Variable_name                 | Value |
++-------------------------------+-------+
+| Innodb_row_lock_current_waits | 0     |
+| Innodb_row_lock_time          | 0     |
+| Innodb_row_lock_time_avg      | 0     |
+| Innodb_row_lock_time_max      | 0     |
+| Innodb_row_lock_waits         | 0     |
++-------------------------------+-------+
+```
+
+LOCK TABLES 和 UNLOCK TABLES
+Mysql也支持lock tables和unlock tables，这都是在服务器层（MySQL Server层）实现的，和存储引擎无关，它们有自己的用途，并不能替代事务处理。 （除了禁用了autocommint后可以使用，其他情况不建议使用）：
+
+LOCK TABLES 可以锁定用于当前线程的表。如果表被其他线程锁定，则当前线程会等待，直到可以获取所有锁定为止。
+UNLOCK TABLES 可以释放当前线程获得的任何锁定。当前线程执行另一个 LOCK TABLES 时，
+或当与服务器的连接被关闭时，所有由当前线程锁定的表被隐含地解锁
+LOCK TABLES语法：
+在用 LOCK TABLES 对 InnoDB 表加锁时要注意，要将 AUTOCOMMIT 设为 0，否则MySQL 不会给表加锁；
+事务结束前，不要用 UNLOCK TABLES 释放表锁，因为 UNLOCK TABLES会隐含地提交事务；
+COMMIT 或 ROLLBACK 并不能释放用 LOCK TABLES 加的表级锁，必须用UNLOCK TABLES 释放表锁。
+正确的方式见如下语句：
+例如，如果需要写表 t1 并从表 t 读，可以按如下做：
+```sql
+SET AUTOCOMMIT=0; 
+LOCK TABLES t1 WRITE, t2 READ, ...; 
+[do something with tables t1 and t2 here]; 
+COMMIT; 
+UNLOCK TABLES;
+```
+
+使用LOCK TABLES的场景：
+给表显示加表级锁（InnoDB表和MyISAM都可以），一般是为了在一定程度模拟事务操作，实现对某一时间点多个表的一致性读取。（与MyISAM默认的表锁行为类似）
+
+在用 LOCK TABLES 给表显式加表锁时，必须同时取得所有涉及到表的锁，并且 MySQL 不支持锁升级。也就是说，在执行 LOCK TABLES 后，只能访问显式加锁的这些表，不能访问未加锁的表；同时，如果加的是读锁，那么只能执行查询操作，而不能执行更新操作。
+
+其实，在MyISAM自动加锁（表锁）的情况下也大致如此，MyISAM 总是一次获得 SQL 语句所需要的全部锁，这也正是 MyISAM 表不会出现死锁（Deadlock Free）的原因。
+
+例如，有一个订单表 orders，其中记录有各订单的总金额 total，同时还有一个 订单明细表 order_detail，其中记录有各订单每一产品的金额小计 subtotal，假设我们需要检 查这两个表的金额合计是否相符，可能就需要执行如下两条 SQL：
+
+Select sum(total) from orders; 
+Select sum(subtotal) from order_detail; 
+这时，如果不先给两个表加锁，就可能产生错误的结果，因为第一条语句执行过程中，
+order_detail 表可能已经发生了改变。因此，正确的方法应该是：
+
+Lock tables orders read local, order_detail read local; 
+Select sum(total) from orders; 
+Select sum(subtotal) from order_detail; 
+Unlock tables;
+（在 LOCK TABLES 时加了“local”选项，其作用就是允许当你持有表的读锁时，其他用户可以在满足 MyISAM 表并发插入条件的情况下，在表尾并发插入记录（MyISAM 存储引擎支持“并发插入”））
+
+死锁（Deadlock Free）
+死锁产生：
+死锁是指两个或多个事务在同一资源上相互占用，并请求锁定对方占用的资源，从而导致恶性循环。
+当事务试图以不同的顺序锁定资源时，就可能产生死锁。多个事务同时锁定同一个资源时也可能会产生死锁。
+锁的行为和顺序和存储引擎相关。以同样的顺序执行语句，有些存储引擎会产生死锁有些不会——死锁有双重原因：真正的数据冲突；存储引擎的实现方式。
+检测死锁：数据库系统实现了各种死锁检测和死锁超时的机制。InnoDB存储引擎能检测到死锁的循环依赖并立即返回一个错误。
+死锁恢复：死锁发生以后，只有部分或完全回滚其中一个事务，才能打破死锁，InnoDB目前处理死锁的方法是，将持有最少行级排他锁的事务进行回滚。所以事务型应用程序在设计时必须考虑如何处理死锁，多数情况下只需要重新执行因死锁回滚的事务即可。
+外部锁的死锁检测：发生死锁后，InnoDB 一般都能自动检测到，并使一个事务释放锁并回退，另一个事务获得锁，继续完成事务。但在涉及外部锁，或涉及表锁的情况下，InnoDB 并不能完全自动检测到死锁， 这需要通过设置锁等待超时参数 innodb_lock_wait_timeout 来解决
+死锁影响性能：死锁会影响性能而不是会产生严重错误，因为InnoDB会自动检测死锁状况并回滚其中一个受影响的事务。在高并发系统上，当许多线程等待同一个锁时，死锁检测可能导致速度变慢。 有时当发生死锁时，禁用死锁检测（使用innodb_deadlock_detect配置选项）可能会更有效，这时可以依赖innodb_lock_wait_timeout设置进行事务回滚。
+MyISAM避免死锁：
+在自动加锁的情况下，MyISAM 总是一次获得 SQL 语句所需要的全部锁，所以 MyISAM 表不会出现死锁。
+InnoDB避免死锁：
+为了在单个InnoDB表上执行多个并发写入操作时避免死锁，可以在事务开始时通过为预期要修改的每个元祖（行）使用SELECT ... FOR UPDATE语句来获取必要的锁，即使这些行的更改语句是在之后才执行的。
+在事务中，如果要更新记录，应该直接申请足够级别的锁，即排他锁，而不应先申请共享锁、更新时再申请排他锁，因为这时候当用户再申请排他锁时，其他事务可能又已经获得了相同记录的共享锁，从而造成锁冲突，甚至死锁
+如果事务需要修改或锁定多个表，则应在每个事务中以相同的顺序使用加锁语句。 在应用中，如果不同的程序会并发存取多个表，应尽量约定以相同的顺序来访问表，这样可以大大降低产生死锁的机会
+通过SELECT ... LOCK IN SHARE MODE获取行的读锁后，如果当前事务再需要对该记录进行更新操作，则很有可能造成死锁。
+改变事务隔离级别
+如果出现死锁，可以用 SHOW INNODB STATUS 命令来确定最后一个死锁产生的原因。返回结果中包括死锁相关事务的详细信息，如引发死锁的 SQL 语句，事务已经获得的锁，正在等待什么锁，以及被回滚的事务等。据此可以分析死锁产生的原因和改进措施。
+
+一些优化锁性能的建议
+尽量使用较低的隔离级别；
+精心设计索引， 并尽量使用索引访问数据， 使加锁更精确， 从而减少锁冲突的机会
+选择合理的事务大小，小事务发生锁冲突的几率也更小
+给记录集显示加锁时，最好一次性请求足够级别的锁。比如要修改数据的话，最好直接申请排他锁，而不是先申请共享锁，修改时再请求排他锁，这样容易产生死锁
+不同的程序访问一组表时，应尽量约定以相同的顺序访问各表，对一个表而言，尽可能以固定的顺序存取表中的行。这样可以大大减少死锁的机会
+尽量用相等条件访问数据，这样可以避免间隙锁对并发插入的影响
+不要申请超过实际需要的锁级别
+除非必须，查询时不要显示加锁。 MySQL的MVCC可以实现事务中的查询不用加锁，优化事务性能；MVCC只在COMMITTED READ（读提交）和REPEATABLE READ（可重复读）两种隔离级别下工作
+对于一些特定的事务，可以使用表锁来提高处理速度或减少死锁的可能
+乐观锁、悲观锁
+乐观锁(Optimistic Lock)：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。 乐观锁不能解决脏读的问题。
+乐观锁, 顾名思义，就是很乐观，每次去拿数据的时候都认为别人不会修改，所以不会上锁，但是在更新的时候会判断一下在此期间别人有没有去更新这个数据，可以使用版本号等机制。乐观锁适用于多读的应用类型，这样可以提高吞吐量，像数据库如果提供类似于write_condition机制的其实都是提供的乐观锁。
+
+悲观锁(Pessimistic Lock)：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。
+悲观锁，顾名思义，就是很悲观，每次去拿数据的时候都认为别人会修改，所以每次在拿数据的时候都会上锁，这样别人想拿这个数据就会block直到它拿到锁。传统的关系型数据库里边就用到了很多这种锁机制，比如行锁，表锁等，读锁，写锁等，都是在做操作之前先上锁。
+
+
+
+
 全局锁
 表级锁
+表级锁的优点：
+* 所需内存相对较少（行锁定需要每行或每组行锁定的内存）
+* 在表的大部分上使用时速度很快，因为只涉及一个锁。
+* 如果您经常对大部分数据进行 GROUP BY 操作或者必须经常扫描整个表，则速度很快。
+
 行锁
+行级锁的优点：
+* 当不同的会话访问不同的行时，锁冲突更少。
+* 回滚的更改更少。
+* 可能长时间锁定单行。
+
+MySQL 授予表写锁如下：
+如果表上没有锁，则在其上放置一个写锁。
+否则，将锁请求放入写锁队列。
+MySQL 授予表读锁如下：
+如果表上没有写锁，则在其上放置读锁。
+否则，将锁请求放入读锁队列。
+
+表更新的优先级高于表检索。因此，当锁被释放时，该锁可用于写锁队列中的请求，然后可用于读锁队列中的请求。这确保即使表有大量 SELECT 活动，表的更新也不会“匮乏”。但是，如果表有很多更新，SELECT 语句会等到没有更多更新为止。
+
+如果您使用 LOCK TABLES 显式获取表锁，则可以请求 READ LOCAL 锁而不是 READ 锁，以允许其他会话在您锁定表时执行并发插入。
+
+通常，表锁在以下情况下优于行级锁：
+* 该表的大多数语句都是读取的。
+* 该表的语句是读取和写入的混合，其中写入是对单个行的更新或删除，可以通过读取一个键来获取：
+```sql
+UPDATE tbl_name SET column=value WHERE unique_key_col=key_value;
+DELETE FROM tbl_name WHERE unique_key_col=key_value;
+```
+* SELECT 结合了并发的 INSERT 语句，以及很少的 UPDATE 或 DELETE 语句。
+* 在没有任何编写器的情况下对整个表进行多次扫描或 GROUP BY 操作。
+
+使用更高级别的锁，您可以通过支持不同类型的锁来更轻松地调整应用程序，因为锁开销小于行级锁。
+
+行级锁定以外的选项：
+版本控制（例如 MySQL 中用于并发插入的版本控制），其中可以同时拥有一个写入器和多个读取器。这意味着数据库或表根据访问开始的时间支持不同的数据视图。其他常用术语是“时间旅行”、“写时复制”或“按需复制”。
+在许多情况下，按需复制优于行级锁定。然而，在最坏的情况下，它可以使用比使用普通锁更多的内存。
+您可以使用应用程序级锁来代替行级锁，例如 MySQL 中由 GET_LOCK() 和 RELEASE_LOCK() 提供的锁。这些是咨询锁，因此它们仅适用于相互协作的应用程序。
+
 
 两阶段锁 行锁需要的时候获取，但不是立即释放是等到事务结束时释放
 死锁和死锁检测
@@ -1809,12 +2229,19 @@ hash索引和B-Tree索引
 
 启动主从节点
 
-配置主从信息
+主节点配置从节点信息
+
+获取当前master节点状态
+```sql
+show master status \G;
+```
 
 从节点注册
 ```sql
 change master to master_user='root', master_password='123456', master_host='172.17.0.2', master_log_file='mysql-bin.000003', master_log_pos=2067;
 ```
+
+向主节点注册后使用`start slave`和`stop slave`进行开关副本的拷贝
 
 一旦执行binlog某一条语句出错则后面的语句则不会再执行
 
@@ -1920,10 +2347,6 @@ innoDB刷脏页的控制策略
 
 短连接风暴
 
-慢查询性能
-查看慢日志
-log_output 参数是指定日志的存储方式。log_output='FILE'表示将日志存入文件，默认值是'FILE'。log_output='TABLE'表示将日志存入数据库，这样日志信息就会被写入到mysql.slow_log表中。MySQL数据库支持同时两种日志存储方式，配置的时候以逗号隔开即可，如：log_output='FILE,TABLE'。日志记录到系统的专用日志表中，要比记录到文件耗费更多的系统资源，因此对于需要启用慢查询日志，又需要能够获得更高的系统性能，那么建议优先记录到文件。
-
 
 qps突增
 
@@ -1933,6 +2356,191 @@ qps突增
 
 修改服务器配置
 
+
+## 慢查询
+慢查询性能
+查看慢日志
+log_output 参数是指定日志的存储方式。log_output='FILE'表示将日志存入文件，默认值是'FILE'。
+log_output='TABLE'表示将日志存入数据库，这样日志信息就会被写入到mysql.slow_log表中。
+MySQL数据库支持同时两种日志存储方式，配置的时候以逗号隔开即可，如：log_output='FILE,TABLE'。
+日志记录到系统的专用日志表中，要比记录到文件耗费更多的系统资源，因此对于需要启用慢查询日志，又需要能够获得更高的系统性能，那么建议优先记录到文件。
+
+
+分析语句
+```sql
+{EXPLAIN | DESCRIBE | DESC}
+    tbl_name [col_name | wild]
+
+{EXPLAIN | DESCRIBE | DESC}
+    [explain_type]
+    {explainable_stmt | FOR CONNECTION connection_id}
+
+explain_type: {
+    EXTENDED
+  | PARTITIONS
+  | FORMAT = format_name
+}
+
+format_name: {
+    TRADITIONAL
+  | JSON
+}
+
+explainable_stmt: {
+    SELECT statement
+  | DELETE statement
+  | INSERT statement
+  | REPLACE statement
+  | UPDATE statement
+}
+```
+
+DESCRIBE 和 EXPLAIN 语句是同义词。
+在实践中，DESCRIBE 关键字更多地用于获取表结构信息，而 EXPLAIN 用于获取查询执行计划（即 MySQL 将如何执行查询的解释）。DESCRIBE 是 SHOW COLUMNS 的快捷方式，所以支持显示表中的单列数据.
+
+* EXPLAIN 适用于 SELECT、DELETE、INSERT、REPLACE 和 UPDATE 语句。
+* 当 EXPLAIN 与可解释的语句一起使用时，MySQL 会显示来自优化器的有关语句执行计划的信息。也就是说，MySQL 解释了它将如何处理该语句，包括有关表如何连接以及连接顺序的信息。
+* EXPLAIN 对于检查涉及分区表的查询很有用。
+* FORMAT 选项可用于选择输出格式。 TRADITIONAL 以表格格式显示输出。如果没有 FORMAT 选项，这是默认值。 JSON 格式以 JSON 格式显示信息。
+* EXPLAIN 需要执行解释语句所需的相同特权。此外，EXPLAIN 还需要所有需要 EXPLAIN 视图的 SHOW VIEW 权限。
+
+在 EXPLAIN 的帮助下，您可以看到应该在表的何处添加索引，以便通过使用索引查找行来更快地执行语句。您还可以使用 EXPLAIN 检查优化器是否以最佳顺序连接表。要提示优化器使用与表在 SELECT 语句中的命名顺序相对应的连接顺序，请以 SELECT STRAIGHT_JOIN 而不是只是 SELECT 开始该语句。
+
+
+EXPLAIN 为 SELECT 语句中使用的每个表返回一行信息。它按照 MySQL 在处理语句时读取它们的顺序列出输出中的表。 MySQL 使用嵌套循环连接方法解析所有连接。这意味着 MySQL 从第一个表中读取一行，然后在第二个表、第三个表等中找到匹配的行。当所有的表都被处理完后，MySQL 将选择的列输出，并在表列表中回溯，直到找到一个有更多匹配行的表。从此表中读取下一行，然后继续处理下一个表。
+
+EXPLAIN 输出列
+
+| Column | JSON Name | Meaning |
+| --- | --- | --- |
+| [`id`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_id) | `select_id` | The `SELECT` identifier |
+| [`select_type`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_select_type) | None | The `SELECT` type |
+| [`table`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_table) | `table_name` | The table for the output row |
+| [`partitions`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_partitions) | `partitions` | The matching partitions |
+| [`type`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_type) | `access_type` | The join type |
+| [`possible_keys`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_possible_keys) | `possible_keys` | The possible indexes to choose |
+| [`key`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_key) | `key` | The index actually chosen |
+| [`key_len`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_key_len) | `key_length` | The length of the chosen key |
+| [`ref`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_ref) | `ref` | The columns compared to the index |
+| [`rows`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_rows) | `rows` | Estimate of rows to be examined |
+| [`filtered`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_filtered) | `filtered` | Percentage of rows filtered by table condition |
+| [`Extra`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_extra) | None | Additional information |
+
+* id 选择标识符。这是查询中 SELECT 的序号。如果该行引用其他行的联合结果，则该值可以为 NULL。在这种情况下，表列显示一个类似 `<unionM,N>` 的值，表示该行引用 id 值为 M 和 N 的行的并集。
+* select_type SELECT 的类型，可以是下表中显示的任何一种。 JSON 格式的 EXPLAIN 将 SELECT 类型公开为 query_block 的属性，除非它是 SIMPLE 或 PRIMARY。 JSON 名称（如果适用）也显示在表中。
+| `select_type` Value | JSON Name | Meaning |
+| --- | --- | --- |
+| `SIMPLE` | None | Simple [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") (not using [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") or subqueries) |
+| `PRIMARY` | None | Outermost [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") |
+| [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") | None | Second or later [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") statement in a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") |
+| `DEPENDENT UNION` | `dependent` (`true`) | Second or later [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") statement in a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause"), dependent on outer query |
+| `UNION RESULT` | `union_result` | Result of a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause"). |
+| [`SUBQUERY`](https://dev.mysql.com/doc/refman/5.7/en/optimizer-hints.html#optimizer-hints-subquery "Subquery Optimizer Hints") | None | First [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") in subquery |
+| `DEPENDENT SUBQUERY` | `dependent` (`true`) | First [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") in subquery, dependent on outer query |
+| `DERIVED` | None | Derived table |
+| `MATERIALIZED` | `materialized_from_subquery` | Materialized subquery |
+| `UNCACHEABLE SUBQUERY` | `cacheable` (`false`) | A subquery for which the result cannot be cached and must be re-evaluated for each row of the outer query |
+| `UNCACHEABLE UNION` | `cacheable` (`false`) | The second or later select in a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") that belongs to an uncacheable subquery (see `UNCACHEABLE SUBQUERY`) |
+
+* `table` 输出行所引用的表的名称。这也可以是以下值之一：
+  - `<unionM,N>`：该行是指id值为M和N的行的并集。
+  - `<derivedN>`：该行引用 id 值为 N 的行的派生表结果。例如，派生表可能来自 FROM 子句中的子查询。
+  - `<subqueryN>`：该行引用 id 值为 N 的行的具体化子查询的结果。
+* `partitions` 查询将匹配记录的分区。对于非分区表，该值为 NULL。
+* `type` join的类型。在 JSON 格式的输出中，这些作为 access_type 属性的值被发现。下面的列表描述了连接类型，从最好的类型到最差的排序：
+  - `system` 该表只有一行（=系统表）。这是 const 连接类型的特例。
+  - `const` 该表最多有一个匹配行，在查询开始时读取。因为只有一行，所以优化器的其余部分可以将这一行中列的值视为常量。 const 表非常快，因为它们只读一次。
+  - `eq_ref` 对于先前表中行的每个组合，从该表中读取一行。除了 system 和 const 类型，这是最好的连接类型。当连接使用索引的所有部分并且索引是 PRIMARY KEY 或 UNIQUE NOT NULL 索引时使用它。eq_ref 可用于使用 = 运算符进行比较的索引列。比较值可以是常量或表达式，它使用在此表之前读取的表中的列。
+  - `ref` 对于先前表中行的每个组合，从该表中读取具有匹配索引值的所有行。如果连接仅使用键的最左边前缀，或者如果键不是 PRIMARY KEY 或 UNIQUE 索引（换句话说，如果连接不能根据键值选择单个行），则使用 ref。如果使用的键只匹配几行，这是一个很好的连接类型。ref 可用于使用 = 或 <=> 运算符进行比较的索引列。
+  - `fulltext` 使用 FULLTEXT 索引执行的。
+  - `ref_or_null` 这种连接类型类似于 ref，但 MySQL 会额外搜索包含 NULL 值的行。这种连接类型优化最常用于解析子查询。
+  - `index_merge` 此连接类型表示使用索引合并优化。在这种情况下，输出行中的键列包含使用的索引列表，key_len 包含使用的索引的最长键部分列表。
+  - `unique_subquery` 只是一个索引查找函数，它完全取代了子查询以提高效率。
+  - `index_subquery` 这种连接类型类似于 unique_subquery。它取代了 IN 子查询，但它适用于以下形式的子查询中的非唯一索引。
+  - `range` 仅检索给定范围内的行，使用索引来选择行。输出行中的键列指示使用了哪个索引。 key_len 包含使用过的最长密钥部分。此类型的 ref 列为 NULL。range 被用于 =、<>、>、>=、<、<=、IS NULL、<=>、BETWEEN、LIKE 或 IN() 运算符将键列与常量进行比较时。
+  - `index` 索引连接类型与ALL相同，只是扫描索引树。当查询仅使用属于单个索引的列时，MySQL 可以使用此连接类型。这有两种情况：
+    + 如果索引是查询的覆盖索引，可以用来满足表中所有需要的数据，则只扫描索引树。在这种情况下，额外列显示使用索引。仅索引扫描通常比 ALL 更快，因为索引的大小通常小于表数据。
+    + 使用从索引读取以按索引顺序查找数据行来执行全表扫描。使用索引不会出现在 Extra 列中。
+  - `ALL` 对先前表中的每个行组合进行全表扫描。如果表是第一个未标记为 const 的表，这通常是不好的，并且在所有其他情况下通常非常糟糕。通常，您可以通过添加索引来避免 ALL，这些索引允许根据先前表中的常量值或列值从表中检索行。
+* `possible_keys` 列指示 MySQL 可以从中选择的索引来查找该表中的行。请注意，此列完全独立于 EXPLAIN 输出中显示的表的顺序。这意味着 possible_keys 中的某些键在实践中可能无法用于生成的表顺序。如果此列为 NULL（或在 JSON 格式的输出中未定义），则没有相关索引。在这种情况下，您可以通过检查 WHERE 子句来检查它是否引用适合索引的某个或多个列来提高查询的性能。如果是这样，请创建一个适当的索引并再次使用 EXPLAIN 检查查询。
+* `key` 列表示 MySQL 实际决定使用的键（索引）。如果 MySQL 决定使用 possible_keys 索引之一来查找行，则该索引被列为键值。key 可以命名一个在 possible_keys 值中不存在的索引。如果 possible_keys 索引都不适合查找行，但查询选择的所有列都是某个其他索引的列，则可能会发生这种情况。也就是说，命名索引覆盖了选定的列，因此虽然它不用于确定检索哪些行，但索引扫描比数据行扫描更有效。对于 InnoDB，即使查询还选择了主键，二级索引也可能覆盖选定的列，因为 InnoDB 将主键值与每个二级索引一起存储。如果 key 为 NULL，则 MySQL 找不到可用于更有效地执行查询的索引。要强制 MySQL 使用或忽略 possible_keys 列中列出的索引，请在查询中使用 FORCE INDEX、USE INDEX 或 IGNORE INDEX。
+* `key_len` key_len 列指示 MySQL 决定使用的 key 的长度。 key_len 的值使您能够确定 MySQL 实际使用多部分键的多少部分。如果 key 列为 NULL，则 key_len 列也为 NULL。由于 key 存储格式的原因，可以为 NULL 的列的密钥长度比 NOT NULL 列的密钥长度长一倍。
+* `ref` 显示将哪些列或常量与键列中指定的索引进行比较以从表中选择行。如果值为 func，则使用的值是某个函数的结果。要查看哪个函数，请在 EXPLAIN 之后使用 SHOW WARNINGS 来查看扩展的 EXPLAIN 输出。该函数实际上可能是一个运算符，例如算术运算符。
+* `rows` 表示 MySQL 认为它必须检查以执行查询的行数。对于 InnoDB 表，这个数字是一个估计值，可能并不总是准确的。
+* `filtered` 过滤列表示按表条件过滤的表行的估计百分比。最大值为 100，这意味着没有发生行过滤。值从 100 开始减少表示过滤量增加。 rows 显示检查的估计行数，rows × filtered 显示与下表连接的行数。例如rows为1000，filtered为50.00（50%），则下表join的行数为1000×50%=500。
+* `Extra` 此列包含有关 MySQL 如何解析查询的附加信息。以下列表解释了可以出现在该列中的值。每个项目还为 JSON 格式的输出指示哪个属性显示 Extra 值。对于其中一些，有一个特定的属性。其他显示为消息属性的文本。
+  - `Child of 'table' pushed join@1 (JSON: message text)`，该表被引用为连接中表的子表，可以向下推送到 NDB 内核。仅在启用下推连接时适用于 NDB Cluster。
+  - `const row not found (JSON property: const_row_not_found)`，对于诸如 SELECT ... FROM tbl_name 之类的查询，表是空的。
+  - `Deleting all rows (JSON property: message)`，对于 DELETE，某些存储引擎（如 MyISAM）支持一种处理程序方法，该方法可以简单快速地删除所有表行。如果引擎使用此优化，则会显示此额外值。
+  - `Distinct (JSON property: distinct)`，MySQL 正在寻找不同的值，因此它在找到第一个匹配行后停止为当前行组合搜索更多行。
+  - `FirstMatch(tbl_name) (JSON property: first_match)`，semijoin FirstMatch 连接快捷策略用于 tbl_name。
+  - `Full scan on NULL key (JSON property: message)`，当优化器不能使用索引查找访问方法时，子查询优化会作为后备策略发生这种情况。
+  - `Impossible HAVING (JSON property: message)`，HAVING 子句始终为 false，并且不能选择任何行。
+  - `Impossible WHERE (JSON property: message)`，WHERE 子句始终为 false，并且不能选择任何行。
+  - `Impossible WHERE noticed after reading const tables (JSON property: message)`，MySQL 已读取所有常量（和系统）表并注意到 WHERE 子句始终为假。
+  - `LooseScan(m..n) (JSON property: message)`，使用半连接 LooseScan 策略。 m 和 n 是关键部件号。
+  - `No matching min/max row (JSON property: message)`，没有行满足查询条件，例如 SELECT MIN(...) FROM ... WHERE 条件。
+  - `no matching row in const table (JSON property: message)`，对于带有连接的查询，有一个空表或没有满足唯一索引条件的行的表。
+  - `No matching rows after partition pruning (JSON property: message)`，对于 DELETE 或 UPDATE，优化器在分区修剪后没有发现要删除或更新的内容。它的含义类似于 SELECT 语句的 Impossible WHERE。
+  - `No tables used (JSON property: message)`，查询没有 FROM 子句，或者有 FROM DUAL 子句。对于 INSERT 或 REPLACE 语句，EXPLAIN 在没有 SELECT 部分时显示此值。例如，它出现在 EXPLAIN INSERT INTO t VALUES(10) 中，因为它等同于 EXPLAIN INSERT INTO t SELECT 10 FROM DUAL。
+  - `Not exists (JSON property: message)`，MySQL 能够对查询执行 LEFT JOIN 优化，并且在找到与 LEFT JOIN 条件匹配的行后，不会检查此表中的更多行以查找前一个行组合。以下是可以通过这种方式优化的查询类型的示例：假设 t2.id 被定义为 NOT NULL。在这种情况下，MySQL 扫描 t1 并使用 t1.id 的值查找 t2 中的行。如果 MySQL 在 t2 中找到匹配的行，它知道 t2.id 永远不能为 NULL，并且不会扫描 t2 中具有相同 id 值的其余行。换句话说，对于 t1 中的每一行，MySQL 只需要在 t2 中执行一次查找，而不管在 t2 中实际匹配了多少行。
+  - `Plan isn't ready yet (JSON property: none)`，当优化器尚未完成为在命名连接中执行的语句创建执行计划时，此值与 EXPLAIN FOR CONNECTION 一起出现。如果执行计划输出包含多行，则其中任何一行或所有行都可能具有此 Extra 值，具体取决于优化程序确定完整执行计划的进度。
+  - `Range checked for each record (index map: N) (JSON property: message)`，MySQL 没有找到好的索引可以使用，但发现在知道前面表的列值后，可能会使用某些索引。对于前面表中的每个行组合，MySQL 检查是否可以使用范围或索引合并访问方法来检索行。这不是很快，但比执行完全没有索引的连接要快。适用性标准如第 8.2.1.2 节“范围优化”和第 8.2.1.3 节“索引合并优化”中所述，除了上表的所有列值都是已知的并被视为常量。索引从 1 开始编号，顺序与表的 SHOW INDEX 所示顺序相同。索引映射值 N 是一个位掩码值，指示哪些索引是候选索引。例如，值 0x19（二进制 11001）表示考虑索引 1、4 和 5。
+  - `Scanned N databases (JSON property: message)`，这表示服务器在处理 INFORMATION_SCHEMA 表查询时执行的目录扫描次数，如第 8.2.3 节“优化 INFORMATION_SCHEMA 查询”中所述。 N 的值可以是 0、1 或全部。
+  - `Select tables optimized away (JSON property: message)`，优化器确定 1) 最多应返回一行，以及 2) 要生成该行，必须读取一组确定的行。当要读取的行可以在优化阶段读取时（例如，通过读取索引行），在查询执行期间不需要读取任何表。当查询被隐式分组（包含聚合函数但没有 GROUP BY 子句）时，第一个条件得到满足。当对每个使用的索引执行一行查找时，第二个条件就满足了。读取的索引数决定了要读取的行数。对于每个表维护精确行数的存储引擎（例如 MyISAM，但不是 InnoDB），对于缺少 WHERE 子句或始终为真且没有 GROUP BY 子句的 `COUNT(*) `查询，可能会出现此额外值。 （这是一个隐式分组查询的实例，其中存储引擎会影响是否可以读取确定数量的行。）
+  - `Skip_open_table, Open_frm_only, Open_full_table (JSON property: message)`，这些值表示适用于 INFORMATION_SCHEMA 表查询的文件打开优化：
+    + `skip_open_table`：表文件不需要打开。通过扫描数据库目录，该信息已在查询中变得可用。
+    + `Open_frm_only`：只需要打开表的.frm 文件。
+    + `open_full_table`：未优化的信息查找。必须打开 .frm、.MYD 和 .MYI 文件。
+  - `Start temporary, End temporary (JSON property: message)`，这表明临时表用于 semijoin Duplicate Weedout 策略。
+  - `unique row not found (JSON property: message)`，对于诸如 SELECT ... FROM tbl_name 之类的查询，没有行满足表上 UNIQUE 索引或 PRIMARY KEY 的条件。
+  - `Using filesort (JSON property: using_filesort)`，MySQL 必须执行额外的传递以找出如何按排序顺序检索行。排序是通过根据连接类型遍历所有行并存储排序键和指向与 WHERE 子句匹配的所有行的行的指针来完成的。然后对键进行排序，并按排序顺序检索行。
+  - `Using index (JSON property: using_index)`，仅使用索引树中的信息从表中检索列信息，而无需执行额外的查找操作来读取实际行。当查询仅使用属于单个索引的列时，可以使用此策略。对于具有用户定义聚集索引的 InnoDB 表，即使在 Extra 列中没有使用索引时也可以使用该索引。如果 type 是 index 并且 key 是 PRIMARY，就会出现这种情况。
+  - `Using index condition (JSON property: using_index_condition)`，通过访问索引元组并首先测试它们以确定是否读取完整的表行来读取表。以这种方式，索引信息用于延迟（“下推”）读取全表行，除非有必要。
+  - `Using index for group-by (JSON property: using_index_for_group_by)`，与 Using index table access 方法类似，Using index for group-by 表示 MySQL 找到了一个索引，该索引可用于检索 GROUP BY 或 DISTINCT 查询的所有列，而无需对实际表进行任何额外的磁盘访问。此外，索引以最有效的方式使用，因此对于每个组，只读取几个索引条目。
+  - `Using join buffer (Block Nested Loop), Using join buffer (Batched Key Access) (JSON property: using_join_buffer)`，来自早期连接的表被部分读入连接缓冲区，然后使用缓冲区中的行来执行与当前表的连接。 (Block Nested Loop) 表示使用 Block Nested-Loop 算法，(Batched Key Access) 表示使用 Batched Key Access 算法。也就是说，EXPLAIN 输出的前一行表中的键被缓冲，匹配的行从出现 Using join buffer 的行所代表的表中批量提取。在 JSON 格式的输出中，using_join_buffer 的值始终是 Block Nested Loop 或 Batched Key Access 之一。有关这些算法的更多信息，请参阅块嵌套循环连接算法和批量密钥访问连接。
+  - `Using MRR (JSON property: message)`，使用多范围读取优化策略读取表。
+  - `Using sort_union(...), Using union(...), Using intersect(...) (JSON property: message)`，这些指示特定算法，显示如何为 index_merge 连接类型合并索引扫描。
+  - `Using temporary (JSON property: using_temporary_table)`，为了解析查询，MySQL 需要创建一个临时表来保存结果。如果查询包含以不同方式列出列的 GROUP BY 和 ORDER BY 子句，通常会发生这种情况。
+  - `Using where (JSON property: attached_condition)`，WHERE 子句用于限制哪些行与下一个表匹配或发送给客户端。除非您特别打算从表中获取或检查所有行，否则如果 Extra 值不是 Using where 并且表连接类型是 ALL 或索引，则您的查询可能有问题。在 JSON 格式的输出中使用 where 没有直接的对应物； attached_condition 属性包含使用的任何 WHERE 条件。
+  - `Using where with pushed condition (JSON property: message)`，此项仅适用于 NDB 表。这意味着 NDB Cluster 正在使用条件下推优化来提高非索引列和常量之间直接比较的效率。在这种情况下，条件被“下推”到集群的数据节点，并同时在所有数据节点上进行评估。这消除了通过网络发送不匹配行的需要，并且可以将此类查询的速度提高 5 到 10 倍，这比可以使用但未使用条件下推的情况要快。
+  - `Zero limit (JSON property: message)`，查询有一个 LIMIT 0 子句，不能选择任何行。
+
+
+常见Extra：`NULL`、`Using where`、`Using index`、`Using temporary`
+
+
+## sql mode
+通过命令`select @@sql_mode;`可以获取当前的sql_mode。
+
+MySQL的sql_mode合理设置
+sql_mode是个很容易被忽视的变量,默认值是空值,在这种设置下是可以允许一些非法操作的,比如允许一些非法数据的插入。在生产环境必须将这个值设置为严格模式,所以开发、测试环境的数据库也必须要设置,这样在开发测试阶段就可以发现问题.
+sql model 常用来解决下面几类问题
+* 通过设置sql mode, 可以完成不同严格程度的数据校验，有效地保障数据准备性。
+* 通过设置sql model 为宽松模式，来保证大多数sql符合标准的sql语法，这样应用在不同数据库之间进行迁移时，则不需要对业务sql 进行较大的修改。
+* 在不同数据库之间进行数据迁移之前，通过设置SQL Mode 可以使MySQL 上的数据更方便地迁移到目标数据库中。
+
+sql_mode常用值如下: 
+* ONLY_FULL_GROUP_BY：对于GROUP BY聚合操作,如果在SELECT中的列,没有在GROUP BY中出现,那么这个SQL是不合法的,因为列不在GROUP BY从句中
+* NO_AUTO_VALUE_ON_ZERO：该值影响自增长列的插入。默认设置下,插入0或NULL代表生成下一个自增长值。如果用户 希望插入的值为0,而该列又是自增长的,那么这个选项就有用了。
+* STRICT_TRANS_TABLES：在该模式下,如果一个值不能插入到一个事务表中,则中断当前的操作,对非事务表不做* NO_ZERO_IN_DATE：在严格模式下,不允许日期和月份为零
+* NO_ZERO_DATE：设置该值,mysql数据库不允许插入零日期,插入零日期会抛出错误而不是警告。
+* ERROR_FOR_DIVISION_BY_ZERO：在INSERT或UPDATE过程中,如果数据被零除,则产生错误而非警告。如 果未给出该模式,那么数据被零除时MySQL返回NULL
+* NO_AUTO_CREATE_USER：禁止GRANT创建密码为空的用户
+* NO_ENGINE_SUBSTITUTION：如果需要的存储引擎被禁用或未编译,那么抛出错误。不设置此值时,用默认的存储引擎替代,并抛出一个异常
+* PIPES_AS_CONCAT：将"||"视为字符串的连接操作符而非或运算符,这和Oracle数据库是一样的,也和字符串的拼接函数Concat相类似
+* ANSI_QUOTES：启用ANSI_QUOTES后,不能用双引号来引用字符串,因为它被解释为识别符
+
+如果使用mysql，为了继续保留大家使用oracle的习惯，可以对mysql的sql_mode设置如下:
+在my.cnf添加如下配置
+```conf
+[mysqld]
+sql_mode='ONLY_FULL_GROUP_BY,NO_AUTO_VALUE_ON_ZERO,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,PIPES_AS_CONCAT,ANSI_QUOTES'
+```
+
+MySQL5.6和MySQL5.7默认的sql_mode模式参数是不一样的,5.6的mode是`NO_ENGINE_SUBSTITUTION`，其实表示的是一个空值，相当于没有什么模式设置，可以理解为宽松模式。5.7的mode是STRICT_TRANS_TABLES，也就是严格模式。
+如果设置的是宽松模式，那么我们在插入数据的时候，即便是给了一个错误的数据，也可能会被接受，并且不报错，例如：我在创建一个表时，该表中有一个字段为name，给name设置的字段类型时char(10)，如果我在插入数据的时候，其中name这个字段对应的有一条数据的长度超过了10，例如'1234567890abc'，超过了设定的字段长度10，那么不会报错，并且取前十个字符存上，也就是说你这个数据被存为了'1234567890',而'abc'就没有了，但是我们知道，我们给的这条数据是错误的，因为超过了字段长度，但是并没有报错，并且mysql自行处理并接受了，这就是宽松模式的效果，其实在开发、测试、生产等环境中，我们应该采用的是严格模式，出现这种错误，应该报错才对，所以MySQL5.7版本就将sql_mode默认值改为了严格模式，并且我们即便是用的MySQL5.6，也应该自行将其改为严格模式，而你记着，MySQL等等的这些数据库，都是想把关于数据的所有操作都自己包揽下来，包括数据的校验，其实好多时候，我们应该在自己开发的项目程序级别将这些校验给做了，虽然写项目的时候麻烦了一些步骤，但是这样做之后，我们在进行数据库迁移或者在项目的迁移时，就会方便很多，这个看你们自行来衡量。mysql除了数据校验之外，你慢慢的学习过程中会发现，它能够做的事情还有很多很多，将你程序中做的好多事情都包揽了。
+改为严格模式后可能会存在的问题：若设置模式中包含了NO_ZERO_DATE，那么MySQL数据库不允许插入零日期，插入零日期会抛出错误而不是警告。例如表中含字段TIMESTAMP列（如果未声明为NULL或显示DEFAULT子句）将自动分配DEFAULT '0000-00-00 00:00:00'（零时间戳），也或者是本测试的表day列默认允许插入零日期 '0000-00-00' COMMENT '日期'；这些显然是不满足sql_mode中的NO_ZERO_DATE而报错。
 
 ## 备份与恢复
 删除数据流程
@@ -1963,3 +2571,4 @@ flush privileges场景
 * [菜鸟教程](https://www.runoob.com/sql/sql-tutorial.html)
 * [MySQL常用函数](https://www.cnblogs.com/qdhxhz/p/16500580.html)
 * 《MySQL5.7从入门到精通》
+* 《高性能MySQL》

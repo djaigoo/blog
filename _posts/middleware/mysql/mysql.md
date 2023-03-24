@@ -9,6 +9,11 @@ tags:
 
 # 简介
 ## 关系型数据库
+文档数据库：MongoDB
+缓存数据库：Redis
+时序数据库：InfluxDB
+搜索数据库：Elasticsearch
+
 对比非关系型数据库
 对比其他关系型数据库
 ## 非关系型数据库
@@ -60,7 +65,10 @@ query_attributes Sets string parameters (name1 value1 name2 value2 ...) for the 
 For server side help, type 'help contents'
 ```
 
-workbench
+## workbench
+
+## InnoDB简介
+
 
 # 基本知识
 ## 数据类型
@@ -888,7 +896,11 @@ group by
 having
 
 ## 常用函数
+[详细文档](https://dev.mysql.com/doc/refman/5.7/en/functions.html)
+
 ### 数值函数
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html)
 
 | 函数      | 含义    |
 | --------- | -------- |
@@ -902,6 +914,8 @@ having
 |`truncate(x,y)`|    返回数字x截短为y位小数的结果      |
 
 ### 字符串函数
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/string-functions.html)
 
 | 函数      | 含义    |
 | --------- | -------- |
@@ -920,6 +934,8 @@ having
 
 
 ### 日期函数
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html)
 
 | 函数      | 含义    |
 | --------- | -------- |
@@ -1011,6 +1027,7 @@ select from_unixtime('1234567890');
 
 ### 聚合函数
 聚合函数是指将查询到的所有结果进行相应的操作
+[文档](https://dev.mysql.com/doc/refman/5.7/en/aggregate-functions.html)
 
 | 函数      | 含义    |
 | --------- | -------- |
@@ -1024,6 +1041,8 @@ select from_unixtime('1234567890');
 
 ### 流程控制函数
 流程控制函数是指语句按指定条件进行执行
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/flow-control-functions.html)
 
 | 函数      | 含义    |
 | --------- | -------- |
@@ -1053,6 +1072,14 @@ select ifnull(1, 2), ifnull(null, 2), nullif(1,1), nullif(1, null);
 select s, case when s>=40 then 'big' when s>=20 then 'middle' else 'small' end slot from (select second(now()) s) tmp;
 ```
 
+
+### 其他函数
+* [全文本搜索](https://dev.mysql.com/doc/refman/5.7/en/fulltext-search.html)
+* [加密和压缩](https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html)
+* [锁函数](https://dev.mysql.com/doc/refman/5.7/en/locking-functions.html)
+* [数据库信息](https://dev.mysql.com/doc/refman/5.7/en/information-functions.html)
+* [JSON操作](https://dev.mysql.com/doc/refman/5.7/en/json-function-reference.html)
+* [杂项](https://dev.mysql.com/doc/refman/5.7/en/miscellaneous-functions.html)
 
 ## 视图
 视图并不同于数据表，它们的区别在于以下几点：
@@ -1630,8 +1657,7 @@ set @name = '';
 select @name:=password from user limit 0,1;
 ```
 
-#从数据表中获取一条记录password字段的值给@name变量。在执行后输出到查询结果集上面。
-（注意等于号前面有一个冒号，后面的limit 0,1是用来限制返回结果的，表示可以是0或1个。相当于SQL SERVER里面的top 1） 
+从数据表中获取一条记录password字段的值给@name变量。在执行后输出到查询结果集上面。（注意等于号前面有一个冒号，后面的limit 0,1是用来限制返回结果的，表示可以是0或1个。相当于SQL SERVER里面的top 1） 
 
 如果直接写：`select @name:=password from user;`
 
@@ -1797,14 +1823,113 @@ mysql为啥会选错索引
 前缀索引对覆盖索引的影响
 其他方式
 ## 事务
+
+自动提交事务
+```sql
+mysql> show variables like 'autocommit';
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| autocommit    | ON    |
++---------------+-------+
+
+mysql> select @@autocommit;
++--------------+
+| @@autocommit |
++--------------+
+|            1 |
++--------------+
+```
+
 ### 事务隔离
 隔离性和隔离级别
 
 ACID
-原子性
-一致性
-隔离性
-持久性
+* 原子性（Atomicity），事务是一个完整的操作。事务的各元素是不可分的（原子的）。事务中的所有元素必须作为一个整体提交或回滚。如果事务中的任何元素失败，则整个事务将失败。
+* 一致性（Consistency），当事务完成时，数据必须处于一致状态。也就是说，在事务开始之前，数据库中存储的数据处于一致状态。在正在进行的事务中. 数据可能处于不一致的状态，如数据可能有部分被修改。然而，当事务成功完成时，数据必须再次回到已知的一致状态。通过事务对数据所做的修改不能损坏数据，或者说事务不能使数据存储处于不稳定的状态。
+* 隔离性（Isolation），对数据进行修改的所有并发事务是彼此隔离的，这表明事务必须是独立的，它不应以任何方式依赖于或影响其他事务。修改数据的事务可以在另一个使用相同数据的事务开始之前访问这些数据，或者在另一个使用相同数据的事务结束之后访问这些数据。
+* 持久性（Durability），事务的持久性指不管系统是否发生了故障，事务处理的结果都是永久的。
+
+InnoDB 存储引擎事务主要通过 UNDO 日志和 REDO 日志实现：
+* UNDO 日志：复制事务执行前的数据，用于在事务发生异常时回滚数据。
+* REDO 日志：记录在事务执行中，每条对数据进行更新的操作，当事务提交时，该内容将被刷新到磁盘。
+
+默认设置下，每条 SQL 语句就是一个事务，即执行 SQL 语句后自动提交。为了达到将几个操作做为一个整体的目的，需要使用 BEGIN 或 START TRANSACTION 开启一个事务，或者禁止当前会话的自动提交。
+
+事务控制语句：
+* BEGIN 或 START TRANSACTION 显式地开启一个事务；
+* COMMIT 也可以使用 COMMIT WORK，不过二者是等价的。COMMIT 会提交事务，并使已对数据库进行的所有修改成为永久性的；
+* ROLLBACK 也可以使用 ROLLBACK WORK，不过二者是等价的。回滚会结束用户的事务，并撤销正在进行的所有未提交的修改；
+* SAVEPOINT identifier，SAVEPOINT 允许在事务中创建一个保存点，一个事务中可以有多个 SAVEPOINT；
+* RELEASE SAVEPOINT identifier 删除一个事务的保存点，当没有指定的保存点时，执行该语句会抛出一个异常；
+* ROLLBACK TO identifier 把事务回滚到标记点；
+* SET TRANSACTION 用来设置事务的隔离级别。InnoDB 存储引擎提供事务的隔离级别有READ UNCOMMITTED、READ COMMITTED、REPEATABLE READ 和 SERIALIZABLE。
+
+MYSQL 事务处理主要有两种方法：
+* 用 BEGIN, ROLLBACK, COMMIT来实现
+  - BEGIN 开始一个事务
+  - ROLLBACK 事务回滚
+  - COMMIT 事务确认
+* 直接用 SET 来改变 MySQL 的自动提交模式:
+  - SET AUTOCOMMIT=0 禁止自动提交
+  - SET AUTOCOMMIT=1 开启自动提交
+  
+### 事务隔离级别
+数据库事务的隔离级别有4个，由低到高依次为`Read uncommitted`、`Read committed`、`Repeatable read`、`Serializable` ，这四个级别可以逐个解决脏读 、不可重复读 、幻读 这几类问题。
+
+不同事务隔离级别引发的问题：
+
+| 事务隔离级别 | 脏读 | 不可重复读 | 幻读 |
+|--|--|--|--|
+| `Read uncommitted` | ✅  | ✅ | ✅ |
+| `Read committed` | ❎ | ✅ | ✅ |
+| `Repeatable read` | ❎ | ❎ | ✅ |
+| `Serializable` | ❎ | ❎ | ❎ |
+
+
+* `Read uncommitted (RU)` 读未提交，就是一个事务可以读取另一个未提交事务的数据。MySQL 事务隔离其实是依靠锁来实现的，加锁自然会带来性能的损失。而读未提交隔离级别是不加锁的，所以它的性能是最好的，没有加锁、解锁带来的性能开销。但有利就有弊，这基本上就相当于裸奔啊，所以它连脏读的问题都没办法解决。
+* `Read committed (RC)` 读提交，就是一个事务要等另一个事务提交后才能读取数据。
+* `Repeatable read (RR)` 重复读，就是在开始读取数据（事务开启）时，不再允许修改操作。可重复是对比不可重复而言的，上面说不可重复读是指同一事物不同时刻读到的数据值可能不一致。而可重复读是指，事务不会读到其他事务对已有数据的修改，及时其他事务已提交，也就是说，事务开始时读到的已有数据是什么，在事务提交前的任意时刻，这些数据的值都是一样的。但是，对于其他事务新插入的数据是可以读到的，这也就引发了幻读问题。
+* `Serializable` 串行化，是最高的事务隔离级别，在该级别下，事务串行化顺序执行，可以避免脏读、不可重复读与幻读。但是这种事务隔离级别效率低下，比较耗数据库性能，一般不使用。
+
+Mysql的默认隔离级别就是`Repeatable read`，查看事务隔离级别：`select @@tx_isolation;`或`show variables like '%tx_isolation%';`；，设置事务隔离级别`set global transaction isolation level repeatable read;`。
+
+* 脏读，读取了未提交的事务修改的数据
+* 不可重复读，一个事务范围内两个相同的查询却返回了不同数据，一般是另一个事务在进行update操作
+* 幻读，一个事务范围内两个相同的查询却返回了不同数据，一般是另一个事务在进行insert操作。假设事务A对某些行的内容作了更改，但是还未提交，此时事务B插入了与事务A更改前的记录相同的记录行，并且在事务A提交之前先提交了，而这时，在事务A中查询，会发现好像刚刚的更改对于某些数据未起作用，但其实是事务B刚插入进来的，让用户感觉很魔幻，感觉出现了幻觉，这就叫幻读。
+
+
+
+### MySQL 中是如何实现事务隔离的
+首先说读未提交，它是性能最好，也可以说它是最野蛮的方式，因为它压根儿就不加锁，所以根本谈不上什么隔离效果，可以理解为没有隔离。MySQL 事务隔离其实是依靠锁来实现的，加锁自然会带来性能的损失。而读未提交隔离级别是不加锁的，所以它的性能是最好的，没有加锁、解锁带来的性能开销。但有利就有弊，这基本上就相当于裸奔啊，所以它连脏读的问题都没办法解决。
+
+
+再来说串行化。读的时候加共享锁，也就是其他事务可以并发读，但是不能写。写的时候加排它锁，其他事务不能并发写也不能并发读。
+
+#### 实现可重复读
+为了解决不可重复读，或者为了实现可重复读，MySQL 采用了 MVVC (多版本并发控制) 的方式。
+我们在数据库表中看到的一行记录可能实际上有多个版本，每个版本的记录除了有数据本身外，还要有一个表示版本的字段，记为 row trx_id，而这个字段就是使其产生的事务的 id，事务 ID 记为 transaction id，它在事务开始的时候向事务系统申请，按时间先后顺序递增。
+可重复读是在事务开始的时候生成一个当前事务全局性的快照，而读提交则是每次执行语句的时候都重新生成一次快照。
+
+对于一个快照来说，它能够读到那些版本数据，要遵循以下规则：
+
+* 当前事务内的更新，可以读到；
+* 版本未提交，不能读到；
+* 版本已提交，但是却在快照创建后提交的，不能读到；
+* 版本已提交，且是在快照创建前提交的，可以读到；
+
+利用上面的规则，再返回去套用到读提交和可重复读的那两张图上就很清晰了。还是要强调，两者主要的区别就是在快照的创建上，可重复读仅在事务开始是创建一次，而读提交每次执行语句的时候都要重新创建一次。
+
+并发写问题
+
+存在这的情况，两个事务，对同一条数据做修改。最后结果应该是哪个事务的结果呢，肯定要是时间靠后的那个对不对。并且更新之前要先读数据，这里所说的读和上面说到的读不一样，更新之前的读叫做“当前读”，总是当前版本的数据，也就是多版本中最新一次提交的那版。
+
+#### 解决幻读
+前面刚说了并发写问题的解决方式就是行锁，而解决幻读用的也是锁，叫做间隙锁，MySQL 把行锁和间隙锁合并在一起，解决了并发写和幻读的问题，这个锁叫做 Next-Key锁。在数据库中会为索引维护一套B+树，用来快速定位行记录。B+索引树是有序的，所以会把这张表的索引分割成几个区间。
+
+
+
+
 
 多事务执行问题
 脏读
@@ -1827,6 +1952,9 @@ ACID
 
 
 ## 锁
+MVCC
+
+
 用动态的观点看加锁
 不等号条件的等值查询
 等值查询过程
@@ -1840,9 +1968,20 @@ redo log写入机制
 
 
 ## 日志系统
+在 MySQL 中，日志可以分为二进制日志、错误日志、通用查询日志和慢查询日志。对于 MySQL 的管理工作而言，这些日志文件是不可缺少的。分析这些日志，可以帮助我们了解 MySQL 数据库的运行情况、日常操作、错误信息和哪些地方需要进行优化。
+
+下面简单介绍 MySQL 中 4 种日志文件的作用。
+二进制日志：该日志文件会以二进制的形式记录数据库的各种操作，但不记录查询语句。
+错误日志：该日志文件会记录 MySQL 服务器的启动、关闭和运行错误等信息。
+通用查询日志：该日志记录 MySQL 服务器的启动和关闭信息、客户端的连接信息、更新、查询数据记录的 SQL 语句等。
+慢查询日志：记录执行事件超过指定时间的操作，通过工具分析慢查询日志可以定位 MySQL 服务器性能瓶颈所在。
+
+
+WAL(Write Ahead Logging)
 日志模块
 * redo log
 * binlog
+* undo log
 
 两阶段提交
 
@@ -2195,6 +2334,16 @@ bug
 
 
 ## 临时表
+MySQL中的两种临时表
+外部临时表
+通过CREATE TEMPORARY TABLE 创建的临时表，这种临时表称为外部临时表。这种临时表只对当前用户可见，当前会话结束的时候，该临时表会自动关闭。这种临时表的命名与非临时表可以同名（同名后非临时表将对当前会话不可见，直到临时表被删除）。
+
+内部临时表
+　　　　内部临时表是一种特殊轻量级的临时表，用来进行性能优化。这种临时表会被MySQL自动创建并用来存储某些操作的中间结果。这些操作可能包括在优化阶段或者执行阶段。这种内部表对用户来说是不可见的，但是通过EXPLAIN或者SHOW 　　STATUS可以查看MYSQL是否使用了内部临时表用来帮助完成某个操作。内部临时表在SQL语句的优化过程中扮演着非常重要的角色， MySQL中的很多操作都要依赖于内部临时表来进行优化。但是使用内部临时表需要创建表以及中间数据的存取代价，所以用户在写SQL语句的时候应该尽量的去避免使用临时表。
+
+　　内部临时表有两种类型：一种是HEAP临时表，这种临时表的所有数据都会存在内存中，对于这种表的操作不需要IO操作。另一种是OnDisk临时表，顾名思义，这种临时表会将数据存储在磁盘上。OnDisk临时表用来处理中间结果比较大的操作。如果HEAP临时表存储的数据大于MAX_HEAP_TABLE_SIZE（详情请参考MySQL手册中系统变量部分），HEAP临时表将会被自动转换成OnDisk临时表。OnDisk临时表在5.7中可以通过INTERNAL_TMP_DISK_STORAGE_ENGINE系统变量选择使用MyISAM引擎或者InnoDB引擎。
+
+
 临时表重名
 临时表特性
 临时表应用
@@ -2212,6 +2361,77 @@ group by优化方法——直接排序
 磁盘临时表
 随机排序方法
 
+
+## 预读
+InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是一个i/o请求，它会异步地在缓冲池中预先回迁多个页面，预计很快就会需要这些页面，这些请求在一个范围内引入所有页面。InnoDB以64个page为一个extent，那么InnoDB的预读是以page为单位还是以extent？
+数据库请求数据的时候，会将读请求交给文件系统，放入请求队列中；相关进程从请求队列中将读请求取出，根据需求到相关数据区(内存、磁盘)读取数据；取出的数据，放入响应队列中，最后数据库就会从响应队列中将数据取走，完成一次数据读操作过程。
+接着进程继续处理请求队列，(如果数据库是全表扫描的话，数据读请求将会占满请求队列)，判断后面几个数据读请求的数据是否相邻，再根据自身系统IO带宽处理量，进行预读，进行读请求的合并处理，一次性读取多块数据放入响应队列中，再被数据库取走。(如此，一次物理读操作，实现多页数据读取，rrqm>0（# iostat -x），假设是4个读请求合并，则rrqm参数显示的就是4)
+
+InnoDB使用两种预读算法来提高I/O性能：线性预读（`linear read-ahead`）和随机预读（`randomread-ahead`）
+为了区分这两种预读的方式，我们可以把线性预读放到以extent为单位，而随机预读放到以extent中的page为单位。线性预读着眼于将下一个extent提前读取到buffer pool中，而随机预读着眼于将当前extent中的剩余的page提前读取到buffer pool中。
+
+### 线性预读（linear read-ahead）
+线性预读方式有一个很重要的变量控制是否将下一个extent预读到buffer pool中，通过使用配置参数`innodb_read_ahead_threshold`，控制触发innodb执行预读操作的时间。
+
+如果一个extent中的被顺序读取的page超过或者等于该参数变量时，Innodb将会异步的将下一个extent读取到buffer pool中，`innodb_read_ahead_threshold`可以设置为0-64的任何值(因为一个extent中也就只有64页)，默认值为56，值越高，访问模式检查越严格。
+
+```sql
+mysql> show variables like 'innodb_read_ahead_threshold';
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_read_ahead_threshold | 56    |
++-----------------------------+-------+
+```
+
+例如，如果将值设置为48，则InnoDB只有在顺序访问当前extent中的48个pages时才触发线性预读请求，将下一个extent读到内存中。如果值为8，InnoDB触发异步预读，即使程序段中只有8页被顺序访问。
+可以在MySQL配置文件中设置此参数的值，或者使用SET GLOBAL需要该SUPER权限的命令动态更改该参数。
+在没有该变量之前，当访问到extent的最后一个page的时候，innodb会决定是否将下一个extent放入到buffer pool中。
+
+### 随机预读（randomread-ahead）
+随机预读方式则是表示当同一个extent中的一些page在buffer pool中发现时，Innodb会将该extent中的剩余page一并读到buffer pool中。
+```sql
+mysql> show variables like 'innodb_random_read_ahead';
++--------------------------+-------+
+| Variable_name            | Value |
++--------------------------+-------+
+| innodb_random_read_ahead | OFF   |
++--------------------------+-------+
+```
+
+由于随机预读方式给`innodb code`带来了一些不必要的复杂性，同时在性能也存在不稳定性，在5.5中已经将这种预读方式废弃，默认是OFF。若要启用此功能，即将配置变量设置`innodb_random_read_ahead`为ON。
+
+### 查看预读信息
+可以通过`show engine innodb status\G`显示统计信息
+```sql
+mysql> show engine innodb status\G
+----------------------
+BUFFER POOL AND MEMORY
+----------------------
+……
+Pages read ahead 0.00/s, evicted without access 0.00/s, Random read ahead 0.00/s
+……
+```
+
+* Pages read ahead：表示每秒读入的pages；
+* evicted without access：表示每秒读出的pages；
+* 一般随机预读都是关闭的，也就是0。
+
+通过两个状态值，评估预读算法的有效性
+```sql
+mysql> show global status like '%read_ahead%';
++---------------------------------------+-------+
+| Variable_name                         | Value |
++---------------------------------------+-------+
+| Innodb_buffer_pool_read_ahead_rnd     | 0     |
+| Innodb_buffer_pool_read_ahead         | 2303  |
+| Innodb_buffer_pool_read_ahead_evicted | 0     |
++---------------------------------------+-------+
+3 rows in set (0.01 sec)
+```
+
+* Innodb_buffer_pool_read_ahead：通过预读(后台线程)读入innodb buffer pool中数据页数
+* Innodb_buffer_pool_read_ahead_evicted：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
 
 ## 内存引擎
 使用memory引擎
@@ -2243,7 +2463,14 @@ change master to master_user='root', master_password='123456', master_host='172.
 
 向主节点注册后使用`start slave`和`stop slave`进行开关副本的拷贝
 
-一旦执行binlog某一条语句出错则后面的语句则不会再执行
+一旦执行binlog某一条语句出错则后面的语句则从库会卡在出错的binlog位置，一般由主库压力大、有无数据库、用户权限、MySQL版本不同等因素导致，具体原因可以通过`show slave status;`获取。
+一般通用解决方案，关闭主从同步，跳过当前出错的语句，再开启主从同步：
+```sql
+mysql> stop slave;
+mysql> set sql_slave_skip_counter=1;
+mysql> start slave;
+```
+
 
 最快的复制一张表
 mysqldump方法
@@ -2507,7 +2734,7 @@ EXPLAIN 输出列
   - `Zero limit (JSON property: message)`，查询有一个 LIMIT 0 子句，不能选择任何行。
 
 
-常见Extra：`NULL`、`Using where`、`Using index`、`Using temporary`
+常见Extra：`NULL`、`Using where`、`Using index`、`Using temporary`、`Using filesort`
 
 
 ## sql mode
@@ -2557,6 +2784,8 @@ rm删除数据
 kill不掉的情况
 mysql收到kill信号处理方式
 
+
+## 用户管理
 
 ## 权限管理
 grant之后要跟着flush privileges

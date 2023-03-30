@@ -1266,6 +1266,8 @@ lock_option:
   - BTREE
   - HASH
 
+
+
 InnoDB 存储引擎索引特征
 
 |索引类别 | 索引存储类型 | 允许空值 | 允许多个空值 | `IS NULL` 扫描类型 | `IS NOT NULL` 扫描类型|

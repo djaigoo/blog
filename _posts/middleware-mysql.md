@@ -1,6 +1,4 @@
-mysql
 ---
-
 # 简介篇
 ## MySQL
 ## 其他数据库
@@ -8,27 +6,349 @@ mysql
 ## InnoDB
 ## MyISAM
 ## Memory
-
 # 基础篇-数据
 ## 数据类型
-### 整数
-### 小数
-### 日期
-### 字符串
-### 二进制
-
 ## 常用函数
-### 数值函数
+
+[详细文档](https://dev.mysql.com/doc/refman/5.7/en/functions.html)
+
+##### 数值函数
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/mathematical-functions.html)
+
+| 函数      | 含义    |
+| --------- | -------- |
+|`round(x,y)`| 四舍五入,y表示保留小数位(y非必填)  |
+|`ceil(x)`|   向上取整，返回>=该参数的最小整数       |
+|`floor(x)`|    向下取整，返回<=该参数的最大整数      |
+|`mod(x,y)`|      返回x/y的模（余数）    |
+|`greatest(x1,x2,...,xn)`|    返回集合中最大的值      |
+|`least(x1,x2,...,xn)`|   返回集合中最小的值       |
+|`rand()`|     返回０到１内的随机值,可以通过提供一个参数(种子)使rand()随机数生成器生成一个指定的值     |
+|`truncate(x,y)`|    返回数字x截短为y位小数的结果      |
+
 ### 字符串函数
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/string-functions.html)
+
+| 函数      | 含义    |
+| --------- | -------- |
+|`concat(s1,s2...,sn)`|将s1,s2...,sn连接成字符串，如果该函数中的任何参数为 null，返回结果为 null |
+|`concat_ws(sep,s1,s2...,sn)` | 将s1,s2...,sn连接成字符串,并用sep字符间隔|
+|`substr(str,start,len)` |从start位置开始截取字符串，len表示要截取的长度 |
+|`lcase(str)` | 将字符串str转换为小写形式|
+|`lower(str)` |将字符串str转换为小写形式 |
+|`upper(str)` |将字符串转换为大写形式 |
+|`ucase(str)` | 将字符串转换为大写形式|
+|`length(str)`| 返回字符串str中的字符数|
+|`trim(str)`| 去除字符串首部和尾部的所有空格|
+|`left(str,x)` | 返回字符串str中最左边的x个字符|
+|`right(str,x)` | 返回字符串str中最右边的x个字符|
+|`strcmp(s1,s2)` |比较字符串s1和s2是否相同 相同返回0，否则-1 |
+
+
 ### 日期函数
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/date-and-time-functions.html)
+
+| 函数      | 含义    |
+| --------- | -------- |
+|`now()`| 返回当前的日期和时间|
+|`curdate()`|返回当前的日期 |
+|`current_date()`|返回当前的日期 |
+|`curtime()`| 返回当前的时间|
+|`current_time()`| 返回当前的时间|
+|`year(date)`| 获取年份|
+|`month(date)`|获取月份 |
+|`day(date)`| 获取天|
+|`hour(date)`| 获取小时|
+|`minute(date)`| 获取分钟|
+|`second(date)`| 获取秒|
+|`str_to_date(str,format)`|将日期格式的字符串，转换成指定格式的日期 |
+|`date_format(date,format)`| 将日期转换为对应的字符串格式|
+|`date_add(date,interval expr unit)`| 增加日期时间|
+|`date_sub(date,interval expr unit)`| 减少日期时间|
+|`dayofweek()`|返回date所代表的一星期中的第几天(1~7) |
+|`dayofmonth(datedate)`| 返回date是一个月的第几天(1~31)|
+|`dayofyear(date)`| 返回date是一年的第几天(1~366)|
+|`quarter(date)`|返回date在一年中的季度(1~4) |
+|`unix_timestamp(date)`| 将当前时间转为时间戳|
+|`from_unixtime(str)`| 将时间戳转为时间 |
+
+时间格式化
+
+|格式 | 描述|
+|--|--|
+|`%a` | 缩写星期名 |
+|`%b` | 缩写月名 |
+|`%c` | 月，数值 |
+|`%D` | 带有英文前缀的月中的天 |
+|`%d` | 月的天，数值(00-31) |
+|`%e` | 月的天，数值(0-31) |
+|`%f` | 微秒 |
+|`%H` | 小时 (00-23) |
+|`%h` | 小时 (01-12) |
+|`%I` | 小时 (01-12) |
+|`%i` | 分钟，数值(00-59) |
+|`%j` | 年的天 (001-366) |
+|`%k` | 小时 (0-23) |
+|`%l` | 小时 (1-12) |
+|`%M` | 月名 |
+|`%m` | 月，数值(00-12) |
+|`%p` | AM 或 PM |
+|`%r` | 时间，12-小时（hh:mm:ss AM 或 PM） |
+|`%S` | 秒(00-59) |
+|`%s` | 秒(00-59) |
+|`%T` | 时间, 24-小时 (hh:mm:ss) |
+|`%U` | 周 (00-53) 星期日是一周的第一天 |
+|`%u` | 周 (00-53) 星期一是一周的第一天 |
+|`%V` | 周 (01-53) 星期日是一周的第一天，与 %X 使用 |
+|`%v` | 周 (01-53) 星期一是一周的第一天，与 %x 使用 |
+|`%W` | 星期名 |
+|`%w` | 周的天 （0=星期日, 6=星期六） |
+|`%X` | 年，其中的星期日是周的第一天，4 位，与 %V 使用 |
+|`%x` | 年，其中的星期一是周的第一天，4 位，与 %v 使用 |
+|`%Y` | 年，4 位 |
+|`%y` | 年，2 位 |
+
+```sql
+select date_format(now(), '%Y-%m-%d %H:%i:%s');
+```
+
+时间加减
+* `date_add(date,interval expr unit)`
+* `date_sub(date,interval expr unit)`
+
+expr：表示数量
+unit：表示单位，支持毫秒(microsecond)，秒(second)，小时(hour)，天(day)，周(week)，月(month),年(year)等
+
+```sql
+select date_add(now(), interval 1 day);
+
+-- 以下结果等同
+select date_add(now(), interval -1 day);
+select date_sub(now(), interval 1 day);
+```
+
+
+时间戳转换
+```sql
+select unix_timestamp(now());
+select from_unixtime('1234567890');
+```
+
+
+
 ### 聚合函数
+聚合函数是指将查询到的所有结果进行相应的操作
+[文档](https://dev.mysql.com/doc/refman/5.7/en/aggregate-functions.html)
+
+| 函数      | 含义    |
+| --------- | -------- |
+|`avg(x)` |           返回指定列的平均值|
+|`count(x)` |         返回指定列中非null值的个数|
+|`min(x)` |           返回指定列的最小值|
+|`max(x)` |           返回指定列的最大值|
+|`sum(x)` |           返回指定列的所有值之和|
+|`group_concat(x)` |  返回由属于一组的列值连接组合而成的结果，非常有用|
+
+
 ### 流程控制函数
+流程控制函数是指语句按指定条件进行执行
+
+[文档](https://dev.mysql.com/doc/refman/5.7/en/flow-control-functions.html)
+
+| 函数      | 含义    |
+| --------- | -------- |
+|`if(test,t,f)`        |如果test是真，返回t；否则返回f|
+|`ifnull(arg1,arg2)`   |如果arg1不是空，返回arg1，否则返回arg2|
+|`nullif(arg1,arg2)`   |如果arg1=arg2返回null；否则返回arg1|
+|`case...when`         |分支控制|
+
+```sql
+case 
+when <求值表达式> then <表达式1>
+when <求值表达式> then <表达式2>
+else <表达式>
+end
+```
+
+*   else 可以不写，默认返回null
+*   end 不可以忘记
+*   当一个case子句中有多个判断逻辑时、字段类型需要一致
+*   当一个case子句中有多个判断逻辑时、第一个为真的结果会被输出
+
+```sql
+select if(second(now())>30,true, false);
+
+select ifnull(1, 2), ifnull(null, 2), nullif(1,1), nullif(1, null);
+
+select s, case when s>=40 then 'big' when s>=20 then 'middle' else 'small' end slot from (select second(now()) s) tmp;
+```
+
+
+### 其他函数
+* [全文本搜索](https://dev.mysql.com/doc/refman/5.7/en/fulltext-search.html)
+* [加密和压缩](https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html)
+* [锁函数](https://dev.mysql.com/doc/refman/5.7/en/locking-functions.html)
+* [数据库信息](https://dev.mysql.com/doc/refman/5.7/en/information-functions.html)
+* [JSON操作](https://dev.mysql.com/doc/refman/5.7/en/json-function-reference.html)
+* [杂项](https://dev.mysql.com/doc/refman/5.7/en/miscellaneous-functions.html)
 
 ## 数据库约束
+在 MySQL 中，主要支持以下 6 种约束：
+* 主键约束 主键约束是使用最频繁的约束。在设计数据表时，一般情况下，都会要求表中设置一个主键。主键是表的一个特殊字段，该字段能唯一标识该表中的每条信息。主键不能包含空值
+* 外键约束 外键约束经常和主键约束一起使用，用来确保数据的一致性。
+* 唯一约束 唯一约束与主键约束有一个相似的地方，就是它们都能够确保列的唯一性。与主键约束不同的是，唯一约束在一个表中可以有多个，并且设置唯一约束的列是允许有空值的，虽然只能有一个空值。
+* 检查约束 检查约束是用来检查数据表中，字段值是否有效的一个手段。
+* 非空约束 非空约束用来约束表中的字段不能为空。例如，在学生信息表中，如果不添加学生姓名，那么这条记录是没有用的。
+* 默认值约束 默认值约束用来约束当数据表中某个字段不输入值时，自动为其添加一个已经设置好的值。
+
+以上 6 种约束中，一个数据表中只能有一个主键约束，其它约束可以有多个。
+
+使用`SHOW CREATE TABLE table`可以查看表中字段使用的约束
+
+### 主键约束
+* 单字段主键
+* 联合主键
+
+新建主键约束
+修改主键约束
+删除主键约束
+
+主键自增
+使用 AUTO_INCREMENT 定义自增
+* 默认情况下，AUTO_INCREMENT 的初始值是 1，每新增一条记录，字段值自动加 1。
+* 一个表中只能有一个字段使用 AUTO_INCREMENT 约束，且该字段必须有唯一索引，以避免序号重复（即为主键或主键的一部分）。
+* AUTO_INCREMENT 约束的字段必须具备 NOT NULL 属性。
+* AUTO_INCREMENT 约束的字段只能是整数类型（TINYINT、SMALLINT、INT、BIGINT 等）。
+* AUTO_INCREMENT 约束字段的最大值受该字段的数据类型约束，如果达到上限，AUTO_INCREMENT 就会失效。
+
+指定自增字段初始值
+
+### 外键约束
+MySQL 外键约束（FOREIGN KEY）是表的一个特殊字段，经常与主键约束一起使用。
+对于两个具有关联关系的表而言，相关联字段中主键所在的表就是主表（父表），外键所在的表就是从表（子表）。
+外键用来建立主表与从表的关联关系，为两个表的数据建立连接，约束两个表中数据的一致性和完整性。
+
+主表删除某条记录时，从表中与之对应的记录也必须有相应的改变。一个表可以有一个或多个外键，外键可以为空值，若不为空值，则每一个外键的值必须等于主表中主键的某个值。
+
+定义外键时，需要遵守下列规则：
+* 主表必须已经存在于数据库中，或者是当前正在创建的表。如果是后一种情况，则主表与从表是同一个表，这样的表称为自参照表，这种结构称为自参照完整性。
+* 必须为主表定义主键。
+* 主键不能包含空值，但允许在外键中出现空值。也就是说，只要外键的每个非空值出现在指定的主键中，这个外键的内容就是正确的。
+* 在主表的表名后面指定列名或列名的组合。这个列或列的组合必须是主表的主键或候选键。
+* 外键中列的数目必须和主表的主键中列的数目相同。
+* 外键中列的数据类型必须和主表主键中对应列的数据类型相同。
+
+创建外键
+修改外键
+删除外键
+
+### 唯一约束
+MySQL 唯一约束（Unique Key）是指所有记录中字段的值不能重复出现。
+唯一约束与主键约束相似的是它们都可以确保列的唯一性。不同的是，唯一约束在一个表中可有多个，并且设置唯一约束的列允许有空值，但是只能有一个空值。
+
+创建唯一约束
+修改唯一约束
+删除唯一约束
+
+### 检查约束
+MySQL 检查约束（CHECK）是用来检查数据表中字段值有效性的一种手段，可以通过 CREATE TABLE 或 ALTER TABLE 语句实现。设置检查约束时要根据实际情况进行设置，这样能够减少无效数据的输入。
+
+创建检查约束
+修改检查约束
+删除检查约束
+
+### 默认值约束
+默认值约束（Default Constraint），用来指定某列的默认值。在表中插入一条新记录时，如果没有为某个字段赋值，系统就会自动为这个字段插入默认值。
+创建默认值约束
+修改默认值约束
+删除默认值约束
+
+### 非空约束
+非空约束（NOT NULL）指字段的值不能为空。对于使用了非空约束的字段，如果用户在添加数据时没有指定值，数据库系统就会报错。
+可以通过 CREATE TABLE 或 ALTER TABLE 语句实现。在表中某个列的定义后加上关键字 NOT NULL 作为限定词，来约束该列的取值不能为空。
+创建非空约束
+修改非空约束
+删除非空约束
+
+
+
 ## 变量
 
+如果使用错误的数据类型可能会严重影响应用程序的功能和性能，所以在设计表时，应该特别重视数据列所用的数据类型。更改包含数据的列不是一件小事，这样做可能会导致数据丢失。因此，在创建表时必须为每个列设置正确的数据类型和长度。定义字段的数据类型对数据库的优化是十分重要的。
+* 整数类型包括 TINYINT、SMALLINT、MEDIUMINT、INT、BIGINT
+* 浮点数类型包括 FLOAT 和 DOUBLE，定点数类型为 DECIMAL
+* 日期/时间类型包括 YEAR、TIME、DATE、DATETIME 和 TIMESTAMP
+* 字符串类型包括 CHAR、VARCHAR、BINARY、VARBINARY、BLOB、TEXT、ENUM 和 SET 等
+* 二进制类型包括 BIT、BINARY、VARBINARY、TINYBLOB、BLOB、MEDIUMBLOB 和 LONGBLOB
+
+### 整数
+MySQL提供了多种数值型数据类型，不同的数据类型提供不同的取值范围，可以存储的值范围越大，所需的存储空间也会越大。
+不同的整数类型有不同的取值范围，并且需要不同的存储空间，因此应根据实际需要选择最合适的类型，这样有利于提高查询的效率和节省存储空间。
+
+|类型名称       |说明         |存储需求|有符号范围|无符号范围|
+|--|--|--|--|--|
+|TINYINT       |很小的整数    |1个字节|-128〜127    0| 〜255|
+|SMALLINT      |小的整数     | 2个宇节|-32768〜32767   | 0〜65535|
+|MEDIUMINT     |中等大小的整数| 3个字节|-8388608〜8388607   | 0〜16777215|
+|INT (INTEGHR) |普通大小的整数| 4个字节|-2147483648〜2147483647 | 0〜4294967295|
+|BIGINT        |大整数       | 8个字节|-9223372036854775808〜9223372036854775807   | 0〜18446744073709551615|
+
+### 小数
+MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别是单精度浮点数（**FLOAT**）和双精度浮点数（**DOUBLE**）；定点类型只有一种，就是 **DECIMAL**。
+浮点类型和定点类型都可以用`(M, D)`来表示，其中`M`称为精度，表示总共的位数；`D`称为标度，表示小数的位数。
+浮点数类型的取值范围为 M（1～255）和 D（1～30，且不能大于 M-2），分别表示显示宽度和小数位数。M 和 D 在 FLOAT 和DOUBLE 中是可选的，FLOAT 和 DOUBLE 类型将被保存为硬件所支持的最大精度。DECIMAL 的默认 D 值为 0、M 值为 10。
+不论是定点还是浮点类型，如果用户指定的精度超出精度范围，则会四舍五入进行处理。
+
+|类型名称       |说明         |存储需求|有符号范围|无符号范围|
+|--|--|--|--|--|
+|FLOAT       |单精度浮点数        |4个字节|(-3.402823466E+38，-1.175494351E-38)，0，(1.175494351E-38，3.402823466351E+38)   | 0，(1.175494351E-38，3.402823466E+38)|
+|DOUBLE      |双精度浮点数     | 8个宇节|(-1.7976931348623157E+308，-2.2250738585072014E-308)，0，(2.2250738585072014E-308，1.7976931348623157E+308)  | 0，(2.2250738585072014E-308，1.7976931348623157E+308)|
+|DECIMAL (M, D)，DEC     |压缩的“严格”定点数|如果M>D，为M+2否则为D+2|依赖于M和D的值  | 依赖于M和D的值|
+
+### 日期
+表示时间值的日期和时间数据类型有 DATE、TIME、DATETIME、TIMESTAMP 和 YEAR。每个时间类型都有一系列有效值，以及一个“零”值，当您指定 MySQL 无法表示的无效值时可能会使用该值。 TIMESTAMP 和 DATETIME 类型具有特殊的自动更新行为。
+
+|类型名称    |日期格式    | 日期范围                                                      |存储需求|
+|-|-|-|-|
+|YEAR       |YYYY       | 1901 ~ 2155                                                  |1 个字节|
+|TIME       |HH:MM:SS   | -838:59:59 ~ 838:59:59                                       |3 个字节|
+|DATE       |YYYY-MM-DD | 1000-01-01 ~ 9999-12-3                                       |3 个字节|
+|DATETIME   |YYYY-MM-DD | HH:MM:SS 1000-01-01 00:00:00 ~ 9999-12-31 23:59:59           |8 个字节|
+|TIMESTAMP  |YYYY-MM-DD | HH:MM:SS 1970-01-01 00:00:01 UTC ~ 2038-01-19 03:14:07 UTC   |4 个字节|
+
+### 字符串
+
+
+|类型名称     |说明                                     |  存储需求|
+|-|-|-|
+|CHAR(M)     |固定长度非二进制字符串                      |  M 字节，1<=M<=255|
+|VARCHAR(M)  |变长非二进制字符串                         |     L+1字节，在此，L< = M和 1<=M<=255|
+|TINYTEXT    |非常小的非二进制字符串                      |    L+1字节，在此，L<2^8|
+|TEXT        |小的非二进制字符串                         |     L+2字节，在此，L<2^16|
+|MEDIUMTEXT  |中等大小的非二进制字符串                    |   L+3字节，在此，L<2^24|
+|LONGTEXT    |大的非二进制字符串                         |      L+4字节，在此，L<2^32|
+|ENUM        |枚举类型，只能有一个枚举字符串值             |  1或2个字节，取决于枚举值的数目 (最大值为65535)|
+|SET         |一个设置，字符串对象可以有零个或 多个SET成员  |  1、2、3、4或8个字节，取决于集合 成员的数量（最多64个成员）|
+
+### 二进制
+
+
+|类型名称     |说明                                     |  存储需求|
+|-|-|-|
+|BIT(M)          |位字段类型          |大约 (M+7)/8 字节|
+|BINARY(M)       |固定长度二进制字符串 | M 字节|
+|VARBINARY (M)   |可变长度二进制字符串 | M+1 字节|
+|TINYBLOB (M)    |非常小的BLOB        | L+1 字节，在此，L<2^8|
+|BLOB (M)        |小 BLOB            | L+2 字节，在此，L<2^16|
+|MEDIUMBLOB (M)  |中等大小的BLOB      | L+3 字节，在此，L<2^24|
+|LONGBLOB (M)    |非常大的BLOB        | L+4 字节，在此，L<2^32|
+
+
 # 基础篇-SQL
-## 数据定义语句（Data Definition Statements）
+## 数据定义语句（Data-Definition-Statements）
 Data Definition Statements 定义相关结构，包括：数据库（DATABASE）、事件（EVENT）、方法（FUNCTION）、索引（INDEX）、存储过程（PROCEDURE）、数据表（TABLE）、触发器（TRIGGER）、视图（VIEW）等。
 ### CREATE
 CREATE 用于创建相关结构，包括：数据库（DATABASE）、事件（EVENT）、方法（FUNCTION）、索引（INDEX）、存储过程（PROCEDURE）、数据表（TABLE）、触发器（TRIGGER）、视图（VIEW）等。
@@ -215,9 +535,7 @@ DROP VIEW
 ```sql
 ```
 
-
-
-## 数据操作语句（Data Manipulation Statements）
+## 数据操作语句（Data-Manipulation-Statements）
 ### INSERT
 INSERT 用于向表中添加数据，语法如下：
 ```sql
@@ -418,8 +736,7 @@ LOAD XML
     [SET col_name={expr | DEFAULT}
         [, col_name={expr | DEFAULT}] ...]
 ```
-
-## 事务和锁定语句（Transactional and Locking Statements）
+## 事务和锁定语句（Transactional-and-Locking-Statements）
 ### transaction
 ```sql
 START TRANSACTION
@@ -470,8 +787,7 @@ lock_type: {
 
 UNLOCK TABLES
 ```
-
-## 复合语句（Compound Statements）
+## 复合语句（Compound-Statements）
 ### BEGIN END
 BEGIN ... END 语法用于编写复合语句，这些语句可以出现在存储程序（存储过程和函数、触发器和事件）中。复合语句可以包含多个语句，由 BEGIN 和 END 关键字括起来。 statement_list 表示一个或多个语句的列表，每个语句以分号 (;) 语句定界符终止。 statement_list 本身是可选的，所以空复合语句（BEGIN END）是合法的。
 BEGIN ... END 语句允许嵌套执行。
@@ -673,9 +989,7 @@ RETURN expr
     statement_list
 END WHILE [end_label]
 ```
-
-
-## Database Administration Statements
+## Database-Administration-Statements
 ### Account Management Statements
 #### grant
 ```sql
@@ -738,51 +1052,21 @@ resource_option: {
 ### SHOW
 
 ## TCL
-### begin end
-### start transaction
-### savepoint
-### commit
-### rollback
-
 # 进阶篇
 ## 执行流程
 ## 日志
-### error log
-### binary log
-### query log
-### slow log
-### redo log
-### undo log
 ## 缓存
-### sort buffer
-### join buffer
-### change buffer
-### redo log buffer
-### buffer pool
 ## 锁
-### 机制锁
-#### 共享锁
-#### 排他锁
-### 粒度锁
-#### 全局锁
-#### 表级锁
-#### 行级锁
-### DCL
-### 间隙锁
-
-### mvcc
-### 死锁
 ## 内存引擎
 ## 临时表
-## 索引
 ## 事务
-## group by
-## order by
+## 索引
+## group-by
+## order-by
 ## count
 ## join
-## sql mode
+## sql-mode
 ## 预读
-
 # 应用篇
 ## 主从
 ## 读写分离

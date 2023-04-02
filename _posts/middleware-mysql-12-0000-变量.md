@@ -77,3 +77,172 @@ MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别
 |LONGBLOB (M)    |非常大的BLOB        | L+4 字节，在此，L<2^32|
 
 
+# 变量
+## 局部变量
+局部变量一般用在sql语句块中，比如存储过程的begin/end。其作用域仅限于该语句块，在该语句块执行完毕后，局部变量就消失了。declare语句专门用于定义局部变量，可以使用default来说明默认值。set语句是设置不同类型的变量，包括会话变量和全局变量。 
+局部变量定义语法形式
+```sql
+declare var_name [, var_name]... data_type [ DEFAULT value ];
+```
+例如在begin/end语句块中添加如下一段语句，接受函数传进来的a/b变量然后相加，通过set语句赋值给c变量。 
+
+set语句语法形式set var_name=expr [, var_name=expr]...; set语句既可以用于局部变量的赋值，也可以用于用户变量的申明并赋值。
+```sql
+declare c int default 0;
+set c=a+b;
+select c as C;
+```
+或者用select …. into…形式赋值
+```sql
+select col_name[,...] into var_name[,...] table_expr [where...];
+```
+
+## 用户变量
+
+MySQL中用户变量不用事前申明，在用的时候直接用“@变量名”使用就可以了。 
+第一种用法：set @num=1; 或set @num:=1; //这里要使用set语句创建并初始化变量，直接使用@num变量 
+第二种用法：select @num:=1; 或 select @num:=字段名 from 表名 where ……， 
+
+select语句一般用来输出用户变量，比如select @变量名，用于输出数据源不是表格的数据。
+注意上面两种赋值符号，使用set时可以用“=”或“:=”，但是使用select时必须用“:=赋值”
+用户变量与数据库连接有关，在连接中声明的变量，在存储过程中创建了用户变量后一直到数据库实例接断开的时候，变量就会消失。
+在此连接中声明的变量无法在另一连接中使用。
+
+用户变量的变量名的形式为@varname的形式。
+名字必须以@开头。
+声明变量的时候需要使用set语句，比如下面的语句声明了一个名为@a的变量。
+```sql
+set @a = 1;
+```
+
+声明一个名为@a的变量，并将它赋值为1，MySQL里面的变量是不严格限制数据类型的，它的数据类型根据你赋给它的值而随时变化 。（SQL SERVER中使用declare语句声明变量，且严格限制数据类型。） 
+
+我们还可以使用select语句为变量赋值 。 
+
+比如：
+```sql
+set @name = '';
+select @name:=password from user limit 0,1;
+```
+
+从数据表中获取一条记录password字段的值给@name变量。在执行后输出到查询结果集上面。（注意等于号前面有一个冒号，后面的limit 0,1是用来限制返回结果的，表示可以是0或1个。相当于SQL SERVER里面的top 1） 
+
+如果直接写：`select @name:=password from user;`
+
+如果这个查询返回多个值的话，那@name变量的值就是最后一条记录的password字段的值 。 
+
+用户变量可以作用于当前整个连接，但当当前连接断开后，其所定义的用户变量都会消失。 
+
+用户变量使用如下（我们无须使用declare关键字对用户变量进行定义，可以直接这样使用）定义，变量名必须以@开始：
+```sql
+-- 定义
+select @变量名  或者 select @变量名:= 字段名 from 表名 where 过滤语句;
+set @变量名;
+-- 赋值 @num为变量名，value为值
+set @num=value;或select @num:=value;
+```
+
+对用户变量赋值有两种方式，一种是直接用”=”号，另一种是用”:=”号。其区别在于使用set命令对用户变量进行赋值时，两种方式都可以使用；当使用select语句对用户变量进行赋值时，只能使用”:=”方式，因为在select语句中，”=”号declare语句专门用于定义局部变量。set语句是设置不同类型的变量，包括会话变量和全局变量。
+
+例如：
+```sql
+begin
+    declare c int default 0;
+    set @var1=143;  #定义一个用户变量，并初始化为143
+    set @var2=34;
+    set c=a+b;
+    set @d=c;
+    select @sum:=(@var1+@var2) as sum, @dif:=(@var1-@var2) as dif, @d as C;#使用用户变量。@var1表示变量名
+
+    set c=100;
+    select c as CA;
+end
+```
+
+#在查询中执行下面语句段
+call `order`(12,13);  #执行上面定义的存储过程
+select @var1;  #看定义的用户变量在存储过程执行完后，是否还可以输出，结果是可以输出用户变量@var1,@var2两个变量的。
+select @var2;
+复制代码
+在执行完order存储过程后，在存储过程中新建的var1，var2用户变量还是可以用select语句输出的，但是存储过程里面定义的局部变量c不能识别。
+
+## 系统变量
+系统变量又分为全局变量与会话变量。
+
+全局变量在MySQL启动的时候由服务器自动将它们初始化为默认值，这些默认值可以通过更改my.ini这个文件来更改。
+
+会话变量在每次建立一个新的连接的时候，由MySQL来初始化。MySQL会将当前所有全局变量的值复制一份。来做为会话变量。
+
+（也就是说，如果在建立会话以后，没有手动更改过会话变量与全局变量的值，那所有这些变量的值都是一样的。）
+
+全局变量与会话变量的区别就在于，对全局变量的修改会影响到整个服务器，但是对会话变量的修改，只会影响到当前的会话（也就是当前的数据库连接）。
+
+我们可以利用
+
+show session variables;
+语句将所有的会话变量输出（可以简写为show variables，没有指定是输出全局变量还是会话变量的话，默认就输出会话变量。）如果想输出所有全局变量：
+
+show global variables
+有些系统变量的值是可以利用语句来动态进行更改的，但是有些系统变量的值却是只读的。
+
+对于那些可以更改的系统变量，我们可以利用set语句进行更改。
+
+系统变量在变量名前面有两个@； 
+
+如果想要更改会话变量的值，利用语句：
+`set session varname = value;`或者`set @@session.varname = value;`
+
+
+## 会话变量
+
+服务器为每个连接的客户端维护一系列会话变量。在客户端连接数据库实例时，使用相应全局变量的当前值对客户端的会话变量进行初始化。设置会话变量不需要特殊权限，但客户端只能更改自己的会话变量，而不能更改其它客户端的会话变量。会话变量的作用域与用户变量一样，仅限于当前连接。当当前连接断开后，其设置的所有会话变量均失效。
+
+设置会话变量有如下三种方式更改会话变量的值：
+
+```sql
+set session var_name = value;
+set @@session.var_name = value;
+set var_name = value;  -- 缺省session关键字默认认为是session
+```
+
+
+查看所有的会话变量
+```sql
+show session variables;
+```
+查看一个会话变量也有如下三种方式：
+```sql
+select @@var_name;
+select @@session.var_name;
+show session variables like "%var%";
+```
+
+凡是上面提到的session，都可以用local这个关键字来代替。 
+```sql
+select @@local.sort_buffer_size 
+```
+
+无论是在设置系统变量还是查询系统变量值的时候，只要没有指定到底是全局变量还是会话变量。都当做会话变量来处理。 
+
+
+## 全局变量
+
+全局变量影响服务器整体操作。当服务器启动时，它将所有全局变量初始化为默认值。这些默认值可以在选项文件中或在命令行中指定的选项进行更改。要想更改全局变量，必须具有super权限。全局变量作用于server的整个生命周期，但是不能跨重启。即重启后所有设置的全局变量均失效。要想让全局变量重启后继续生效，需要更改相应的配置文件。
+
+要设置一个全局变量，有如下两种方式：
+```sql
+set global var_name = value; -- 注意：此处的global不能省略。根据手册，set命令设置变量时若不指定GLOBAL、SESSION或者LOCAL，默认使用SESSION
+set @@global.var_name = value; -- 同上
+```
+
+查看所有的全局变量 
+```sql
+show global variables; 
+```
+
+要想查看一个全局变量，有如下两种方式：
+```sql
+select @@global.var_name;
+show global variables like “%var%”;
+```
+

@@ -2,26 +2,32 @@ cmd=$1
 if [ "$cmd" == "" ];then
   cmd=merge
 fi
+
+git add middleware-mysql*
+git commit -m 'update'
+
 base_file=middleware/mysql/mysql讲义.md
 if [ "$cmd" == "init" ];then
   title=$(cat ${base_file} |grep -E '^## |^# ' |sed -e 's/#/00/g' -e 's/ /-/g')
-  for t in ${title};do 
-    line=$(echo $title|sed -e 's/ /\n/g' | sed -n -e "/${t}/=")
+  for t in ${title};do
+    line=$(echo $title|sed -e 's/ /\n/g' | sed -n -e "/${t}$/=")
     new=middleware-mysql-${line}-${t}
-    old=$(ls |grep $t)
+    old=$(ls |grep $t.md)
     if [ "${old}" == "" ];then
       echo $new
       hexo new $new
     else
-      echo mv $old $new.md
+      if [ "$old" == "$new.md" ];then
+        echo $old not change
+        continue
+      fi
+      echo mv "$old ---> $new.md"
       mv $old $new.md
     fi
   done
 fi
 
 if [ "$cmd" == "merge" ];then
-  git add middleware-mysql*
-  git commit -m 'update'
   file=middleware-mysql.md
   echo --- > ${file}
   for f in $(ls |grep middleware-mysql- | sort -n -t '-' -k 3);do

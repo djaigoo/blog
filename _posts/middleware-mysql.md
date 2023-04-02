@@ -19,8 +19,8 @@
 | 函数      | 含义    |
 | --------- | -------- |
 |`round(x,y)`| 四舍五入,y表示保留小数位(y非必填)  |
-|`ceil(x)`|   向上取整，返回>=该参数的最小整数       |
-|`floor(x)`|    向下取整，返回<=该参数的最大整数      |
+|`ceil(x)`|   向上取整，返回&gt;=该参数的最小整数       |
+|`floor(x)`|    向下取整，返回&lt;=该参数的最大整数      |
 |`mod(x,y)`|      返回x/y的模（余数）    |
 |`greatest(x1,x2,...,xn)`|    返回集合中最大的值      |
 |`least(x1,x2,...,xn)`|   返回集合中最小的值       |
@@ -324,12 +324,12 @@ MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别
 
 |类型名称     |说明                                     |  存储需求|
 |-|-|-|
-|CHAR(M)     |固定长度非二进制字符串                      |  M 字节，1<=M<=255|
-|VARCHAR(M)  |变长非二进制字符串                         |     L+1字节，在此，L< = M和 1<=M<=255|
-|TINYTEXT    |非常小的非二进制字符串                      |    L+1字节，在此，L<2^8|
-|TEXT        |小的非二进制字符串                         |     L+2字节，在此，L<2^16|
-|MEDIUMTEXT  |中等大小的非二进制字符串                    |   L+3字节，在此，L<2^24|
-|LONGTEXT    |大的非二进制字符串                         |      L+4字节，在此，L<2^32|
+|CHAR(M)     |固定长度非二进制字符串                      |  M 字节，1&lt;=M&lt;=255|
+|VARCHAR(M)  |变长非二进制字符串                         |     L+1字节，在此，L&lt;=M和 1&lt;=M&lt;=255|
+|TINYTEXT    |非常小的非二进制字符串                      |    L+1字节，在此，L&lt;$2^{8}$|
+|TEXT        |小的非二进制字符串                         |     L+2字节，在此，L&lt;$2^{16}$|
+|MEDIUMTEXT  |中等大小的非二进制字符串                    |   L+3字节，在此，L&lt;$2^{24}$|
+|LONGTEXT    |大的非二进制字符串                         |      L+4字节，在此，L&lt;$2^{32}$|
 |ENUM        |枚举类型，只能有一个枚举字符串值             |  1或2个字节，取决于枚举值的数目 (最大值为65535)|
 |SET         |一个设置，字符串对象可以有零个或 多个SET成员  |  1、2、3、4或8个字节，取决于集合 成员的数量（最多64个成员）|
 
@@ -341,10 +341,10 @@ MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别
 |BIT(M)          |位字段类型          |大约 (M+7)/8 字节|
 |BINARY(M)       |固定长度二进制字符串 | M 字节|
 |VARBINARY (M)   |可变长度二进制字符串 | M+1 字节|
-|TINYBLOB (M)    |非常小的BLOB        | L+1 字节，在此，L<2^8|
-|BLOB (M)        |小 BLOB            | L+2 字节，在此，L<2^16|
-|MEDIUMBLOB (M)  |中等大小的BLOB      | L+3 字节，在此，L<2^24|
-|LONGBLOB (M)    |非常大的BLOB        | L+4 字节，在此，L<2^32|
+|TINYBLOB (M)    |非常小的BLOB        | L+1 字节，在此，L&lt;$2^{8}$|
+|BLOB (M)        |小 BLOB            | L+2 字节，在此，L&lt;$2^{16}$|
+|MEDIUMBLOB (M)  |中等大小的BLOB      | L+3 字节，在此，L&lt;$2^{24}$|
+|LONGBLOB (M)    |非常大的BLOB        | L+4 字节，在此，L&lt;$2^{32}$|
 
 
 ### 变量
@@ -1425,7 +1425,7 @@ UNLOCK TABLES
 ```
 ## 复合语句（Compound-Statements）
 ### BEGIN END
-BEGIN ... END 语法用于编写复合语句，这些语句可以出现在存储程序（存储过程和函数、触发器和事件）中。复合语句可以包含多个语句，由 BEGIN 和 END 关键字括起来。 statement_list 表示一个或多个语句的列表，每个语句以分号 (;) 语句定界符终止。 statement_list 本身是可选的，所以空复合语句（BEGIN END）是合法的。
+BEGIN ... END 语法用于编写复合语句，这些语句可以出现在存储程序（存储过程和函数、触发器和事件）中。复合语句可以包含多个语句，由 BEGIN 和 END 关键字括起来。 `statement_list` 表示一个或多个语句的列表，每个语句以分号 (;) 语句定界符终止。 `statement_list` 本身是可选的，所以空复合语句（BEGIN END）是合法的。
 BEGIN ... END 语句允许嵌套执行。
 
 语法如下：
@@ -1449,9 +1449,9 @@ END WHILE [end_label]
 ```
 
 BEGIN ... END 块以及 LOOP、REPEAT 和 WHILE 语句允许使用标签。这些语句的标签使用遵循以下规则：
-* begin_label 后面必须跟一个冒号。
-* begin_label 可以在没有 end_label 的情况下给出。如果存在 end_label，则它必须与 begin_label 相同。
-* end_label 不能在没有 begin_label 的情况下给出。
+* `begin_label` 后面必须跟一个冒号。
+* `begin_label` 可以在没有 `end_label` 的情况下给出。如果存在 `end_label`，则它必须与 `begin_label` 相同。
+* `end_label` 不能在没有 `begin_label` 的情况下给出。
 * 同一嵌套级别的标签必须不同。
 * 标签最长可达 16 个字符。
 
@@ -1932,7 +1932,8 @@ MySQL 从你输入的"select"这个关键字识别出来，这是一个查询语
 如果你的语句不对，就会收到“You have an error in your SQL syntax”的错误提醒，比如下面这个语句 select 少打了开头的字母“s”。
 
 ```
-mysql> elect * from t where ID=1; ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'elect * from t where ID=1' at line 1
+mysql> elect * from t where ID=1;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'elect * from t where ID=1' at line 1
 ```
 
 一般语法错误会提示第一个出现错误的位置，所以你要关注的是紧接“use near”的内容。
@@ -1961,7 +1962,8 @@ MySQL 通过分析器知道了你要做什么，通过优化器知道了该怎�
 开始执行的时候，要先判断一下你对这个表 T 有没有执行查询的权限，如果没有，就会返回没有权限的错误，如下所示 (在工程实现上，如果命中查询缓存，会在查询缓存返回结果的时候，做权限验证。查询也会在优化器之前调用 precheck 验证权限)。
 
 ```
-mysql> select * from T where ID=10; ERROR 1142 (42000): SELECT command denied to user 'b'@'localhost' for table 'T'
+mysql> select * from T where ID=10;
+ERROR 1142 (42000): SELECT command denied to user 'b'@'localhost' for table 'T'
 ```
 
 如果有权限，就打开表继续执行。打开表的时候，执行器就会根据表的引擎定义，去使用这个引擎提供的接口。
@@ -2482,7 +2484,19 @@ begin;insert into t1 ...insert into t2 ...commit;
 接下来，我把 @ithunter 同学说的表模拟出来，方便我们讨论。
 
 ```
-CREATE TABLE `like` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `user_id` int(11) NOT NULL,  `liker_id` int(11) NOT NULL,  PRIMARY KEY (`id`),  UNIQUE KEY `uk_user_id_liker_id` (`user_id`,`liker_id`)) ENGINE=InnoDB; CREATE TABLE `friend` (  id` int(11) NOT NULL AUTO_INCREMENT,  `friend_1_id` int(11) NOT NULL,  `firned_2_id` int(11) NOT NULL,  UNIQUE KEY `uk_friend` (`friend_1_id`,`firned_2_id`)  PRIMARY KEY (`id`)) ENGINE=InnoDB;
+CREATE TABLE `like` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `liker_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_id_liker_id` (`user_id`,`liker_id`))
+ENGINE=InnoDB;
+
+CREATE TABLE `friend` (
+  id` int(11) NOT NULL AUTO_INCREMENT,
+  `friend_1_id` int(11) NOT NULL,
+  `firned_2_id` int(11) NOT NULL,
+  UNIQUE KEY `uk_friend` (`friend_1_id`,`firned_2_id`)  PRIMARY KEY (`id`)) ENGINE=InnoDB;
 ```
 
 虽然这个题干中，并没有说到 friend 表的索引结构。但我猜测 friend_1_id 和 friend_2_id 也有索引，为便于描述，我给加上唯一索引。
@@ -2511,19 +2525,29 @@ CREATE TABLE `like` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `user_id` int(11) 
 
 然后，当 A 关注 B 的时候，逻辑改成如下所示的样子：
 
-应用代码里面，比较 A 和 B 的大小，如果 A<B，就执行下面的逻辑
+应用代码里面，比较 A 和 B 的大小，如果 A&lt;B，就执行下面的逻辑
 
 ```
-mysql> begin; /* 启动事务 */insert into `like`(user_id, liker_id, relation_ship) values(A, B, 1) on duplicate key update relation_ship=relation_ship | 1;select relation_ship from `like` where user_id=A and liker_id=B;/* 代码中判断返回的 relation_ship，  如果是 1，事务结束，执行 commit  如果是 3，则执行下面这两个语句：  */insert ignore into friend(friend_1_id, friend_2_id) values(A,B);commit;
+mysql> begin; /* 启动事务 */
+insert into `like`(user_id, liker_id, relation_ship) values(A, B, 1) on duplicate key update relation_ship=relation_ship | 1;
+
+select relation_ship from `like` where user_id=A and liker_id=B;/* 代码中判断返回的 relation_ship，  如果是 1，事务结束，执行 commit  如果是 3，则执行下面这两个语句：  */
+
+insert ignore into friend(friend_1_id, friend_2_id) values(A,B);commit;
 ```
 
 如果 A>B，则执行下面的逻辑
 
 ```
-mysql> begin; /* 启动事务 */insert into `like`(user_id, liker_id, relation_ship) values(B, A, 2) on duplicate key update relation_ship=relation_ship | 2;select relation_ship from `like` where user_id=B and liker_id=A;/* 代码中判断返回的 relation_ship，  如果是 2，事务结束，执行 commit  如果是 3，则执行下面这两个语句：*/insert ignore into friend(friend_1_id, friend_2_id) values(B,A);commit;
+mysql> begin; /* 启动事务 */
+insert into `like`(user_id, liker_id, relation_ship) values(B, A, 2) on duplicate key update relation_ship=relation_ship | 2;
+
+select relation_ship from `like` where user_id=B and liker_id=A;/* 代码中判断返回的 relation_ship，  如果是 2，事务结束，执行 commit  如果是 3，则执行下面这两个语句：*/
+
+insert ignore into friend(friend_1_id, friend_2_id) values(B,A);commit;
 ```
 
-这个设计里，让“like”表里的数据保证 user_id < liker_id，这样不论是 A 关注 B，还是 B 关注 A，在操作“like”表的时候，如果反向的关系已经存在，就会出现行锁冲突。
+这个设计里，让“like”表里的数据保证 `user_id < liker_id`，这样不论是 A 关注 B，还是 B 关注 A，在操作“like”表的时候，如果反向的关系已经存在，就会出现行锁冲突。
 
 然后，insert … on duplicate 语句，确保了在事务内部，执行了这个 SQL 语句后，就强行占住了这个行锁，之后的 select 判断 relation_ship 这个逻辑时就确保了是在行锁保护下的读操作。
 
@@ -2923,7 +2947,7 @@ InnoDB 管理 Buffer Pool 的 LRU 算法，是用链表来实现的。
 
 现在发起一个逻辑备份。假设备份期间，有一个用户，他购买了一门课程，业务逻辑里就要扣掉他的余额，然后往已购课程里面加上一门课。
 
-如果时间顺序上是先备份账户余额表 (u_account)，然后用户购买，然后备份用户课程表 (u_course)，会怎么样呢？你可以看一下这个图：
+如果时间顺序上是先备份账户余额表 (`u_account`)，然后用户购买，然后备份用户课程表 (u_course)，会怎么样呢？你可以看一下这个图：
 
 
 图 1 业务和备份状态图
@@ -2990,7 +3014,7 @@ MySQL 里面表级别的锁有两种：一种是表锁，一种是元数据锁�
 
 基于上面的分析，我们来讨论一个问题，**如何安全地给小表加字段？**
 
-首先我们要解决长事务，事务不提交，就会一直占着 MDL 锁。在 MySQL 的 information_schema 库的 innodb_trx 表中，你可以查到当前执行中的事务。如果你要做 DDL 变更的表刚好有长事务在执行，要考虑先暂停 DDL，或者 kill 掉这个长事务。
+首先我们要解决长事务，事务不提交，就会一直占着 MDL 锁。在 MySQL 的 `information_schema` 库的 `innodb_trx` 表中，你可以查到当前执行中的事务。如果你要做 DDL 变更的表刚好有长事务在执行，要考虑先暂停 DDL，或者 kill 掉这个长事务。
 
 但考虑一下这个场景。如果你要变更的表是一个热点表，虽然数据量不大，但是上面的请求很频繁，而你不得不加个字段，你该怎么做呢？
 
@@ -2999,7 +3023,8 @@ MySQL 里面表级别的锁有两种：一种是表锁，一种是元数据锁�
 MariaDB 已经合并了 AliSQL 的这个功能，所以这两个开源分支目前都支持 DDL NOWAIT/WAIT n 这个语法。
 
 ```
-ALTER TABLE tbl_name NOWAIT add column ...ALTER TABLE tbl_name WAIT N add column ... 
+ALTER TABLE tbl_name NOWAIT add column ...
+ALTER TABLE tbl_name WAIT N add column ... 
 ```
 
 ### 小结
@@ -3119,7 +3144,13 @@ MySQL 的行锁是在引擎层由各个引擎自己实现的。但并不是所�
 为了便于说明问题，这一篇文章，我们就先使用一个小一点儿的表。建表和初始化语句如下（为了便于本期的例子说明，我把上篇文章中用到的表结构做了点儿修改）：
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  `d` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `c` (`c`)) ENGINE=InnoDB; insert into t values(0,0,0),(5,5,5),(10,10,10),(15,15,15),(20,20,20),(25,25,25);
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  `d` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  KEY `c` (`c`)) ENGINE=InnoDB; 
+
+insert into t values(0,0,0),(5,5,5),(10,10,10),(15,15,15),(20,20,20),(25,25,25);
 ```
 
 这个表除了主键 id 外，还有一个索引 c，初始化语句在表中插入了 6 行数据。
@@ -3216,7 +3247,11 @@ update 的加锁语义和 select …for update 是一致的，所以这时候加
 我统一放到一起的话，就是这样的：
 
 ```
-update t set d=5 where id=0; /*(0,0,5)*/update t set c=5 where id=0; /*(0,5,5)*/ insert into t values(1,1,5); /*(1,1,5)*/update t set c=5 where id=1; /*(1,5,5)*/ update t set d=100 where d=5;/* 所有 d=5 的行，d 改成 100*/
+update t set d=5 where id=0; /*(0,0,5)*/
+update t set c=5 where id=0; /*(0,5,5)*/ 
+insert into t values(1,1,5); /*(1,1,5)*/
+update t set c=5 where id=1; /*(1,5,5)*/ 
+update t set d=100 where d=5;/* 所有 d=5 的行，d 改成 100*/
 ```
 
 好，你应该看出问题了。这个语句序列，不论是拿到备库去执行，还是以后用 binlog 来克隆一个库，这三行的结果，都变成了 (0,5,100)、(1,5,100) 和 (5,5,100)。
@@ -3239,7 +3274,11 @@ update t set d=5 where id=0; /*(0,0,5)*/update t set c=5 where id=0; /*(0,5,5)*/
 这样对于 id=0 这一行，在数据库里的最终结果还是 (0,5,5)。在 binlog 里面，执行序列是这样的：
 
 ```
-insert into t values(1,1,5); /*(1,1,5)*/update t set c=5 where id=1; /*(1,5,5)*/ update t set d=100 where d=5;/* 所有 d=5 的行，d 改成 100*/ update t set d=5 where id=0; /*(0,0,5)*/update t set c=5 where id=0; /*(0,5,5)*/
+insert into t values(1,1,5); /*(1,1,5)*/
+update t set c=5 where id=1; /*(1,5,5)*/ 
+update t set d=100 where d=5;/* 所有 d=5 的行，d 改成 100*/ 
+update t set d=5 where id=0; /*(0,0,5)*/
+update t set c=5 where id=0; /*(0,5,5)*/
 ```
 
 可以看到，按照日志顺序执行，id=0 这一行的最终结果也是 (0,5,5)。所以，id=0 这一行的问题解决了。
@@ -3298,7 +3337,10 @@ insert into t values(1,1,5); /*(1,1,5)*/update t set c=5 where id=1; /*(1,5,5)*/
 在前面的文章中，就有同学提到了这个问题。我把他的问题转述一下，对应到我们这个例子的表来说，业务逻辑这样的：任意锁住一行，如果这一行不存在的话就插入，如果存在这一行就更新它的数据，代码如下：
 
 ```
-begin;select * from t where id=N for update; /* 如果行不存在 */insert into t values(N,N,N);/* 如果行存在 */update t set d=N set id=N; commit;
+begin;
+select * from t where id=N for update; /* 如果行不存在 */
+insert into t values(N,N,N);/* 如果行存在 */
+update t set d=N set id=N; commit;
 ```
 
 可能你会说，这个不是 insert … on duplicate key update 就能解决吗？但其实在有多个唯一键的时候，这个方法是不能满足这位提问同学的需求的。至于为什么，我会在后面的文章中再展开说明。
@@ -3383,7 +3425,14 @@ begin;select * from t where id=N for update; /* 如果行不存在 */insert into
 我还是以上篇文章的表 t 为例，和你解释一下这些规则。表 t 的建表语句和初始化语句如下。
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  `d` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `c` (`c`)) ENGINE=InnoDB; insert into t values(0,0,0),(5,5,5),(10,10,10),(15,15,15),(20,20,20),(25,25,25);
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  `d` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `c` (`c`)) ENGINE=InnoDB; 
+  
+insert into t values(0,0,0),(5,5,5),(10,10,10),(15,15,15),(20,20,20),(25,25,25);
 ```
 
 接下来的例子基本都是配合着图片说明的，所以我建议你可以对照着文稿看，有些例子可能会“毁三观”，也建议你读完文章后亲手实践一下。
@@ -3591,7 +3640,17 @@ mysql> insert into t values(30,10,30);
 我们先从昨天的问题说起吧。表 t 和 t2 的表结构、初始化数据语句如下，今天的例子我们还是针对这两个表展开。
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `c` int(11) DEFAULT NULL,  `d` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  UNIQUE KEY `c` (`c`)) ENGINE=InnoDB; insert into t values(null, 1,1);insert into t values(null, 2,2);insert into t values(null, 3,3);insert into t values(null, 4,4); create table t2 like t
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `c` int(11) DEFAULT NULL,  `d` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  UNIQUE KEY `c` (`c`)) ENGINE=InnoDB; 
+  
+insert into t values(null, 1,1);
+insert into t values(null, 2,2);
+insert into t values(null, 3,3);
+insert into t values(null, 4,4); 
+create table t2 like t
 ```
 
 现在，我们一起来看看为什么在可重复读隔离级别下，binlog_format=statement 时执行：
@@ -3672,7 +3731,7 @@ insert into t(c,d)  (select c+1, d from t force index(c) order by c desc limit 1
 
 从另一个角度考虑的话，我们可以看看 InnoDB 扫描了多少行。如图 5 所示，是在执行这个语句前后查看 Innodb_rows_read 的结果。
 
-\
+
 图 5 查看 Innodb_rows_read 变化
 
 可以看到，这个语句执行前后，Innodb_rows_read 的值增加了 4。因为默认临时表是使用 Memory 引擎的，所以这 4 行查的都是表 t，也就是说对表 t 做了全表扫描。
@@ -3993,7 +4052,10 @@ select id from t where c in(5,20,10) order by c desc for update;
 在上一篇文章中，我们在优化 join 查询的时候使用到了临时表。当时，我们是这么用的：
 
 ```
-create temporary table temp_t like t1;alter table temp_t add index(b);insert into temp_t select * from t2 where b>=1 and b<=2000;select * from t1 join temp_t on (t1.b=temp_t.b);
+create temporary table temp_t like t1;
+alter table temp_t add index(b);
+insert into temp_t select * from t2 where b>=1 and b<=2000;
+select * from t1 join temp_t on (t1.b=temp_t.b);
 ```
 
 你可能会有疑问，为什么要用临时表呢？直接用普通表是不是也可以呢？
@@ -4129,12 +4191,12 @@ create temporary table temp_t(id int primary key)engine=innodb;
 
 这个进程的进程号是 1234，session A 的线程 id 是 4，session B 的线程 id 是 5。所以你看到了，session A 和 session B 创建的临时表，在磁盘上的文件不会重名。
 
-MySQL 维护数据表，除了物理上要有文件外，内存里面也有一套机制区别不同的表，每个表都对应一个 table_def_key。
+MySQL 维护数据表，除了物理上要有文件外，内存里面也有一套机制区别不同的表，每个表都对应一个 `table_def_key`。
 
-*   一个普通表的 table_def_key 的值是由“库名 + 表名”得到的，所以如果你要在同一个库下创建两个同名的普通表，创建第二个表的过程中就会发现 table_def_key 已经存在了。
-*   而对于临时表，table_def_key 在“库名 + 表名”基础上，又加入了“server_id+thread_id”。
+*   一个普通表的 `table_def_key` 的值是由“库名 + 表名”得到的，所以如果你要在同一个库下创建两个同名的普通表，创建第二个表的过程中就会发现 table_def_key 已经存在了。
+*   而对于临时表，`table_def_key` 在“库名 + 表名”基础上，又加入了“`server_id+thread_id`”。
 
-也就是说，session A 和 sessionB 创建的两个临时表 t1，它们的 table_def_key 不同，磁盘文件名也不同，因此可以并存。
+也就是说，session A 和 sessionB 创建的两个临时表 t1，它们的 `table_def_key` 不同，磁盘文件名也不同，因此可以并存。
 
 在实现上，每个线程都维护了自己的临时表链表。这样每次 session 内操作表的时候，先遍历链表，检查是否有这个名字的临时表，如果有就优先操作临时表，如果没有再操作普通表；在 session 结束的时候，对链表里的每个临时表，执行 “DROP TEMPORARY TABLE + 表名”操作。
 
@@ -4149,14 +4211,20 @@ MySQL 维护数据表，除了物理上要有文件外，内存里面也有一�
 你可以设想一下，在主库上执行下面这个语句序列：
 
 ```
-create table t_normal(id int primary key, c int)engine=innodb;/*Q1*/create temporary table temp_t like t_normal;/*Q2*/insert into temp_t values(1,1);/*Q3*/insert into t_normal select * from temp_t;/*Q4*/
+create table t_normal(
+  id int primary key,
+  c int
+)engine=innodb;/*Q1*/
+create temporary table temp_t like t_normal;/*Q2*/
+insert into temp_t values(1,1);/*Q3*/
+insert into t_normal select * from temp_t;/*Q4*/
 ```
 
-如果关于临时表的操作都不记录，那么在备库就只有 create table t_normal 表和 insert into t_normal select * from temp_t 这两个语句的 binlog 日志，备库在执行到 insert into t_normal 的时候，就会报错“表 temp_t 不存在”。
+如果关于临时表的操作都不记录，那么在备库就只有 `create table t_normal` 表和 `insert into t_normal select * from temp_t` 这两个语句的 binlog 日志，备库在执行到 `insert into t_normal` 的时候，就会报错“表 temp_t 不存在”。
 
-你可能会说，如果把 binlog 设置为 row 格式就好了吧？因为 binlog 是 row 格式时，在记录 insert into t_normal 的 binlog 时，记录的是这个操作的数据，即：write_row event 里面记录的逻辑是“插入一行数据（1,1)”。
+你可能会说，如果把 binlog 设置为 row 格式就好了吧？因为 binlog 是 row 格式时，在记录 `insert into t_normal` 的 binlog 时，记录的是这个操作的数据，即：write_row event 里面记录的逻辑是“插入一行数据（1,1)”。
 
-确实是这样。如果当前的 binlog_format=row，那么跟临时表有关的语句，就不会记录到 binlog 里。也就是说，只在 binlog_format=statment/mixed 的时候，binlog 中才会记录临时表的操作。
+确实是这样。如果当前的 `binlog_format=row`，那么跟临时表有关的语句，就不会记录到 binlog 里。也就是说，只在 `binlog_format=statment/mixed` 的时候，binlog 中才会记录临时表的操作。
 
 这种情况下，创建临时表的语句会传到备库执行，因此备库的同步线程就会创建这个临时表。主库在线程退出的时候，会自动删除临时表，但是备库同步线程是持续在运行的。所以，这时候我们就需要在主库上再写一个 DROP TEMPORARY TABLE 传给备库执行。
 
@@ -4191,13 +4259,13 @@ DROP TABLE `t_normal` /* generated by server */
 
 显然是不会的，否则临时表就是一个 bug 了。也就是说，备库线程在执行的时候，要把这两个 t1 表当做两个不同的临时表来处理。这，又是怎么实现的呢？
 
-MySQL 在记录 binlog 的时候，会把主库执行这个语句的线程 id 写到 binlog 中。这样，在备库的应用线程就能够知道执行每个语句的主库线程 id，并利用这个线程 id 来构造临时表的 table_def_key：
+MySQL 在记录 binlog 的时候，会把主库执行这个语句的线程 id 写到 binlog 中。这样，在备库的应用线程就能够知道执行每个语句的主库线程 id，并利用这个线程 id 来构造临时表的 `table_def_key`：
 
-1.  session A 的临时表 t1，在备库的 table_def_key 就是：库名 +t1+“M 的 serverid”+“session A 的 thread_id”;
+1.  session A 的临时表 t1，在备库的 `table_def_key` 就是：库名 +t1+“M 的 serverid”+“session A 的 thread_id”;
 
-2.  session B 的临时表 t1，在备库的 table_def_key 就是 ：库名 +t1+“M 的 serverid”+“session B 的 thread_id”。
+2.  session B 的临时表 t1，在备库的 `table_def_key` 就是 ：库名 +t1+“M 的 serverid”+“session B 的 thread_id”。
 
-由于 table_def_key 不同，所以这两个表在备库的应用线程里面是不会冲突的。
+由于 `table_def_key` 不同，所以这两个表在备库的应用线程里面是不会冲突的。
 
 ### 小结
 
@@ -4205,7 +4273,7 @@ MySQL 在记录 binlog 的时候，会把主库执行这个语句的线程 id �
 
 在实际应用中，临时表一般用于处理比较复杂的计算逻辑。由于临时表是每个线程自己可见的，所以不需要考虑多个线程执行同一个处理逻辑时，临时表的重名问题。在线程退出的时候，临时表也能自动删除，省去了收尾和异常处理的工作。
 
-在 binlog_format='row’的时候，临时表的操作不记录到 binlog 中，也省去了不少麻烦，这也可以成为你选择 binlog_format 时的一个考虑因素。
+在 `binlog_format='row’`的时候，临时表的操作不记录到 binlog 中，也省去了不少麻烦，这也可以成为你选择 `binlog_format` 时的一个考虑因素。
 
 需要注意的是，我们上面说到的这种临时表，是用户自己创建的 ，也可以称为用户临时表。与它相对应的，就是内部临时表，在[第 17 篇文章](https://time.geekbang.org/column/article/73795)中我已经和你介绍过。
 
@@ -4221,7 +4289,20 @@ MySQL 在记录 binlog 的时候，会把主库执行这个语句的线程 id �
 为了便于量化分析，我用下面的表 t1 来举例。
 
 ```
-create table t1(id int primary key, a int, b int, index(a));delimiter ;;create procedure idata()begin  declare i int;   set i=1;  while(i<=1000)do    insert into t1 values(i, i, i);    set i=i+1;  end while;end;;delimiter ;call idata();
+create table t1(id int primary key, a int, b int, index(a));
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;
+  set i=1;  
+  while(i<=1000)
+  do    
+    insert into t1 values(i, i, i);    
+    set i=i+1;  
+  end while;
+end;;
+delimiter ;
+call idata();
 ```
 
 然后，我们执行下面这条语句：
@@ -4327,12 +4408,13 @@ select id%10 as m, count(*) as c from t1 group by m order by null;
 
 由于表 t1 中的 id 值是从 1 开始的，因此返回的结果集中第一行是 id=1；扫描到 id=10 的时候才插入 m=0 这一行，因此结果集里最后一行才是 m=0。
 
-这个例子里由于临时表只有 10 行，内存可以放得下，因此全程只使用了内存临时表。但是，内存临时表的大小是有限制的，参数 tmp_table_size 就是控制这个内存大小的，默认是 16M。
+这个例子里由于临时表只有 10 行，内存可以放得下，因此全程只使用了内存临时表。但是，内存临时表的大小是有限制的，参数 `tmp_table_size` 就是控制这个内存大小的，默认是 16M。
 
 如果我执行下面这个语句序列：
 
 ```
-set tmp_table_size=1024;select id%100 as m, count(*) as c from t1 group by m order by null limit 10;
+set tmp_table_size=1024;
+select id%100 as m, count(*) as c from t1 group by m order by null limit 10;
 ```
 
 把内存临时表的大小限制为最大 1024 字节，并把语句改成 id % 100，这样返回结果里有 100 行数据。但是，这时的内存临时表大小不够存下这 100 行数据，也就是说，执行过程中会发现内存临时表大小到达了上限（1024 字节）。
@@ -4397,7 +4479,7 @@ select z, count(*) as c from t1 group by z;
 
 答案是，有的。
 
-在 group by 语句中加入 SQL_BIG_RESULT 这个提示（hint），就可以告诉优化器：这个语句涉及的数据量很大，请直接用磁盘临时表。
+在 group by 语句中加入 `SQL_BIG_RESULT` 这个提示（hint），就可以告诉优化器：这个语句涉及的数据量很大，请直接用磁盘临时表。
 
 MySQL 的优化器一看，磁盘临时表是 B+ 树存储，存储效率不如数组来得高。所以，既然你告诉我数据量很大，那从磁盘空间考虑，还是直接用数组来存吧。
 
@@ -4409,11 +4491,11 @@ select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 
 的执行流程就是这样的：
 
-1.  初始化 sort_buffer，确定放入一个整型字段，记为 m；
+1.  初始化 `sort_buffer`，确定放入一个整型字段，记为 m；
 
-2.  扫描表 t1 的索引 a，依次取出里面的 id 值, 将 id%100 的值存入 sort_buffer 中；
+2.  扫描表 t1 的索引 a，依次取出里面的 id 值, 将 id%100 的值存入 `sort_buffer` 中；
 
-3.  扫描完成后，对 sort_buffer 的字段 m 做排序（如果 sort_buffer 内存不够用，就会利用磁盘临时文件辅助排序）；
+3.  扫描完成后，对 `sort_buffer` 的字段 m 做排序（如果 `sort_buffer` 内存不够用，就会利用磁盘临时文件辅助排序）；
 
 4.  排序完成后，就得到了一个有序数组。
 
@@ -4422,10 +4504,10 @@ select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 下面两张图分别是执行流程图和执行 explain 命令得到的结果。
 
 
-图 12 使用 SQL_BIG_RESULT 的执行流程图
+图 12 使用 `SQL_BIG_RESULT` 的执行流程图
 
 
-图 13 使用 SQL_BIG_RESULT 的 explain 结果
+图 13 使用 `SQL_BIG_RESULT` 的 explain 结果
 
 从 Extra 字段可以看到，这个语句的执行没有再使用临时表，而是直接用了排序算法。
 
@@ -4433,7 +4515,7 @@ select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 
 1.  如果语句执行过程可以一边读数据，一边直接得到结果，是不需要额外内存的，否则就需要额外的内存，来保存中间结果；
 
-2.  join_buffer 是无序数组，sort_buffer 是有序数组，临时表是二维表结构；
+2.  `join_buffer` 是无序数组，`sort_buffer` 是有序数组，临时表是二维表结构；
 
 3.  如果执行逻辑需要用到二维表特性，就会优先考虑使用临时表。比如我们的例子中，union 需要用到唯一索引约束， group by 还需要用到另外一个字段来存累积计数。
 
@@ -4445,9 +4527,9 @@ select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 
 2.  尽量让 group by 过程用上表的索引，确认方法是 explain 结果里没有 Using temporary 和 Using filesort；
 
-3.  如果 group by 需要统计的数据量不大，尽量只使用内存临时表；也可以通过适当调大 tmp_table_size 参数，来避免用到磁盘临时表；
+3.  如果 group by 需要统计的数据量不大，尽量只使用内存临时表；也可以通过适当调大 `tmp_table_size` 参数，来避免用到磁盘临时表；
 
-4.  如果数据量实在太大，使用 SQL_BIG_RESULT 这个提示，来告诉优化器直接使用排序算法得到 group by 的结果。
+4.  如果数据量实在太大，使用 `SQL_BIG_RESULT` 这个提示，来告诉优化器直接使用排序算法得到 group by 的结果。
 ## 索引
 
 提到数据库索引，我想你并不陌生，在日常工作中会经常接触到。比如某一个 SQL 查询比较慢，分析完原因之后，你可能就会说“给某个字段加个索引吧”之类的解决方案。但到底什么是索引，索引又是如何工作的呢？今天就让我们一起来聊聊这个话题吧。
@@ -4531,7 +4613,12 @@ N 叉树由于在读写上的性能优点，以及适配磁盘的访问模式，
 这个表的建表语句是：
 
 ```
-mysql> create table T(id int primary key, k int not null, name varchar(16),index (k))engine=InnoDB;
+mysql> create table T(
+ id int primary key,
+ k int not null,
+ name varchar(16), 
+ index (k)
+)engine=InnoDB;
 ```
 
 表中 R1~R5 的 (ID,k) 值分别为 (100,1)、(200,2)、(300,3)、(500,5) 和 (600,6)，两棵树的示例示意图如下。
@@ -4609,7 +4696,13 @@ B+ 树为了维护索引有序性，在插入新值的时候需要做必要的�
 下面是这个表的初始化语句。
 
 ```
-mysql> create table T (ID int primary key,k int NOT NULL DEFAULT 0, s varchar(16) NOT NULL DEFAULT '',index k(k))engine=InnoDB; insert into T values(100,1, 'aa'),(200,2,'bb'),(300,3,'cc'),(500,5,'ee'),(600,6,'ff'),(700,7,'gg');
+mysql> create table T (
+ID int primary key,
+k int NOT NULL DEFAULT 0,
+s varchar(16) NOT NULL DEFAULT '',
+index k(k))engine=InnoDB; 
+
+insert into T values(100,1, 'aa'),(200,2,'bb'),(300,3,'cc'),(500,5,'ee'),(600,6,'ff'),(700,7,'gg');
 ```
 
 
@@ -4646,7 +4739,16 @@ mysql> create table T (ID int primary key,k int NOT NULL DEFAULT 0, s varchar(16
 假设这个市民表的定义是这样的：
 
 ```
-CREATE TABLE `tuser` (  `id` int(11) NOT NULL,  `id_card` varchar(32) DEFAULT NULL,  `name` varchar(32) DEFAULT NULL,  `age` int(11) DEFAULT NULL,  `ismale` tinyint(1) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `id_card` (`id_card`),  KEY `name_age` (`name`,`age`)) ENGINE=InnoDB
+CREATE TABLE `tuser` (
+  `id` int(11) NOT NULL,  
+  `id_card` varchar(32) DEFAULT NULL,  
+  `name` varchar(32) DEFAULT NULL,  
+  `age` int(11) DEFAULT NULL,  
+  `ismale` tinyint(1) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `id_card` (`id_card`),  
+  KEY `name_age` (`name`,`age`)
+) ENGINE=InnoDB
 ```
 
 我们知道，身份证号是市民的唯一标识。也就是说，如果有根据身份证号查询市民信息的需求，我们只要在身份证号字段上建立索引就够了。而再建立一个（身份证号、姓名）的联合索引，是不是浪费空间？
@@ -4731,7 +4833,13 @@ mysql> select * from tuser where name like '张 %' and age=10 and ismale=1;
 我们先建一个简单的表，表里有 a、b 两个字段，并分别建上索引：
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `a` (`a`),  KEY `b` (`b`)) ENGINE=InnoDB；
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `b` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `a` (`a`),  KEY `b` (`b`)
+) ENGINE=InnoDB；
 ```
 
 然后，我们往表 t 中插入 10 万行记录，取值按整数递增，即：(1,1,1)，(2,2,2)，(3,3,3) 直到 (100000,100000,100000)。
@@ -4739,7 +4847,19 @@ CREATE TABLE `t` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(1
 我是用存储过程来插入数据的，这里我贴出来方便你复现：
 
 ```
-delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=100000)do    insert into t values(i, i, i);    set i=i+1;  end while;end;;delimiter ;call idata();
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;  
+  set i=1;  
+  while(i<=100000)
+  do    
+    insert into t values(i, i, i);    
+    set i=i+1;  
+  end while;
+end;;
+delimiter ;
+call idata();
 ```
 
 接下来，我们分析一条 SQL 语句：
@@ -4771,7 +4891,9 @@ mysql> select * from t where a between 10000 and 20000;
 下面的三条 SQL 语句，就是这个实验过程。
 
 ```
-set long_query_time=0;select * from t where a between 10000 and 20000; /*Q1*/select * from t force index(a) where a between 10000 and 20000;/*Q2*/
+set long_query_time=0;
+select * from t where a between 10000 and 20000; /*Q1*/
+select * from t force index(a) where a between 10000 and 20000;/*Q2*/
 ```
 
 *   第一句，是将慢查询日志的阈值设置为 0，表示这个线程接下来的语句都会被记录入慢查询日志中；
@@ -4984,7 +5106,9 @@ mysql> select f1, f2 from SUser where email='xxx';
 比如，这两个在 email 字段上创建索引的语句：
 
 ```
-mysql> alter table SUser add index index1(email);或mysql> alter table SUser add index index2(email(6));
+mysql> alter table SUser add index index1(email);
+或
+mysql> alter table SUser add index index2(email(6));
 ```
 
 第一个语句创建的 index1 索引里面，包含了每个记录的整个字符串；而第二个语句创建的 index2 索引里面，对于每个记录都是只取前 6 个字节。
@@ -5048,7 +5172,7 @@ mysql> select count(distinct email) as L from SUser;
 然后，依次选取不同长度的前缀来看这个值，比如我们要看一下 4~7 个字节的前缀索引，可以用这个语句：
 
 ```
-mysql> select   count(distinct left(email,4)）as L4,  count(distinct left(email,5)）as L5,  count(distinct left(email,6)）as L6,  count(distinct left(email,7)）as L7,from SUser;
+mysql> select count(distinct left(email,4)）as L4,  count(distinct left(email,5)）as L5,  count(distinct left(email,6)）as L6,  count(distinct left(email,7)）as L7,from SUser;
 ```
 
 当然，使用前缀索引很可能会损失区分度，所以你需要预先设定一个可以接受的损失比例，比如 5%。然后，在返回的 L4~L7 中，找出不小于 L * 95% 的值，假设这里 L6、L7 都满足，你就可以选择前缀长度为 6。
@@ -5165,7 +5289,8 @@ mysql> select field_list from t where id_card_crc=crc32('input_id_card_string') 
 其中“读提交”和“可重复读”比较难理解，所以我用一个例子说明这几种隔离级别。假设数据表 T 中只有一列，其中一行的值为 1，下面是按照时间顺序执行两个事务的行为。
 
 ```
-mysql> create table T(c int) engine=InnoDB;insert into T(c) values(1);
+mysql> create table T(c int) engine=InnoDB;
+insert into T(c) values(1);
 ```
 
 
@@ -5183,7 +5308,12 @@ mysql> create table T(c int) engine=InnoDB;insert into T(c) values(1);
 配置的方式是，将启动参数 transaction-isolation 的值设置成 READ-COMMITTED。你可以用 show variables 来查看当前的值。
 
 ```
-mysql> show variables like 'transaction_isolation'; +-----------------------+----------------+ | Variable_name | Value | +-----------------------+----------------+ | transaction_isolation | READ-COMMITTED | +-----------------------+----------------+
+mysql> show variables like 'transaction_isolation'; 
++-----------------------+----------------+ 
+| Variable_name         | Value          | 
++-----------------------+----------------+ 
+| transaction_isolation | READ-COMMITTED | 
++-----------------------+----------------+
 ```
 
 总结来说，存在即合理，哪个隔离级别都有它自己的使用场景，你要根据自己的业务情况来定。我想**你可能会问那什么时候需要“可重复读”的场景呢**？我们来看一个数据校对逻辑的案例。
@@ -5232,7 +5362,7 @@ mysql> show variables like 'transaction_isolation'; +-----------------------+---
 
 在 autocommit 为 1 的情况下，用 begin 显式启动的事务，如果执行 commit 则提交事务。如果执行 commit work and chain，则是提交事务并自动启动下一个事务，这样也省去了再次执行 begin 语句的开销。同时带来的好处是从程序开发的角度明确地知道每个语句是否处于事务中。
 
-你可以在 information_schema 库的 innodb_trx 这个表中查询长事务，比如下面这个语句，用于查找持续时间超过 60s 的事务。
+你可以在 `information_schema` 库的 `innodb_trx` 这个表中查询长事务，比如下面这个语句，用于查找持续时间超过 60s 的事务。
 
 ```
 select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx_started))>60
@@ -5245,7 +5375,12 @@ select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx
 我给你举一个例子吧。下面是一个只有两行的表的初始化语句。
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) NOT NULL,  `k` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB;insert into t(id, k) values(1,1),(2,2);
+mysql> CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `k` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+insert into t(id, k) values(1,1),(2,2);
 ```
 
 
@@ -5619,7 +5754,15 @@ select a,count(*) from t group by a order by null;
 假设这个表的部分定义是这样的：
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL,  `city` varchar(16) NOT NULL,  `name` varchar(16) NOT NULL,  `age` int(11) NOT NULL,  `addr` varchar(128) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `city` (`city`)) ENGINE=InnoDB;
+CREATE TABLE `t` (  
+  `id` int(11) NOT NULL,  
+  `city` varchar(16) NOT NULL,  
+  `name` varchar(16) NOT NULL,  
+  `age` int(11) NOT NULL,  
+  `addr` varchar(128) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `city` (`city`)
+) ENGINE=InnoDB;
 ```
 
 这时，你的 SQL 语句可以这么写：
@@ -6071,8 +6214,31 @@ Redis 的数据不能永久地留在内存里，所以你会找一个地方把�
 
 为了便于量化分析，我还是创建两个表 t1 和 t2 来和你说明。
 
-```
-CREATE TABLE `t2` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `a` (`a`)) ENGINE=InnoDB; drop procedure idata;delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=1000)do    insert into t2 values(i, i, i);    set i=i+1;  end while;end;;delimiter ;call idata(); create table t1 like t2;insert into t1 (select * from t2 where id<=100)
+```sql
+CREATE TABLE `t2` (  
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `b` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `a` (`a`)
+) ENGINE=InnoDB; 
+drop procedure idata;
+
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;  
+  set i=1;  
+  while(i<=1000) // >
+  do    
+    insert into t2 values(i, i, i);    
+    set i=i+1;  
+  end while;
+end;;
+delimiter ;
+call idata(); 
+create table t1 like t2;
+insert into t1 (select * from t2 where id<=100)//>
 ```
 
 可以看到，这两个表都有一个主键索引 id 和一个索引 a，字段 b 上无索引。存储过程 idata() 往表 t2 里插入了 1000 行数据，在表 t1 里插入的是 100 行数据。
@@ -6081,7 +6247,7 @@ CREATE TABLE `t2` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 我们来看一下这个语句：
 
-```
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.a);
 ```
 
@@ -6163,7 +6329,7 @@ select * from t1 straight_join t2 on (t1.a=t2.a);
 
 现在，我们把 SQL 语句改成这样：
 
-```
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.b);
 ```
 
@@ -6211,15 +6377,15 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 然后，你可能马上就会问了，这个例子里表 t1 才 100 行，要是表 t1 是一个大表，join_buffer 放不下怎么办呢？
 
-join_buffer 的大小是由参数 join_buffer_size 设定的，默认值是 256k。**如果放不下表 t1 的所有数据话，策略很简单，就是分段放。**我把 join_buffer_size 改成 1200，再执行：
+`join_buffer` 的大小是由参数 `join_buffer_size` 设定的，默认值是 256k。**如果放不下表 t1 的所有数据话，策略很简单，就是分段放。**我把 `join_buffer_size` 改成 1200，再执行：
 
-```
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.b);
 ```
 
 执行过程就变成了：
 
-1.  扫描表 t1，顺序读取数据行放入 join_buffer 中，放完第 88 行 join_buffer 满了，继续第 2 步；
+1.  扫描表 t1，顺序读取数据行放入 `join_buffer` 中，放完第 88 行 `join_buffer` 满了，继续第 2 步；
 
 2.  扫描表 t2，把 t2 中的每一行取出来，跟 join_buffer 中的数据做对比，满足 join 条件的，作为结果集的一部分返回；
 
@@ -6236,29 +6402,29 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 这个流程才体现出了这个算法名字中“Block”的由来，表示“分块去 join”。
 
-可以看到，这时候由于表 t1 被分成了两次放入 join_buffer 中，导致表 t2 会被扫描两次。虽然分成两次放入 join_buffer，但是判断等值条件的次数还是不变的，依然是 (88+12)*1000=10 万次。
+可以看到，这时候由于表 t1 被分成了两次放入 `join_buffer` 中，导致表 t2 会被扫描两次。虽然分成两次放入 `join_buffer`，但是判断等值条件的次数还是不变的，依然是 (88+12)*1000=10 万次。
 
 我们再来看下，在这种情况下驱动表的选择问题。
 
 假设，驱动表的数据行数是 N，需要分 K 段才能完成算法流程，被驱动表的数据行数是 M。
 
-注意，这里的 K 不是常数，N 越大 K 就会越大，因此把 K 表示为λ*N，显然λ的取值范围是 (0,1)。
+注意，这里的 K 不是常数，N 越大 K 就会越大，因此把 K 表示为`λ*N`，显然λ的取值范围是 (0,1)。
 
 所以，在这个算法的执行过程中：
 
-1.  扫描行数是 N+λ*N*M；
+1.  扫描行数是 `N+λ*N*M`；
 
-2.  内存判断 N*M 次。
+2.  内存判断 `N*M` 次。
 
 显然，内存判断次数是不受选择哪个表作为驱动表影响的。而考虑到扫描行数，在 M 和 N 大小确定的情况下，N 小一些，整个算式的结果会更小。
 
 所以结论是，应该让小表当驱动表。
 
-当然，你会发现，在 N+λ*N*M 这个式子里，λ才是影响扫描行数的关键因素，这个值越小越好。
+当然，你会发现，在 `N+λ*N*M` 这个式子里，λ才是影响扫描行数的关键因素，这个值越小越好。
 
-刚刚我们说了 N 越大，分段数 K 越大。那么，N 固定的时候，什么参数会影响 K 的大小呢？（也就是λ的大小）答案是 join_buffer_size。join_buffer_size 越大，一次可以放入的行越多，分成的段数也就越少，对被驱动表的全表扫描次数就越少。
+刚刚我们说了 N 越大，分段数 K 越大。那么，N 固定的时候，什么参数会影响 K 的大小呢？（也就是λ的大小）答案是 `join_buffer_size`。`join_buffer_size` 越大，一次可以放入的行越多，分成的段数也就越少，对被驱动表的全表扫描次数就越少。
 
-这就是为什么，你可能会看到一些建议告诉你，如果你的 join 语句很慢，就把 join_buffer_size 改大。
+这就是为什么，你可能会看到一些建议告诉你，如果你的 join 语句很慢，就把 `join_buffer_size` 改大。
 
 理解了 MySQL 执行 join 的两种算法，现在我们再来试着**回答文章开头的两个问题**。
 
@@ -6276,8 +6442,8 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 2.  如果是 Block Nested-Loop Join 算法：
 
-    *   在 join_buffer_size 足够大的时候，是一样的；
-    *   在 join_buffer_size 不够大的时候（这种情况更常见），应该选择小表做驱动表。
+    *   在 `join_buffer_size` 足够大的时候，是一样的；
+    *   在 `join_buffer_size` 不够大的时候（这种情况更常见），应该选择小表做驱动表。
 
 所以，这个问题的结论就是，总是应该使用小表做驱动表。
 
@@ -6286,7 +6452,8 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 我们前面的例子是没有加条件的。如果我在语句的 where 条件加上 t2.id<=50 这个限定条件，再来看下这两条语句：
 
 ```
-select * from t1 straight_join t2 on (t1.b=t2.b) where t2.id<=50;select * from t2 straight_join t1 on (t1.b=t2.b) where t2.id<=50;
+select * from t1 straight_join t2 on (t1.b=t2.b) where t2.id<=50;
+select * from t2 straight_join t1 on (t1.b=t2.b) where t2.id<=50;
 ```
 
 注意，为了让两条语句的被驱动表都用不上索引，所以 join 字段都使用了没有索引的字段 b。
@@ -6296,13 +6463,14 @@ select * from t1 straight_join t2 on (t1.b=t2.b) where t2.id<=50;select * from t
 我们再来看另外一组例子：
 
 ```
-select t1.b,t2.* from  t1  straight_join t2 on (t1.b=t2.b) where t2.id<=100;select t1.b,t2.* from  t2  straight_join t1 on (t1.b=t2.b) where t2.id<=100;
+select t1.b,t2.* from  t1  straight_join t2 on (t1.b=t2.b) where t2.id<=100;
+select t1.b,t2.* from  t2  straight_join t1 on (t1.b=t2.b) where t2.id<=100;
 ```
 
 这个例子里，表 t1 和 t2 都是只有 100 行参加 join。但是，这两条语句每次查询放入 join_buffer 中的数据是不一样的：
 
-*   表 t1 只查字段 b，因此如果把 t1 放到 join_buffer 中，则 join_buffer 中只需要放入 b 的值；
-*   表 t2 需要查所有的字段，因此如果把表 t2 放到 join_buffer 中的话，就需要放入三个字段 id、a 和 b。
+*   表 t1 只查字段 b，因此如果把 t1 放到 `join_buffer` 中，则 `join_buffer` 中只需要放入 b 的值；
+*   表 t2 需要查所有的字段，因此如果把表 t2 放到 `join_buffer` 中的话，就需要放入三个字段 id、a 和 b。
 
 这里，我们应该选择表 t1 作为驱动表。也就是说在这个例子里，“只需要一列参与 join 的表 t1”是那个相对小的表。
 
@@ -6333,7 +6501,28 @@ select t1.b,t2.* from  t1  straight_join t2 on (t1.b=t2.b) where t2.id<=100;sele
 为了便于分析，我还是创建两个表 t1、t2 来和你展开今天的问题。
 
 ```
-create table t1(id int primary key, a int, b int, index(a));create table t2 like t1;drop procedure idata;delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=1000)do    insert into t1 values(i, 1001-i, i);    set i=i+1;  end while;    set i=1;  while(i<=1000000)do    insert into t2 values(i, i, i);    set i=i+1;  end while; end;;delimiter ;call idata();
+create table t1(id int primary key, a int, b int, index(a));
+create table t2 like t1;drop procedure idata;
+
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;
+  set i=1;  
+  while(i<=1000)
+  do    
+    insert into t1 values(i, 1001-i, i);   
+    set i=i+1;  
+  end while;    
+  set i=1;  
+  while(i<=1000000)
+  do    
+    insert into t2 values(i, i, i);    
+    set i=i+1;  
+  end while; 
+end;;
+delimiter ;
+call idata();
 ```
 
 为了便于后面量化说明，我在表 t1 里，插入了 1000 行数据，每一行的 a=1001-id 的值。也就是说，表 t1 中字段 a 是逆序的。同时，我在表 t2 中插入了 100 万行数据。
@@ -6363,15 +6552,15 @@ select * from t1 where a>=1 and a<=100;
 
 这，就是 MRR 优化的设计思路。此时，语句的执行流程变成了这样：
 
-1.  根据索引 a，定位到满足条件的记录，将 id 值放入 read_rnd_buffer 中 ;
+1.  根据索引 a，定位到满足条件的记录，将 id 值放入 `read_rnd_buffer` 中 ;
 
-2.  将 read_rnd_buffer 中的 id 进行递增排序；
+2.  将 `read_rnd_buffer` 中的 id 进行递增排序；
 
 3.  排序后的 id 数组，依次到主键 id 索引中查记录，并作为结果返回。
 
-这里，read_rnd_buffer 的大小是由 read_rnd_buffer_size 参数控制的。如果步骤 1 中，read_rnd_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read_rnd_buffer。之后继续找索引 a 的下个记录，并继续循环。
+这里，`read_rnd_buffer` 的大小是由 `read_rnd_buffer_size` 参数控制的。如果步骤 1 中，`read_rnd_buffer` 放满了，就会先执行完步骤 2 和 3，然后清空 `read_rnd_buffer`。之后继续找索引 a 的下个记录，并继续循环。
 
-另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，需要设置`set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 mrr_cost_based 设置为 off，就是固定使用 MRR 了。）
+另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，需要设置`set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 `mrr_cost_based` 设置为 off，就是固定使用 MRR 了。）
 
 下面两幅图就是使用了 MRR 优化后的执行流程和 explain 结果。
 
@@ -6441,7 +6630,7 @@ set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 
 **大表 join 操作虽然对 IO 有影响，但是在语句执行结束后，对 IO 的影响也就结束了。但是，对 Buffer Pool 的影响就是持续性的，需要依靠后续的查询请求慢慢恢复内存命中率。**
 
-为了减少这种影响，你可以考虑增大 join_buffer_size 的值，减少对被驱动表的扫描次数。
+为了减少这种影响，你可以考虑增大 `join_buffer_size` 的值，减少对被驱动表的扫描次数。
 
 也就是说，BNL 算法对系统的影响主要包括三个方面：
 
@@ -6469,7 +6658,7 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 
 但是，如果使用 BNL 算法来 join 的话，这个语句的执行流程是这样的：
 
-1.  把表 t1 的所有字段取出来，存入 join_buffer 中。这个表只有 1000 行，join_buffer_size 默认值是 256k，可以完全存入。
+1.  把表 t1 的所有字段取出来，存入 `join_buffer` 中。这个表只有 1000 行，`join_buffer_size` 默认值是 256k，可以完全存入。
 
 2.  扫描表 t2，取出每一行数据跟 join_buffer 中的数据进行对比，
 
@@ -6499,7 +6688,12 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 此时，对应的 SQL 语句的写法如下：
 
 ```
-create temporary table temp_t(id int primary key, a int, b int, index(b))engine=innodb;insert into temp_t select * from t2 where b>=1 and b<=2000;select * from t1 join temp_t on (t1.b=temp_t.b);
+create temporary table temp_t(
+  id int primary key, a int, b int, index(b)
+)engine=innodb;
+
+insert into temp_t select * from t2 where b>=1 and b<=2000;
+select * from t1 join temp_t on (t1.b=temp_t.b);
 ```
 
 图 8 就是这个语句序列的执行效果。
@@ -6527,7 +6721,7 @@ create temporary table temp_t(id int primary key, a int, b int, index(b))engine=
 
 1.  `select * from t1;`取得表 t1 的全部 1000 行数据，在业务端存入一个 hash 结构，比如 C++ 里的 set、PHP 的数组这样的数据结构。
 
-2.  `select * from t2 where b>=1 and b<=2000;` 获取表 t2 中满足条件的 2000 行数据。
+2.  `select * from t2 where b>=1 and b<=2000;` 获取表 t2 中满足条件的 2000 行数据。
 
 3.  把这 2000 行数据，一行一行地取到业务端，到 hash 结构的数据表中寻找匹配的数据。满足匹配的条件的这行数据，就作为结果集的一行。
 
@@ -6558,7 +6752,11 @@ create temporary table temp_t(id int primary key, a int, b int, index(b))engine=
 为了同时回答这两个问题，我来构造两个表 a 和 b：
 
 ```
-create table a(f1 int, f2 int, index(f1))engine=innodb;create table b(f1 int, f2 int)engine=innodb;insert into a values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6);insert into b values(3,3),(4,4),(5,5),(6,6),(7,7),(8,8);
+create table a(f1 int, f2 int, index(f1))engine=innodb;
+create table b(f1 int, f2 int)engine=innodb;
+
+insert into a values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6);
+insert into b values(3,3),(4,4),(5,5),(6,6),(7,7),(8,8);
 ```
 
 表 a 和 b 都有两个字段 f1 和 f2，不同的是表 a 的字段 f1 上有索引。然后，我往两个表中都插入了 6 条记录，其中在表 a 和 b 中同时存在的数据有 4 行。
@@ -6595,7 +6793,7 @@ select * from a left join b on(a.f1=b.f1) and (a.f2=b.f2); /*Q1*/select * from a
 
 看到 BNL 算法，你就应该知道这条语句的执行流程其实是这样的：
 
-1.  把表 a 的内容读入 join_buffer 中。因为是 select * ，所以字段 f1 和 f2 都被放入 join_buffer 了。
+1.  把表 a 的内容读入 `join_buffer` 中。因为是 select * ，所以字段 f1 和 f2 都被放入 `join_buffer` 了。
 
 2.  顺序扫描表 b，对于每一行数据，判断 join 条件（也就是 a.f1=b.f1 and a.f2=b.f2) 是否满足，满足条件的记录, 作为结果集的一行返回。如果语句中有 where 子句，需要先判断 where 部分满足条件后，再返回。
 
@@ -6667,7 +6865,7 @@ select * from a join b where (a.f1=b.f1) and (a.f2=b.f2);
 
 BNL 算法的执行逻辑是：
 
-1.  首先，将驱动表的数据全部读入内存 join_buffer 中，这里 join_buffer 是无序数组；
+1.  首先，将驱动表的数据全部读入内存 `join_buffer` 中，这里 `join_buffer` 是无序数组；
 
 2.  然后，顺序遍历被驱动表的所有行，每一行数据都跟 join_buffer 中的数据进行匹配，匹配成功则作为结果集的一部分返回。
 
@@ -6785,8 +6983,8 @@ mysql> show global status like '%read_ahead%';
 3 rows in set (0.01 sec)
 ```
 
-* Innodb_buffer_pool_read_ahead：通过预读(后台线程)读入innodb buffer pool中数据页数
-* Innodb_buffer_pool_read_ahead_evicted：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
+* `Innodb_buffer_pool_read_ahead`：通过预读(后台线程)读入innodb buffer pool中数据页数
+* `Innodb_buffer_pool_read_ahead_evicted`：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
 ## 自增ID
 
 在[第 4 篇文章](https://time.geekbang.org/column/article/69236)中，我们提到过自增主键，由于自增主键可以让主键索引尽量地保持递增顺序插入，避免了页分裂，因此索引更紧凑。
@@ -6798,7 +6996,13 @@ mysql> show global status like '%read_ahead%';
 为了便于说明，我们创建一个表 t，其中 id 是自增主键字段、c 是唯一索引。
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `c` int(11) DEFAULT NULL,  `d` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  UNIQUE KEY `c` (`c`)) ENGINE=InnoDB;
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,  
+  `c` int(11) DEFAULT NULL,  
+  `d` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  UNIQUE KEY `c` (`c`)
+) ENGINE=InnoDB;
 ```
 
 ### 自增值保存在哪儿？
@@ -6817,8 +7021,8 @@ CREATE TABLE `t` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `c` int(11) DEFAULT N
 *   MyISAM 引擎的自增值保存在数据文件中。
 *   InnoDB 引擎的自增值，其实是保存在了内存里，并且到了 MySQL 8.0 版本后，才有了“自增值持久化”的能力，也就是才实现了“如果发生重启，表的自增值可以恢复为 MySQL 重启前的值”，具体情况是：
     *   在 MySQL 5.7 及之前的版本，自增值保存在内存里，并没有持久化。每次重启后，第一次打开表的时候，都会去找自增值的最大值 max(id)，然后将 max(id)+1 作为这个表当前的自增值。﻿
-        举例来说，如果一个表当前数据行里最大的 id 是 10，AUTO_INCREMENT=11。这时候，我们删除 id=10 的行，AUTO_INCREMENT 还是 11。但如果马上重启实例，重启后这个表的 AUTO_INCREMENT 就会变成 10。﻿
-        也就是说，MySQL 重启可能会修改一个表的 AUTO_INCREMENT 的值。
+        举例来说，如果一个表当前数据行里最大的 id 是 10，`AUTO_INCREMENT=11`。这时候，我们删除 id=10 的行，`AUTO_INCREMENT` 还是 11。但如果马上重启实例，重启后这个表的 `AUTO_INCREMENT` 就会变成 10。﻿
+        也就是说，MySQL 重启可能会修改一个表的 `AUTO_INCREMENT` 的值。
     *   在 MySQL 8.0 版本，将自增值的变更记录在了 redo log 中，重启的时候依靠 redo log 恢复重启之前的值。
 
 理解了 MySQL 对自增值的保存策略以后，我们再看看自增值修改机制。
@@ -6833,19 +7037,19 @@ CREATE TABLE `t` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `c` int(11) DEFAULT N
 
 根据要插入的值和当前自增值的大小关系，自增值的变更结果也会有所不同。假设，某次要插入的值是 X，当前的自增值是 Y。
 
-1.  如果 X<Y，那么这个表的自增值不变；
+1.  如果 `X&lt;Y`，那么这个表的自增值不变；
 
-2.  如果 X≥Y，就需要把当前自增值修改为新的自增值。
+2.  如果 `X≥Y`，就需要把当前自增值修改为新的自增值。
 
-**新的自增值生成算法是**：从 auto_increment_offset 开始，以 auto_increment_increment 为步长，持续叠加，直到找到第一个大于 X 的值，作为新的自增值。
+**新的自增值生成算法是**：从 `auto_increment_offset` 开始，以 `auto_increment_increment` 为步长，持续叠加，直到找到第一个大于 X 的值，作为新的自增值。
 
-其中，auto_increment_offset 和 auto_increment_increment 是两个系统参数，分别用来表示自增的初始值和步长，默认值都是 1。
+其中，`auto_increment_offset` 和 `auto_increment_increment` 是两个系统参数，分别用来表示自增的初始值和步长，默认值都是 1。
 
 > 备注：在一些场景下，使用的就不全是默认值。比如，双 M 的主备结构里要求双写的时候，我们就可能会设置成 auto_increment_increment=2，让一个库的自增 id 都是奇数，另一个库的自增 id 都是偶数，避免两个库生成的主键发生冲突。
 
-当 auto_increment_offset 和 auto_increment_increment 都是 1 的时候，新的自增值生成逻辑很简单，就是：
+当 `auto_increment_offset` 和 `auto_increment_increment` 都是 1 的时候，新的自增值生成逻辑很简单，就是：
 
-1.  如果准备插入的值 >= 当前自增值，新的自增值就是“准备插入的值 +1”；
+1.  如果准备插入的值 `>=` 当前自增值，新的自增值就是“准备插入的值 +1”；
 
 2.  否则，自增值不变。
 
@@ -6894,7 +7098,11 @@ insert into t values(null, 1, 1);
 下面这个语句序列就可以构造不连续的自增 id，你可以自己验证一下。
 
 ```
-insert into t values(null,1,1);begin;insert into t values(null,2,2);rollback;insert into t values(null,2,2);// 插入的行是 (3,2,2)
+insert into t values(null,1,1);
+begin;
+insert into t values(null,2,2);
+rollback;
+insert into t values(null,2,2);// 插入的行是 (3,2,2)
 ```
 
 你可能会问，为什么在出现唯一键冲突或者回滚的时候，MySQL 没有把表 t 的自增值改回去呢？如果把表 t 的当前自增值从 3 改回 2，再插入新数据的时候，不就可以生成 id=2 的一行数据了吗？
@@ -6929,7 +7137,7 @@ insert into t values(null,1,1);begin;insert into t values(null,2,2);rollback;ins
 
 在 MySQL 5.0 版本的时候，自增锁的范围是语句级别。也就是说，如果一个语句申请了一个表自增锁，这个锁会等语句执行结束以后才释放。显然，这样设计会影响并发度。
 
-MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb_autoinc_lock_mode，默认值是 1。
+MySQL 5.1.22 版本引入了一个新策略，新增参数 `innodb_autoinc_lock_mode`，默认值是 1。
 
 1.  这个参数的值被设置为 0 时，表示采用之前 MySQL 5.0 版本的策略，即语句执行结束后才释放锁；
 
@@ -6972,13 +7180,13 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb_autoinc_lock_m
 
 1.  一种思路是，让原库的批量插入数据语句，固定生成连续的 id 值。所以，自增锁直到语句执行结束才释放，就是为了达到这个目的。
 
-2.  另一种思路是，在 binlog 里面把插入数据的操作都如实记录进来，到备库执行的时候，不再依赖于自增主键去生成。这种情况，其实就是 innodb_autoinc_lock_mode 设置为 2，同时 binlog_format 设置为 row。
+2.  另一种思路是，在 binlog 里面把插入数据的操作都如实记录进来，到备库执行的时候，不再依赖于自增主键去生成。这种情况，其实就是 `innodb_autoinc_lock_mode` 设置为 2，同时 `binlog_format` 设置为 row。
 
 因此，**在生产上，尤其是有 insert … select 这种批量插入数据的场景时，从并发插入数据性能的角度考虑，我建议你这样设置：innodb_autoinc_lock_mode=2 ，并且 binlog_format=row**. 这样做，既能提升并发性，又不会出现数据一致性问题。
 
 需要注意的是，我这里说的**批量插入数据，包含的语句类型是 insert … select、replace … select 和 load data 语句。**
 
-但是，在普通的 insert 语句里面包含多个 value 值的情况下，即使 innodb_autoinc_lock_mode 设置为 1，也不会等语句执行完成才释放锁。因为这类语句在申请自增 id 的时候，是可以精确计算出需要多少个 id 的，然后一次性申请，申请完成后锁就可以释放了。
+但是，在普通的 insert 语句里面包含多个 value 值的情况下，即使 `innodb_autoinc_lock_mode` 设置为 1，也不会等语句执行完成才释放锁。因为这类语句在申请自增 id 的时候，是可以精确计算出需要多少个 id 的，然后一次性申请，申请完成后锁就可以释放了。
 
 也就是说，批量插入数据的语句，之所以需要这么设置，是因为“不知道要预先申请多少个 id”。
 
@@ -6997,7 +7205,13 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb_autoinc_lock_m
 举个例子，我们一起看看下面的这个语句序列：
 
 ```
-insert into t values(null, 1,1);insert into t values(null, 2,2);insert into t values(null, 3,3);insert into t values(null, 4,4);create table t2 like t;insert into t2(c,d) select c,d from t;insert into t2 values(null, 5,5);
+insert into t values(null, 1,1);
+insert into t values(null, 2,2);
+insert into t values(null, 3,3);
+insert into t values(null, 4,4);
+create table t2 like t;
+insert into t2(c,d) select c,d from t;
+insert into t2 values(null, 5,5);
 ```
 
 insert…select，实际上往表 t2 中插入了 4 行数据。但是，这四行数据是分三次申请的自增 id，第一次申请到了 id=1，第二次被分配了 id=2 和 id=3， 第三次被分配到 id=4 到 id=7。
@@ -7014,7 +7228,7 @@ insert…select，实际上往表 t2 中插入了 4 行数据。但是，这四�
 
 然后，我和你分享了在一个语句执行过程中，自增值改变的时机，分析了为什么 MySQL 在事务回滚的时候不能回收自增 id。
 
-MySQL 5.1.22 版本开始引入的参数 innodb_autoinc_lock_mode，控制了自增值申请时的锁范围。从并发性能的角度考虑，我建议你将其设置为 2，同时将 binlog_format 设置为 row。我在前面的文章中其实多次提到，binlog_format 设置为 row，是很有必要的。今天的例子给这个结论多了一个理由。
+MySQL 5.1.22 版本开始引入的参数 `innodb_autoinc_lock_mode`，控制了自增值申请时的锁范围。从并发性能的角度考虑，我建议你将其设置为 2，同时将 `binlog_format` 设置为 row。我在前面的文章中其实多次提到，`binlog_format` 设置为 row，是很有必要的。今天的例子给这个结论多了一个理由。
 
 MySQL 里有很多自增的 id，每个自增 id 都是定义了初始值，然后不停地往上加步长。虽然自然数是没有上限的，但是在计算机里，只要定义了表示这个数的字节长度，那它就有上限。比如，无符号整型 (unsigned int) 是 4 个字节，上限就是 232-1。
 
@@ -7031,26 +7245,35 @@ MySQL 里有很多自增的 id，每个自增 id 都是定义了初始值，然�
 我们可以通过下面这个语句序列验证一下：
 
 ```
-create table t(id int unsigned auto_increment primary key) auto_increment=4294967295;insert into t values(null);// 成功插入一行 4294967295show create table t;/* CREATE TABLE `t` (  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,  PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=4294967295;*/ insert into t values(null);//Duplicate entry '4294967295' for key 'PRIMARY'
+create table t(id int unsigned auto_increment primary key) auto_increment=4294967295;
+insert into t values(null);// 成功插入一行 4294967295
+show create table t;
+/* 
+CREATE TABLE `t` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4294967295;
+*/ 
+insert into t values(null);//Duplicate entry '4294967295' for key 'PRIMARY'
 ```
 
 可以看到，第一个 insert 语句插入数据成功后，这个表的 AUTO_INCREMENT 没有改变（还是 4294967295），就导致了第二个 insert 语句又拿到相同的自增 id 值，再试图执行插入语句，报主键冲突错误。
 
-232-1（4294967295）不是一个特别大的数，对于一个频繁插入删除数据的表来说，是可能会被用完的。因此在建表的时候你需要考察你的表是否有可能达到这个上限，如果有可能，就应该创建成 8 个字节的 bigint unsigned。
+$2^{32}-1$（4294967295）不是一个特别大的数，对于一个频繁插入删除数据的表来说，是可能会被用完的。因此在建表的时候你需要考察你的表是否有可能达到这个上限，如果有可能，就应该创建成 8 个字节的 bigint unsigned。
 
 ### InnoDB 系统自增 row_id
 
-如果你创建的 InnoDB 表没有指定主键，那么 InnoDB 会给你创建一个不可见的，长度为 6 个字节的 row_id。InnoDB 维护了一个全局的 dict_sys.row_id 值，所有无主键的 InnoDB 表，每插入一行数据，都将当前的 dict_sys.row_id 值作为要插入数据的 row_id，然后把 dict_sys.row_id 的值加 1。
+如果你创建的 InnoDB 表没有指定主键，那么 InnoDB 会给你创建一个不可见的，长度为 6 个字节的 `row_id`。InnoDB 维护了一个全局的 `dict_sys.row_id` 值，所有无主键的 InnoDB 表，每插入一行数据，都将当前的 `dict_sys.row_id` 值作为要插入数据的 `row_id`，然后把 `dict_sys.row_id` 的值加 1。
 
-实际上，在代码实现时 row_id 是一个长度为 8 字节的无符号长整型 (bigint unsigned)。但是，InnoDB 在设计时，给 row_id 留的只是 6 个字节的长度，这样写到数据表中时只放了最后 6 个字节，所以 row_id 能写到数据表中的值，就有两个特征：
+实际上，在代码实现时 `row_id` 是一个长度为 8 字节的无符号长整型 (bigint unsigned)。但是，InnoDB 在设计时，给 `row_id` 留的只是 6 个字节的长度，这样写到数据表中时只放了最后 6 个字节，所以 `row_id` 能写到数据表中的值，就有两个特征：
 
 1.  row_id 写入表中的值范围，是从 0 到 248-1；
 
-2.  当 dict_sys.row_id=248时，如果再有插入数据的行为要来申请 row_id，拿到以后再取最后 6 个字节的话就是 0。
+2.  当 `dict_sys.row_id=248`时，如果再有插入数据的行为要来申请 row_id，拿到以后再取最后 6 个字节的话就是 0。
 
-也就是说，写入表的 row_id 是从 0 开始到 248-1。达到上限后，下一个值就是 0，然后继续循环。
+也就是说，写入表的 `row_id` 是从 0 开始到 248-1。达到上限后，下一个值就是 0，然后继续循环。
 
-当然，248-1 这个值本身已经很大了，但是如果一个 MySQL 实例跑得足够久的话，还是可能达到这个上限的。在 InnoDB 逻辑里，申请到 row_id=N 后，就将这行数据写入表中；如果表中已经存在 row_id=N 的行，新写入的行就会覆盖原有的行。
+当然，248-1 这个值本身已经很大了，但是如果一个 MySQL 实例跑得足够久的话，还是可能达到这个上限的。在 InnoDB 逻辑里，申请到 `row_id=N` 后，就将这行数据写入表中；如果表中已经存在 `row_id=N` 的行，新写入的行就会覆盖原有的行。
 
 要验证这个结论的话，你可以通过 gdb 修改系统的自增 row_id 来实现。注意，用 gdb 改变量这个操作是为了便于我们复现问题，只能在测试环境使用。
 
@@ -7060,7 +7283,7 @@ create table t(id int unsigned auto_increment primary key) auto_increment=429496
 
 图 2 row_id 用完的效果验证
 
-可以看到，在我用 gdb 将 dict_sys.row_id 设置为 248之后，再插入的 a=2 的行会出现在表 t 的第一行，因为这个值的 row_id=0。之后再插入的 a=3 的行，由于 row_id=1，就覆盖了之前 a=1 的行，因为 a=1 这一行的 row_id 也是 1。
+可以看到，在我用 gdb 将 `dict_sys.row_id` 设置为 248之后，再插入的 a=2 的行会出现在表 t 的第一行，因为这个值的 `row_id=0`。之后再插入的 a=3 的行，由于 `row_id=1`，就覆盖了之前 `a=1` 的行，因为 `a=1` 这一行的 `row_id` 也是 1。
 
 从这个角度看，我们还是应该在 InnoDB 表中主动创建自增主键。因为，表自增 id 到达上限后，再插入数据时报主键冲突错误，是更能被接受的。
 
@@ -7072,19 +7295,19 @@ create table t(id int unsigned auto_increment primary key) auto_increment=429496
 
 那么，Xid 在 MySQL 内部是怎么生成的呢？
 
-MySQL 内部维护了一个全局变量 global_query_id，每次执行语句的时候将它赋值给 Query_id，然后给这个变量加 1。如果当前语句是这个事务执行的第一条语句，那么 MySQL 还会同时把 Query_id 赋值给这个事务的 Xid。
+MySQL 内部维护了一个全局变量 `global_query_id`，每次执行语句的时候将它赋值给 `Query_id`，然后给这个变量加 1。如果当前语句是这个事务执行的第一条语句，那么 MySQL 还会同时把 `Query_id` 赋值给这个事务的 Xid。
 
-而 global_query_id 是一个纯内存变量，重启之后就清零了。所以你就知道了，在同一个数据库实例中，不同事务的 Xid 也是有可能相同的。
+而 `global_query_id` 是一个纯内存变量，重启之后就清零了。所以你就知道了，在同一个数据库实例中，不同事务的 Xid 也是有可能相同的。
 
 但是 MySQL 重启之后会重新生成新的 binlog 文件，这就保证了，同一个 binlog 文件里，Xid 一定是惟一的。
 
-虽然 MySQL 重启不会导致同一个 binlog 里面出现两个相同的 Xid，但是如果 global_query_id 达到上限后，就会继续从 0 开始计数。从理论上讲，还是就会出现同一个 binlog 里面出现相同 Xid 的场景。
+虽然 MySQL 重启不会导致同一个 binlog 里面出现两个相同的 Xid，但是如果 `global_query_id` 达到上限后，就会继续从 0 开始计数。从理论上讲，还是就会出现同一个 binlog 里面出现相同 Xid 的场景。
 
-因为 global_query_id 定义的长度是 8 个字节，这个自增值的上限是 264-1。要出现这种情况，必须是下面这样的过程：
+因为 `global_query_id` 定义的长度是 8 个字节，这个自增值的上限是 264-1。要出现这种情况，必须是下面这样的过程：
 
 1.  执行一个事务，假设 Xid 是 A；
 
-2.  接下来执行 264次查询语句，让 global_query_id 回到 A；
+2.  接下来执行 264次查询语句，让 `global_query_id` 回到 A；
 
 3.  再启动一个事务，这个事务的 Xid 也是 A。
 
@@ -7098,64 +7321,64 @@ Xid 是由 server 层维护的。InnoDB 内部使用 Xid，就是为了能够在
 
 其实，你应该非常熟悉这个 trx_id。它就是在我们在第 8 篇文章[《事务到底是隔离的还是不隔离的？》](https://time.geekbang.org/column/article/70562)中讲事务可见性时，用到的事务 id（transaction id）。
 
-InnoDB 内部维护了一个 max_trx_id 全局变量，每次需要申请一个新的 trx_id 时，就获得 max_trx_id 的当前值，然后并将 max_trx_id 加 1。
+InnoDB 内部维护了一个 `max_trx_id` 全局变量，每次需要申请一个新的 `trx_id` 时，就获得 `max_trx_id` 的当前值，然后并将 `max_trx_id` 加 1。
 
-InnoDB 数据可见性的核心思想是：每一行数据都记录了更新它的 trx_id，当一个事务读到一行数据的时候，判断这个数据是否可见的方法，就是通过事务的一致性视图与这行数据的 trx_id 做对比。
+InnoDB 数据可见性的核心思想是：每一行数据都记录了更新它的 `trx_id`，当一个事务读到一行数据的时候，判断这个数据是否可见的方法，就是通过事务的一致性视图与这行数据的 `trx_id` 做对比。
 
-对于正在执行的事务，你可以从 information_schema.innodb_trx 表中看到事务的 trx_id。
+对于正在执行的事务，你可以从 `information_schema.innodb_trx` 表中看到事务的 trx_id。
 
-我在上一篇文章的末尾留给你的思考题，就是关于从 innodb_trx 表里面查到的 trx_id 的。现在，我们一起来看一个事务现场：
+我在上一篇文章的末尾留给你的思考题，就是关于从 `innodb_trx` 表里面查到的 `trx_id` 的。现在，我们一起来看一个事务现场：
 
 
 图 3 事务的 trx_id
 
-session B 里，我从 innodb_trx 表里查出的这两个字段，第二个字段 trx_mysql_thread_id 就是线程 id。显示线程 id，是为了说明这两次查询看到的事务对应的线程 id 都是 5，也就是 session A 所在的线程。
+session B 里，我从 `innodb_trx` 表里查出的这两个字段，第二个字段 `trx_mysql_thread_id` 就是线程 id。显示线程 id，是为了说明这两次查询看到的事务对应的线程 id 都是 5，也就是 session A 所在的线程。
 
-可以看到，T2 时刻显示的 trx_id 是一个很大的数；T4 时刻显示的 trx_id 是 1289，看上去是一个比较正常的数字。这是什么原因呢？
+可以看到，T2 时刻显示的 `trx_id` 是一个很大的数；T4 时刻显示的 trx_id 是 1289，看上去是一个比较正常的数字。这是什么原因呢？
 
 实际上，在 T1 时刻，session A 还没有涉及到更新，是一个只读事务。而对于只读事务，InnoDB 并不会分配 trx_id。也就是说：
 
 1.  在 T1 时刻，trx_id 的值其实就是 0。而这个很大的数，只是显示用的。一会儿我会再和你说说这个数据的生成逻辑。
 
-2.  直到 session A 在 T3 时刻执行 insert 语句的时候，InnoDB 才真正分配了 trx_id。所以，T4 时刻，session B 查到的这个 trx_id 的值就是 1289。
+2.  直到 session A 在 T3 时刻执行 insert 语句的时候，InnoDB 才真正分配了 `trx_id`。所以，T4 时刻，session B 查到的这个 `trx_id` 的值就是 1289。
 
 需要注意的是，除了显而易见的修改类语句外，如果在 select 语句后面加上 for update，这个事务也不是只读事务。
 
 在上一篇文章的评论区，有同学提出，实验的时候发现不止加 1。这是因为：
 
-1.  update 和 delete 语句除了事务本身，还涉及到标记删除旧数据，也就是要把数据放到 purge 队列里等待后续物理删除，这个操作也会把 max_trx_id+1， 因此在一个事务中至少加 2；
+1.  update 和 delete 语句除了事务本身，还涉及到标记删除旧数据，也就是要把数据放到 purge 队列里等待后续物理删除，这个操作也会把 `max_trx_id+1`， 因此在一个事务中至少加 2；
 
-2.  InnoDB 的后台操作，比如表的索引信息统计这类操作，也是会启动内部事务的，因此你可能看到，trx_id 值并不是按照加 1 递增的。
+2.  InnoDB 的后台操作，比如表的索引信息统计这类操作，也是会启动内部事务的，因此你可能看到，`trx_id` 值并不是按照加 1 递增的。
 
 那么，**T2 时刻查到的这个很大的数字是怎么来的呢？**
 
 其实，这个数字是每次查询的时候由系统临时计算出来的。它的算法是：把当前事务的 trx 变量的指针地址转成整数，再加上 248。使用这个算法，就可以保证以下两点：
 
-1.  因为同一个只读事务在执行期间，它的指针地址是不会变的，所以不论是在 innodb_trx 还是在 innodb_locks 表里，同一个只读事务查出来的 trx_id 就会是一样的。
+1.  因为同一个只读事务在执行期间，它的指针地址是不会变的，所以不论是在 `innodb_trx` 还是在 `innodb_locks` 表里，同一个只读事务查出来的 `trx_id` 就会是一样的。
 
-2.  如果有并行的多个只读事务，每个事务的 trx 变量的指针地址肯定不同。这样，不同的并发只读事务，查出来的 trx_id 就是不同的。
+2.  如果有并行的多个只读事务，每个事务的 trx 变量的指针地址肯定不同。这样，不同的并发只读事务，查出来的 `trx_id` 就是不同的。
 
 那么，**为什么还要再加上 248呢？**
 
-在显示值里面加上 248，目的是要保证只读事务显示的 trx_id 值比较大，正常情况下就会区别于读写事务的 id。但是，trx_id 跟 row_id 的逻辑类似，定义长度也是 8 个字节。因此，在理论上还是可能出现一个读写事务与一个只读事务显示的 trx_id 相同的情况。不过这个概率很低，并且也没有什么实质危害，可以不管它。
+在显示值里面加上 248，目的是要保证只读事务显示的 `trx_id` 值比较大，正常情况下就会区别于读写事务的 id。但是，`trx_id` 跟 `row_id` 的逻辑类似，定义长度也是 8 个字节。因此，在理论上还是可能出现一个读写事务与一个只读事务显示的 `trx_id` 相同的情况。不过这个概率很低，并且也没有什么实质危害，可以不管它。
 
 另一个问题是，**只读事务不分配 trx_id，有什么好处呢？**
 
-*   一个好处是，这样做可以减小事务视图里面活跃事务数组的大小。因为当前正在运行的只读事务，是不影响数据的可见性判断的。所以，在创建事务的一致性视图时，InnoDB 就只需要拷贝读写事务的 trx_id。
-*   另一个好处是，可以减少 trx_id 的申请次数。在 InnoDB 里，即使你只是执行一个普通的 select 语句，在执行过程中，也是要对应一个只读事务的。所以只读事务优化后，普通的查询语句不需要申请 trx_id，就大大减少了并发事务申请 trx_id 的锁冲突。
+*   一个好处是，这样做可以减小事务视图里面活跃事务数组的大小。因为当前正在运行的只读事务，是不影响数据的可见性判断的。所以，在创建事务的一致性视图时，InnoDB 就只需要拷贝读写事务的 `trx_id`。
+*   另一个好处是，可以减少 `trx_id` 的申请次数。在 InnoDB 里，即使你只是执行一个普通的 select 语句，在执行过程中，也是要对应一个只读事务的。所以只读事务优化后，普通的查询语句不需要申请 `trx_id`，就大大减少了并发事务申请 `trx_id` 的锁冲突。
 
-由于只读事务不分配 trx_id，一个自然而然的结果就是 trx_id 的增加速度变慢了。
+由于只读事务不分配 `trx_id`，一个自然而然的结果就是 trx_id 的增加速度变慢了。
 
-但是，max_trx_id 会持久化存储，重启也不会重置为 0，那么从理论上讲，只要一个 MySQL 服务跑得足够久，就可能出现 max_trx_id 达到 248-1 的上限，然后从 0 开始的情况。
+但是，`max_trx_id` 会持久化存储，重启也不会重置为 0，那么从理论上讲，只要一个 MySQL 服务跑得足够久，就可能出现 `max_trx_id` 达到 248-1 的上限，然后从 0 开始的情况。
 
 当达到这个状态后，MySQL 就会持续出现一个脏读的 bug，我们来复现一下这个 bug。
 
-首先我们需要把当前的 max_trx_id 先修改成 248-1。注意：这个 case 里使用的是可重复读隔离级别。具体的操作流程如下：
+首先我们需要把当前的 `max_trx_id` 先修改成 248-1。注意：这个 case 里使用的是可重复读隔离级别。具体的操作流程如下：
 
 
 图 4 复现脏读
 
-由于我们已经把系统的 max_trx_id 设置成了 248-1，所以在 session A 启动的事务 TA 的低水位就是 248-1。
+由于我们已经把系统的 `max_trx_id` 设置成了 248-1，所以在 session A 启动的事务 TA 的低水位就是 248-1。
 
 在 T2 时刻，session B 执行第一条 update 语句的事务 id 就是 248-1，而第二条 update 语句的事务 id 就是 0 了，这条 update 语句执行后生成的数据版本上的 trx_id 就是 0。
 
@@ -7165,7 +7388,7 @@ session B 里，我从 innodb_trx 表里查出的这两个字段，第二个字�
 
 由于低水位值会持续增加，而事务 id 从 0 开始计数，就导致了系统在这个时刻之后，所有的查询都会出现脏读的。
 
-并且，MySQL 重启时 max_trx_id 也不会清 0，也就是说重启 MySQL，这个 bug 仍然存在。
+并且，MySQL 重启时 `max_trx_id` 也不会清 0，也就是说重启 MySQL，这个 bug 仍然存在。
 
 那么，**这个 bug 也是只存在于理论上吗？**
 
@@ -7175,11 +7398,11 @@ session B 里，我从 innodb_trx 表里查出的这两个字段，第二个字�
 
 ### thread_id
 
-接下来，我们再看看线程 id（thread_id）。其实，线程 id 才是 MySQL 中最常见的一种自增 id。平时我们在查各种现场的时候，show processlist 里面的第一列，就是 thread_id。
+接下来，我们再看看线程 id（`thread_id`）。其实，线程 id 才是 MySQL 中最常见的一种自增 id。平时我们在查各种现场的时候，show processlist 里面的第一列，就是 `thread_id`。
 
-thread_id 的逻辑很好理解：系统保存了一个全局变量 thread_id_counter，每新建一个连接，就将 thread_id_counter 赋值给这个新连接的线程变量。
+`thread_id` 的逻辑很好理解：系统保存了一个全局变量 `thread_id_counter`，每新建一个连接，就将 `thread_id_counter` 赋值给这个新连接的线程变量。
 
-thread_id_counter 定义的大小是 4 个字节，因此达到 232-1 后，它就会重置为 0，然后继续增加。但是，你不会在 show processlist 里看到两个相同的 thread_id。
+`thread_id_counter` 定义的大小是 4 个字节，因此达到 232-1 后，它就会重置为 0，然后继续增加。但是，你不会在 show processlist 里看到两个相同的 thread_id。
 
 这，是因为 MySQL 设计了一个唯一数组的逻辑，给新线程分配 thread_id 的时候，逻辑代码是这样的：
 
@@ -7197,7 +7420,7 @@ do {  new_id= thread_id_counter++;} while (!thread_ids.insert_unique(new_id).sec
 
 1.  表的自增 id 达到上限后，再申请时它的值就不会改变，进而导致继续插入数据时报主键冲突的错误。
 
-2.  row_id 达到上限后，则会归 0 再重新递增，如果出现相同的 row_id，后写的数据会覆盖之前的数据。
+2.  `row_id` 达到上限后，则会归 0 再重新递增，如果出现相同的 row_id，后写的数据会覆盖之前的数据。
 
 3.  Xid 只需要不在同一个 binlog 文件中出现重复值即可。虽然理论上会出现重复值，但是概率极小，可以忽略不计。
 
@@ -7291,7 +7514,18 @@ SET INSERT_ID=2;语句 B；SET INSERT_ID=1;语句 A；
 为了便于描述 binlog 的这三种格式间的区别，我创建了一个表，并初始化几行数据。
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  PRIMARY KEY (`id`),  KEY `a` (`a`),  KEY `t_modified`(`t_modified`)) ENGINE=InnoDB; insert into t values(1,1,'2018-11-13');insert into t values(2,2,'2018-11-12');insert into t values(3,3,'2018-11-11');insert into t values(4,4,'2018-11-10');insert into t values(5,5,'2018-11-09');
+mysql> CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  
+  PRIMARY KEY (`id`),  KEY `a` (`a`),  
+  KEY `t_modified`(`t_modified`)
+) ENGINE=InnoDB; 
+insert into t values(1,1,'2018-11-13');
+insert into t values(2,2,'2018-11-12');
+insert into t values(3,3,'2018-11-11');
+insert into t values(4,4,'2018-11-10');
+insert into t values(5,5,'2018-11-09');
 ```
 
 如果要在表中删除一行数据的话，我们来看看这个 delete 语句的 binlog 是怎么记录的。
@@ -7332,7 +7566,7 @@ mysql> show binlog events in 'master.000001';
 
 1.  如果 delete 语句使用的是索引 a，那么会根据索引 a 找到第一个满足条件的行，也就是说删除的是 a=4 这一行；
 
-2.  但如果使用的是索引 t_modified，那么删除的就是 t_modified='2018-11-09’也就是 a=5 这一行。
+2.  但如果使用的是索引 `t_modified`，那么删除的就是 `t_modified='2018-11-09’`也就是 a=5 这一行。
 
 由于 statement 格式下，记录到 binlog 里的是语句原文，因此可能会出现这样一种情况：在主库执行这条 SQL 语句的时候，用的是索引 a；而在备库执行这条 SQL 语句的时候，却使用了索引 t_modified。因此，MySQL 认为这样写是有风险的。
 
@@ -7341,7 +7575,7 @@ mysql> show binlog events in 'master.000001';
 
 图 5 row 格式 binlog 示例
 
-可以看到，与 statement 格式的 binlog 相比，前后的 BEGIN 和 COMMIT 是一样的。但是，row 格式的 binlog 里没有了 SQL 语句的原文，而是替换成了两个 event：Table_map 和 Delete_rows。
+可以看到，与 statement 格式的 binlog 相比，前后的 BEGIN 和 COMMIT 是一样的。但是，row 格式的 binlog 里没有了 SQL 语句的原文，而是替换成了两个 event：`Table_map` 和 `Delete_rows`。
 
 1.  Table_map event，用于说明接下来要操作的表是 test 库的表 t;
 
@@ -7360,9 +7594,9 @@ mysqlbinlog  -vv data/master.000001 --start-position=8900;
 
 *   server id 1，表示这个事务是在 server_id=1 的这个库上执行的。
 *   每个 event 都有 CRC32 的值，这是因为我把参数 binlog_checksum 设置成了 CRC32。
-*   Table_map event 跟在图 5 中看到的相同，显示了接下来要打开的表，map 到数字 226。现在我们这条 SQL 语句只操作了一张表，如果要操作多张表呢？每个表都有一个对应的 Table_map event、都会 map 到一个单独的数字，用于区分对不同表的操作。
+*   `Table_map` event 跟在图 5 中看到的相同，显示了接下来要打开的表，map 到数字 226。现在我们这条 SQL 语句只操作了一张表，如果要操作多张表呢？每个表都有一个对应的 Table_map event、都会 map 到一个单独的数字，用于区分对不同表的操作。
 *   我们在 mysqlbinlog 的命令中，使用了 -vv 参数是为了把内容都解析出来，所以从结果里面可以看到各个字段的值（比如，@1=4、 @2=4 这些值）。
-*   binlog_row_image 的默认配置是 FULL，因此 Delete_event 里面，包含了删掉的行的所有字段的值。如果把 binlog_row_image 设置为 MINIMAL，则只会记录必要的信息，在这个例子里，就是只会记录 id=4 这个信息。
+*   `binlog_row_image` 的默认配置是 FULL，因此 `Delete_event` 里面，包含了删掉的行的所有字段的值。如果把 `binlog_row_image` 设置为 MINIMAL，则只会记录必要的信息，在这个例子里，就是只会记录 id=4 这个信息。
 *   最后的 Xid event，用于表示事务被正确地提交了。
 
 你可以看到，当 binlog_format 使用 row 格式的时候，binlog 里面记录了真实删除行的主键 id，这样 binlog 传到备库去的时候，就肯定会删除 id=4 的行，不会有主备删除不同行的问题。
@@ -7497,19 +7731,19 @@ binlog 在 MySQL 的各种高可用方案上扮演了重要角色。今天介绍
 
 所谓主备延迟，就是同一个事务，在备库执行完成的时间和主库执行完成的时间之间的差值，也就是 T3-T1。
 
-你可以在备库上执行 show slave status 命令，它的返回结果里面会显示 seconds_behind_master，用于表示当前备库延迟了多少秒。
+你可以在备库上执行 show slave status 命令，它的返回结果里面会显示 `seconds_behind_master`，用于表示当前备库延迟了多少秒。
 
-seconds_behind_master 的计算方法是这样的：
+`seconds_behind_master` 的计算方法是这样的：
 
 1.  每个事务的 binlog 里面都有一个时间字段，用于记录主库上写入的时间；
 
-2.  备库取出当前正在执行的事务的时间字段的值，计算它与当前系统时间的差值，得到 seconds_behind_master。
+2.  备库取出当前正在执行的事务的时间字段的值，计算它与当前系统时间的差值，得到 `seconds_behind_master`。
 
-可以看到，其实 seconds_behind_master 这个参数计算的就是 T3-T1。所以，我们可以用 seconds_behind_master 来作为主备延迟的值，这个值的时间精度是秒。
+可以看到，其实 `seconds_behind_master` 这个参数计算的就是 T3-T1。所以，我们可以用 `seconds_behind_master` 来作为主备延迟的值，这个值的时间精度是秒。
 
 你可能会问，如果主备库机器的系统时间设置不一致，会不会导致主备延迟的值不准？
 
-其实不会的。因为，备库连接到主库的时候，会通过执行 SELECT UNIX_TIMESTAMP() 函数来获得当前主库的系统时间。如果这时候发现主库的系统时间与自己不一致，备库在执行 seconds_behind_master 计算的时候会自动扣掉这个差值。
+其实不会的。因为，备库连接到主库的时候，会通过执行 `SELECT UNIX_TIMESTAMP()` 函数来获得当前主库的系统时间。如果这时候发现主库的系统时间与自己不一致，备库在执行 `seconds_behind_master` 计算的时候会自动扣掉这个差值。
 
 需要说明的是，在网络正常的时候，日志从主库传给备库所需的时间是很短的，即 T2-T1 的值是非常小的。也就是说，网络正常情况下，主备延迟的主要来源是备库接收完 binlog 和执行完这个事务之间的时间差。
 
@@ -7603,7 +7837,12 @@ seconds_behind_master 的计算方法是这样的：
 接下来，我就和你分享一个可用性优先流程产生数据不一致的例子。假设有一个表 t：
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,  `c` int(11) unsigned DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB; insert into t(c) values(1),(2),(3);
+mysql> CREATE TABLE `t` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,  
+  `c` int(11) unsigned DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; 
+insert into t(c) values(1),(2),(3);
 ```
 
 这个表定义了一个自增主键 id，初始化数据后，主库和备库上都是 3 行数据。接下来，业务人员要继续在表 t 上执行两条插入语句的命令，依次是：
@@ -7715,9 +7954,9 @@ insert into t(c) values(4);insert into t(c) values(5);
 
 图 2 多线程模型
 
-图 2 中，coordinator 就是原来的 sql_thread, 不过现在它不再直接更新数据了，只负责读取中转日志和分发事务。真正更新日志的，变成了 worker 线程。而 work 线程的个数，就是由参数 slave_parallel_workers 决定的。根据我的经验，把这个值设置为 8~16 之间最好（32 核物理机的情况），毕竟备库还有可能要提供读查询，不能把 CPU 都吃光了。
+图 2 中，coordinator 就是原来的 `sql_thread`, 不过现在它不再直接更新数据了，只负责读取中转日志和分发事务。真正更新日志的，变成了 worker 线程。而 work 线程的个数，就是由参数 `slave_parallel_workers` 决定的。根据我的经验，把这个值设置为 8~16 之间最好（32 核物理机的情况），毕竟备库还有可能要提供读查询，不能把 CPU 都吃光了。
 
-接下来，你需要先思考一个问题：事务能不能按照轮询的方式分发给各个 worker，也就是第一个事务分给 worker_1，第二个事务发给 worker_2 呢？
+接下来，你需要先思考一个问题：事务能不能按照轮询的方式分发给各个 worker，也就是第一个事务分给 `worker_1`，第二个事务发给 `worker_2` 呢？
 
 其实是不行的。因为，事务被分发给 worker 以后，不同的 worker 就独立执行了。但是，由于 CPU 的调度策略，很可能第二个事务最终比第一个事务先执行。而如果这时候刚好这两个事务更新的是同一行，也就意味着，同一行上的两个事务，在主库和备库上的执行顺序相反，会导致主备不一致的问题。
 
@@ -7752,21 +7991,21 @@ insert into t(c) values(4);insert into t(c) values(5);
 
 在有事务分配给 worker 时，事务里面涉及的表会被加到对应的 hash 表中。worker 执行完成后，这个表会被从 hash 表中去掉。
 
-图 3 中，hash_table_1 表示，现在 worker_1 的“待执行事务队列”里，有 4 个事务涉及到 db1.t1 表，有 1 个事务涉及到 db2.t2 表；hash_table_2 表示，现在 worker_2 中有一个事务会更新到表 t3 的数据。
+图 3 中，`hash_table_1` 表示，现在 `worker_1` 的“待执行事务队列”里，有 4 个事务涉及到 db1.t1 表，有 1 个事务涉及到 db2.t2 表；`hash_table_2` 表示，现在 worker_2 中有一个事务会更新到表 t3 的数据。
 
 假设在图中的情况下，coordinator 从中转日志中读入一个新事务 T，这个事务修改的行涉及到表 t1 和 t3。
 
 现在我们用事务 T 的分配流程，来看一下分配规则。
 
-1.  由于事务 T 中涉及修改表 t1，而 worker_1 队列中有事务在修改表 t1，事务 T 和队列中的某个事务要修改同一个表的数据，这种情况我们说事务 T 和 worker_1 是冲突的。
+1.  由于事务 T 中涉及修改表 t1，而 `worker_1` 队列中有事务在修改表 t1，事务 T 和队列中的某个事务要修改同一个表的数据，这种情况我们说事务 T 和 worker_1 是冲突的。
 
 2.  按照这个逻辑，顺序判断事务 T 和每个 worker 队列的冲突关系，会发现事务 T 跟 worker_2 也冲突。
 
 3.  事务 T 跟多于一个 worker 冲突，coordinator 线程就进入等待。
 
-4.  每个 worker 继续执行，同时修改 hash_table。假设 hash_table_2 里面涉及到修改表 t3 的事务先执行完成，就会从 hash_table_2 中把 db1.t3 这一项去掉。
+4.  每个 worker 继续执行，同时修改 `hash_table`。假设 `hash_table_2` 里面涉及到修改表 t3 的事务先执行完成，就会从 `hash_table_2` 中把 db1.t3 这一项去掉。
 
-5.  这样 coordinator 会发现跟事务 T 冲突的 worker 只有 worker_1 了，因此就把它分配给 worker_1。
+5.  这样 coordinator 会发现跟事务 T 冲突的 worker 只有 `worker_1` 了，因此就把它分配给 `worker_1`。
 
 6.  coordinator 继续读下一个中转日志，继续分配事务。
 
@@ -7791,7 +8030,14 @@ insert into t(c) values(4);insert into t(c) values(5);
 但是，这个“唯一键”只有主键 id 还是不够的，我们还需要考虑下面这种场景，表 t1 中除了主键，还有唯一索引 a：
 
 ```
-CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  UNIQUE KEY `a` (`a`)) ENGINE=InnoDB; insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
+CREATE TABLE `t1` (
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `b` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  UNIQUE KEY `a` (`a`)
+) ENGINE=InnoDB; 
+insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
 ```
 
 假设，接下来我们要在主库执行这两个事务：
@@ -7867,7 +8113,7 @@ CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 在实现上，MariaDB 是这么做的：
 
-1.  在一组里面一起提交的事务，有一个相同的 commit_id，下一组就是 commit_id+1；
+1.  在一组里面一起提交的事务，有一个相同的 `commit_id`，下一组就是 `commit_id+1`；
 
 2.  commit_id 直接写到 binlog 里面；
 
@@ -7926,9 +8172,9 @@ CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 我在第 23 篇文章，讲 binlog 的组提交的时候，介绍过两个参数：
 
-1.  binlog_group_commit_sync_delay 参数，表示延迟多少微秒后才调用 fsync;
+1.  `binlog_group_commit_sync_delay` 参数，表示延迟多少微秒后才调用 fsync;
 
-2.  binlog_group_commit_sync_no_delay_count 参数，表示累积多少次以后才调用 fsync。
+2.  `binlog_group_commit_sync_no_delay_count` 参数，表示累积多少次以后才调用 fsync。
 
 这两个参数是用于故意拉长 binlog 从 write 到 fsync 的时间，以此减少 binlog 的写盘次数。在 MySQL 5.7 的并行复制策略里，它们可以用来制造更多的“同时处于 prepare 阶段的事务”。这样就增加了备库复制的并行度。
 
@@ -7964,7 +8210,7 @@ CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 在今天这篇文章中，我和你介绍了 MySQL 的各种多线程复制策略。
 
-为什么要有多线程复制呢？这是因为单线程复制的能力全面低于多线程复制，对于更新压力较大的主库，备库是可能一直追不上主库的。从现象上看就是，备库上 seconds_behind_master 的值越来越大。
+为什么要有多线程复制呢？这是因为单线程复制的能力全面低于多线程复制，对于更新压力较大的主库，备库是可能一直追不上主库的。从现象上看就是，备库上 `seconds_behind_master` 的值越来越大。
 
 在介绍完每个并行复制策略后，我还和你分享了不同策略的优缺点：
 
@@ -8009,8 +8255,8 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 这条命令有这么 6 个参数：
 
-*   MASTER_HOST、MASTER_PORT、MASTER_USER 和 MASTER_PASSWORD 四个参数，分别代表了主库 A’的 IP、端口、用户名和密码。
-*   最后两个参数 MASTER_LOG_FILE 和 MASTER_LOG_POS 表示，要从主库的 master_log_name 文件的 master_log_pos 这个位置的日志继续同步。而这个位置就是我们所说的同步位点，也就是主库对应的文件名和日志偏移量。
+*   `MASTER_HOST`、`MASTER_PORT`、`MASTER_USER` 和 `MASTER_PASSWORD` 四个参数，分别代表了主库 A’的 IP、端口、用户名和密码。
+*   最后两个参数 `MASTER_LOG_FILE` 和 `MASTER_LOG_POS` 表示，要从主库的 `master_log_name` 文件的 `master_log_pos` 这个位置的日志继续同步。而这个位置就是我们所说的同步位点，也就是主库对应的文件名和日志偏移量。
 
 那么，这里就有一个问题了，节点 B 要设置成 A’的从库，就要执行 change master 命令，就不可避免地要设置位点的这两个参数，但是这两个参数到底应该怎么设置呢？
 
@@ -8039,7 +8285,7 @@ mysqlbinlog File --stop-datetime=T --start-datetime=T
 
 图 3 mysqlbinlog 部分输出结果
 
-图中，end_log_pos 后面的值“123”，表示的就是 A’这个实例，在 T 时刻写入新的 binlog 的位置。然后，我们就可以把 123 这个值作为 $master_log_pos ，用在节点 B 的 change master 命令里。
+图中，`end_log_pos` 后面的值“123”，表示的就是 A’这个实例，在 T 时刻写入新的 binlog 的位置。然后，我们就可以把 123 这个值作为 `$master_log_pos` ，用在节点 B 的 change master 命令里。
 
 当然这个值并不精确。为什么呢？
 
@@ -8065,22 +8311,22 @@ set global sql_slave_skip_counter=1;start slave;
 
 因为切换过程中，可能会不止重复执行一个事务，所以我们需要在从库 B 刚开始接到新主库 A’时，持续观察，每次碰到这些错误就停下来，执行一次跳过命令，直到不再出现停下来的情况，以此来跳过可能涉及的所有事务。
 
-**另外一种方式是，**通过设置 slave_skip_errors 参数，直接设置跳过指定的错误。
+**另外一种方式是，**通过设置 `slave_skip_errors` 参数，直接设置跳过指定的错误。
 
 在执行主备切换时，有这么两类错误，是经常会遇到的：
 
 *   1062 错误是插入数据时唯一键冲突；
 *   1032 错误是删除数据时找不到行。
 
-因此，我们可以把 slave_skip_errors 设置为 “1032,1062”，这样中间碰到这两个错误时就直接跳过。
+因此，我们可以把 `slave_skip_errors` 设置为 “1032,1062”，这样中间碰到这两个错误时就直接跳过。
 
 这里需要注意的是，这种直接跳过指定错误的方法，针对的是主备切换时，由于找不到精确的同步位点，所以只能采用这种方法来创建从库和新主库的主备关系。
 
-这个背景是，我们很清楚在主备切换过程中，直接跳过 1032 和 1062 这两类错误是无损的，所以才可以这么设置 slave_skip_errors 参数。等到主备间的同步关系建立完成，并稳定执行一段时间之后，我们还需要把这个参数设置为空，以免之后真的出现了主从数据不一致，也跳过了。
+这个背景是，我们很清楚在主备切换过程中，直接跳过 1032 和 1062 这两类错误是无损的，所以才可以这么设置 `slave_skip_errors` 参数。等到主备间的同步关系建立完成，并稳定执行一段时间之后，我们还需要把这个参数设置为空，以免之后真的出现了主从数据不一致，也跳过了。
 
 ### GTID
 
-通过 sql_slave_skip_counter 跳过事务和通过 slave_skip_errors 忽略错误的方法，虽然都最终可以建立从库 B 和新主库 A’的主备关系，但这两种操作都很复杂，而且容易出错。所以，MySQL 5.6 版本引入了 GTID，彻底解决了这个困难。
+通过 `sql_slave_skip_counter` 跳过事务和通过 `slave_skip_errors` 忽略错误的方法，虽然都最终可以建立从库 B 和新主库 A’的主备关系，但这两种操作都很复杂，而且容易出错。所以，MySQL 5.6 版本引入了 GTID，彻底解决了这个困难。
 
 那么，GTID 到底是什么意思，又是如何解决找同步位点这个问题呢？现在，我就和你简单介绍一下。
 
@@ -8101,25 +8347,25 @@ GTID=server_uuid:gno
 GTID=source_id:transaction_id
 ```
 
-这里的 source_id 就是 server_uuid；而后面的这个 transaction_id，我觉得容易造成误导，所以我改成了 gno。为什么说使用 transaction_id 容易造成误解呢？
+这里的 `source_id` 就是 `server_uuid`；而后面的这个 `transaction_id`，我觉得容易造成误导，所以我改成了 gno。为什么说使用 `transaction_id` 容易造成误解呢？
 
-因为，在 MySQL 里面我们说 transaction_id 就是指事务 id，事务 id 是在事务执行过程中分配的，如果这个事务回滚了，事务 id 也会递增，而 gno 是在事务提交的时候才会分配。
+因为，在 MySQL 里面我们说 `transaction_id` 就是指事务 id，事务 id 是在事务执行过程中分配的，如果这个事务回滚了，事务 id 也会递增，而 gno 是在事务提交的时候才会分配。
 
 从效果上看，GTID 往往是连续的，因此我们用 gno 来表示更容易理解。
 
-GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 gtid_mode=on 和 enforce_gtid_consistency=on 就可以了。
+GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 `gtid_mode=on` 和 `enforce_gtid_consistency=on` 就可以了。
 
 在 GTID 模式下，每个事务都会跟一个 GTID 一一对应。这个 GTID 有两种生成方式，而使用哪种方式取决于 session 变量 gtid_next 的值。
 
-1.  如果 gtid_next=automatic，代表使用默认值。这时，MySQL 就会把 server_uuid:gno 分配给这个事务。
-    a. 记录 binlog 的时候，先记录一行 SET @@SESSION.GTID_NEXT=‘server_uuid:gno’;
+1.  如果 `gtid_next=automatic`，代表使用默认值。这时，MySQL 就会把 `server_uuid:gno` 分配给这个事务。
+    a. 记录 binlog 的时候，先记录一行 `SET @@SESSION.GTID_NEXT=‘server_uuid:gno’`;
     b. 把这个 GTID 加入本实例的 GTID 集合。
 
-2.  如果 gtid_next 是一个指定的 GTID 的值，比如通过 set gtid_next='current_gtid’指定为 current_gtid，那么就有两种可能：
-    a. 如果 current_gtid 已经存在于实例的 GTID 集合中，接下来执行的这个事务会直接被系统忽略；
-    b. 如果 current_gtid 没有存在于实例的 GTID 集合中，就将这个 current_gtid 分配给接下来要执行的事务，也就是说系统不需要给这个事务生成新的 GTID，因此 gno 也不用加 1。
+2.  如果 `gtid_next` 是一个指定的 GTID 的值，比如通过 `set gtid_next='current_gtid’`指定为 `current_gtid`，那么就有两种可能：
+    a. 如果 `current_gtid` 已经存在于实例的 GTID 集合中，接下来执行的这个事务会直接被系统忽略；
+    b. 如果 `current_gtid` 没有存在于实例的 GTID 集合中，就将这个 current_gtid 分配给接下来要执行的事务，也就是说系统不需要给这个事务生成新的 GTID，因此 gno 也不用加 1。
 
-注意，一个 current_gtid 只能给一个事务使用。这个事务提交后，如果要执行下一个事务，就要执行 set 命令，把 gtid_next 设置成另外一个 gtid 或者 automatic。
+注意，一个 `current_gtid` 只能给一个事务使用。这个事务提交后，如果要执行下一个事务，就要执行 set 命令，把 `gtid_next` 设置成另外一个 gtid 或者 automatic。
 
 这样，每个 MySQL 实例都维护了一个 GTID 集合，用来对应“这个实例执行过的所有事务”。
 
@@ -8128,7 +8374,12 @@ GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例�
 我们在实例 X 中创建一个表 t。
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB; insert into t values(1,1);
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; 
+insert into t values(1,1);
 ```
 
 
@@ -8149,7 +8400,11 @@ insert into t values(1,1);
 处理方法就是，你可以执行下面的这个语句序列：
 
 ```
-set gtid_next='aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10';begin;commit;set gtid_next=automatic;start slave;
+set gtid_next='aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10';
+begin;
+commit;
+set gtid_next=automatic;
+start slave;
 ```
 
 其中，前三条语句的作用，是通过提交一个空事务，把这个 GTID 加到实例 X 的 GTID 集合中。如图 5 所示，就是执行完这个空事务之后的 show master status 的结果。
@@ -8173,9 +8428,9 @@ set gtid_next='aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10';begin;commit;set gtid_ne
 CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name MASTER_PASSWORD=$password master_auto_position=1 
 ```
 
-其中，master_auto_position=1 就表示这个主备关系使用的是 GTID 协议。可以看到，前面让我们头疼不已的 MASTER_LOG_FILE 和 MASTER_LOG_POS 参数，已经不需要指定了。
+其中，`master_auto_position`=1 就表示这个主备关系使用的是 GTID 协议。可以看到，前面让我们头疼不已的 `MASTER_LOG_FILE` 和 `MASTER_LOG_POS` 参数，已经不需要指定了。
 
-我们把现在这个时刻，实例 A’的 GTID 集合记为 set_a，实例 B 的 GTID 集合记为 set_b。接下来，我们就看看现在的主备切换逻辑。
+我们把现在这个时刻，实例 A’的 GTID 集合记为 `set_a`，实例 B 的 GTID 集合记为 `set_b`。接下来，我们就看看现在的主备切换逻辑。
 
 我们在实例 B 上执行 start slave 命令，取 binlog 的逻辑是这样的：
 
@@ -8183,7 +8438,7 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 2.  实例 B 把 set_b 发给主库 A’。
 
-3.  实例 A’算出 set_a 与 set_b 的差集，也就是所有存在于 set_a，但是不存在于 set_b 的 GTID 的集合，判断 A’本地是否包含了这个差集需要的所有 binlog 事务。
+3.  实例 A’算出 `set_a` 与 `set_b` 的差集，也就是所有存在于 `set_a`，但是不存在于 `set_b` 的 GTID 的集合，判断 A’本地是否包含了这个差集需要的所有 binlog 事务。
     a. 如果不包含，表示 A’已经把实例 B 需要的 binlog 给删掉了，直接返回错误；
     b. 如果确认全部包含，A’从自己的 binlog 文件里面，找出第一个不在 set_b 的事务，发给 B；
 
@@ -8199,9 +8454,9 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 其实，严谨地说，主备切换不是不需要找位点了，而是找位点这个工作，在实例 A’内部就已经自动完成了。但由于这个工作是自动的，所以对 HA 系统的开发人员来说，非常友好。
 
-之后这个系统就由新主库 A’写入，主库 A’的自己生成的 binlog 中的 GTID 集合格式是：server_uuid_of_A’:1-M。
+之后这个系统就由新主库 A’写入，主库 A’的自己生成的 binlog 中的 GTID 集合格式是：`server_uuid_of_A’:1-M`。
 
-如果之前从库 B 的 GTID 集合格式是 server_uuid_of_A:1-N， 那么切换之后 GTID 集合的格式就变成了 server_uuid_of_A:1-N, server_uuid_of_A’:1-M。
+如果之前从库 B 的 GTID 集合格式是 `server_uuid_of_A:1-N`， 那么切换之后 GTID 集合的格式就变成了 `server_uuid_of_A:1-N, server_uuid_of_A’:1-M`。
 
 当然，主库 A’之前也是 A 的备库，因此主库 A’和从库 B 的 GTID 集合是一样的。这就达到了我们预期。
 
@@ -8211,7 +8466,7 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 之前在第 22 篇文章[《MySQL 有哪些“饮鸩止渴”提高性能的方法？》](https://time.geekbang.org/column/article/75746)中，我和你提到业务高峰期的慢查询性能问题时，分析到如果是由于索引缺失引起的性能问题，我们可以通过在线加索引来解决。但是，考虑到要避免新增索引对主库性能造成的影响，我们可以先在备库加索引，然后再切换。
 
-当时我说，在双 M 结构下，备库执行的 DDL 语句也会传给主库，为了避免传回后对主库造成影响，要通过 set sql_log_bin=off 关掉 binlog。
+当时我说，在双 M 结构下，备库执行的 DDL 语句也会传给主库，为了避免传回后对主库造成影响，要通过 `set sql_log_bin=off` 关掉 binlog。
 
 评论区有位同学提出了一个问题：这样操作的话，数据库里面是加了索引，但是 binlog 并没有记录下这一个更新，是不是会导致数据和日志不一致？
 
@@ -8228,7 +8483,11 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 *   到实例 X 上执行以下语句序列：
 
 ```
-set GTID_NEXT="server_uuid_of_Y:gno";begin;commit;set gtid_next=automatic;start slave;
+set GTID_NEXT="server_uuid_of_Y:gno";
+begin;
+commit;
+set gtid_next=automatic;
+start slave;
 ```
 
 这样做的目的在于，既可以让实例 Y 的更新有 binlog 记录，同时也可以确保不会在实例 X 上执行这条更新。
@@ -8327,9 +8586,9 @@ set GTID_NEXT="server_uuid_of_Y:gno";begin;commit;set gtid_next=automatic;start 
 
 通过前面的[第 25 篇](https://time.geekbang.org/column/article/76795)文章，我们知道 show slave status 结果里的 seconds_behind_master 参数的值，可以用来衡量主备延迟时间的长短。
 
-所以**第一种确保主备无延迟的方法是，**每次从库执行查询请求前，先判断 seconds_behind_master 是否已经等于 0。如果还不等于 0 ，那就必须等到这个参数变为 0 才能执行查询请求。
+所以**第一种确保主备无延迟的方法是，**每次从库执行查询请求前，先判断 `seconds_behind_master` 是否已经等于 0。如果还不等于 0 ，那就必须等到这个参数变为 0 才能执行查询请求。
 
-seconds_behind_master 的单位是秒，如果你觉得精度不够的话，还可以采用对比位点和 GTID 的方法来确保主备无延迟，也就是我们接下来要说的第二和第三种方法。
+`seconds_behind_master` 的单位是秒，如果你觉得精度不够的话，还可以采用对比位点和 GTID 的方法来确保主备无延迟，也就是我们接下来要说的第二和第三种方法。
 
 如图 3 所示，是一个 show slave status 结果的部分截图。
 
@@ -8340,20 +8599,20 @@ seconds_behind_master 的单位是秒，如果你觉得精度不够的话，还�
 
 **第二种方法，**对比位点确保主备无延迟：
 
-*   Master_Log_File 和 Read_Master_Log_Pos，表示的是读到的主库的最新位点；
-*   Relay_Master_Log_File 和 Exec_Master_Log_Pos，表示的是备库执行的最新位点。
+*   `Master_Log_File` 和 `Read_Master_Log_Pos`，表示的是读到的主库的最新位点；
+*   `Relay_Master_Log_File` 和 `Exec_Master_Log_Pos`，表示的是备库执行的最新位点。
 
-如果 Master_Log_File 和 Relay_Master_Log_File、Read_Master_Log_Pos 和 Exec_Master_Log_Pos 这两组值完全相同，就表示接收到的日志已经同步完成。
+如果 `Master_Log_File` 和 `Relay_Master_Log_File`、`Read_Master_Log_Pos` 和 `Exec_Master_Log_Pos` 这两组值完全相同，就表示接收到的日志已经同步完成。
 
 **第三种方法，**对比 GTID 集合确保主备无延迟：
 
-*   Auto_Position=1 ，表示这对主备关系使用了 GTID 协议。
-*   Retrieved_Gtid_Set，是备库收到的所有日志的 GTID 集合；
-*   Executed_Gtid_Set，是备库所有已经执行完成的 GTID 集合。
+*   `Auto_Position=1` ，表示这对主备关系使用了 GTID 协议。
+*   `Retrieved_Gtid_Set`，是备库收到的所有日志的 GTID 集合；
+*   `Executed_Gtid_Set`，是备库所有已经执行完成的 GTID 集合。
 
 如果这两个集合相同，也表示备库接收到的日志都已经同步完成。
 
-可见，对比位点和对比 GTID 这两种方法，都要比判断 seconds_behind_master 是否为 0 更准确。
+可见，对比位点和对比 GTID 这两种方法，都要比判断 `seconds_behind_master` 是否为 0 更准确。
 
 在执行查询请求之前，先判断从库是否同步完成的方法，相比于 sleep 方案，准确度确实提升了不少，但还是没有达到“精确”的程度。为什么这么说呢？
 
@@ -8463,9 +8722,9 @@ select master_pos_wait(file, pos[, timeout]);
 
 2.  选定一个从库执行查询语句；
 
-3.  在从库上执行 select master_pos_wait(File, Position, 1)；
+3.  在从库上执行 `select master_pos_wait(File, Position, 1)`；
 
-4.  如果返回值是 >=0 的正整数，则在这个从库执行查询语句；
+4.  如果返回值是 `>=0` 的正整数，则在这个从库执行查询语句；
 
 5.  否则，到主库执行查询语句。
 
@@ -8474,7 +8733,7 @@ select master_pos_wait(file, pos[, timeout]);
 
 图 6 master_pos_wait 方案
 
-这里我们假设，这条 select 查询最多在从库上等待 1 秒。那么，如果 1 秒内 master_pos_wait 返回一个大于等于 0 的整数，就确保了从库上执行的这个查询结果一定包含了 trx1 的数据。
+这里我们假设，这条 select 查询最多在从库上等待 1 秒。那么，如果 1 秒内 `master_pos_wait` 返回一个大于等于 0 的整数，就确保了从库上执行的这个查询结果一定包含了 trx1 的数据。
 
 步骤 5 到主库执行查询语句，是这类方案常用的退化机制。因为从库的延迟时间不可控，不能无限等待，所以如果等待超时，就应该放弃，然后到主库去查。
 
@@ -8506,7 +8765,7 @@ MySQL 中同样提供了一个类似的命令：
 
 2.  选定一个从库执行查询语句；
 
-3.  在从库上执行 select wait_for_executed_gtid_set(gtid1, 1)；
+3.  在从库上执行 `select wait_for_executed_gtid_set(gtid1, 1)`；
 
 4.  如果返回值是 0，则在这个从库执行查询语句；
 
@@ -8521,9 +8780,9 @@ MySQL 中同样提供了一个类似的命令：
 
 在上面的第一步中，trx1 事务更新完成后，从返回包直接获取这个事务的 GTID。问题是，怎么能够让 MySQL 在执行事务后，返回包中带上 GTID 呢？
 
-你只需要将参数 session_track_gtids 设置为 OWN_GTID，然后通过 API 接口 mysql_session_track_get_first 从返回包解析出 GTID 的值即可。
+你只需要将参数 `session_track_gtids` 设置为 `OWN_GTID`，然后通过 API 接口 `mysql_session_track_get_first` 从返回包解析出 GTID 的值即可。
 
-在专栏的[第一篇文章](https://time.geekbang.org/column/article/68319)中，我介绍 mysql_reset_connection 的时候，评论区有同学留言问这类接口应该怎么使用。
+在专栏的[第一篇文章](https://time.geekbang.org/column/article/68319)中，我介绍 `mysql_reset_connection` 的时候，评论区有同学留言问这类接口应该怎么使用。
 
 这里我再回答一下。其实，MySQL 并没有提供这类接口的 SQL 用法，是提供给程序的 API([https://dev.mysql.com/doc/refman/5.7/en/c-api-functions.html](https://dev.mysql.com/doc/refman/5.7/en/c-api-functions.html))。
 
@@ -8537,7 +8796,7 @@ MySQL 中同样提供了一个类似的命令：
 
 图 9 显示更新事务的 GTID-- 效果
 
-当然了，这只是一个例子。你要使用这个方案的时候，还是应该在你的客户端代码中调用 mysql_session_track_get_first 这个函数。
+当然了，这只是一个例子。你要使用这个方案的时候，还是应该在你的客户端代码中调用 `mysql_session_track_get_first` 这个函数。
 
 ### 小结
 
@@ -8566,29 +8825,35 @@ MySQL 中同样提供了一个类似的命令：
 实际上，select 1 成功返回，只能说明这个库的进程还在，并不能说明主库没问题。现在，我们来看一下这个场景。
 
 ```
-set global innodb_thread_concurrency=3; CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB;  insert into t values(1,1)
+set global innodb_thread_concurrency=3; 
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;  
+insert into t values(1,1)
 ```
 
 
 图 1 查询 blocked
 
-我们设置 innodb_thread_concurrency 参数的目的是，控制 InnoDB 的并发线程上限。也就是说，一旦并发线程数达到这个值，InnoDB 在接收到新请求的时候，就会进入等待状态，直到有线程退出。
+我们设置 `innodb_thread_concurrency` 参数的目的是，控制 InnoDB 的并发线程上限。也就是说，一旦并发线程数达到这个值，InnoDB 在接收到新请求的时候，就会进入等待状态，直到有线程退出。
 
-这里，我把 innodb_thread_concurrency 设置成 3，表示 InnoDB 只允许 3 个线程并行执行。而在我们的例子中，前三个 session 中的 sleep(100)，使得这三个语句都处于“执行”状态，以此来模拟大查询。
+这里，我把 `innodb_thread_concurrency` 设置成 3，表示 InnoDB 只允许 3 个线程并行执行。而在我们的例子中，前三个 session 中的 sleep(100)，使得这三个语句都处于“执行”状态，以此来模拟大查询。
 
 你看到了， session D 里面，select 1 是能执行成功的，但是查询表 t 的语句会被堵住。也就是说，如果这时候我们用 select 1 来检测实例是否正常的话，是检测不出问题的。
 
-在 InnoDB 中，innodb_thread_concurrency 这个参数的默认值是 0，表示不限制并发线程数量。但是，不限制并发线程数肯定是不行的。因为，一个机器的 CPU 核数有限，线程全冲进来，上下文切换的成本就会太高。
+在 InnoDB 中，`innodb_thread_concurrency` 这个参数的默认值是 0，表示不限制并发线程数量。但是，不限制并发线程数肯定是不行的。因为，一个机器的 CPU 核数有限，线程全冲进来，上下文切换的成本就会太高。
 
-所以，通常情况下，我们建议把 innodb_thread_concurrency 设置为 64~128 之间的值。这时，你一定会有疑问，并发线程上限数设置为 128 够干啥，线上的并发连接数动不动就上千了。
+所以，通常情况下，我们建议把 `innodb_thread_concurrency` 设置为 64~128 之间的值。这时，你一定会有疑问，并发线程上限数设置为 128 够干啥，线上的并发连接数动不动就上千了。
 
 产生这个疑问的原因，是搞混了**并发连接和并发查询。**
 
 并发连接和并发查询，并不是同一个概念。你在 show processlist 的结果里，看到的几千个连接，指的就是并发连接。而“当前正在执行”的语句，才是我们所说的并发查询。
 
-并发连接数达到几千个影响并不大，就是多占一些内存而已。我们应该关注的是并发查询，因为并发查询太高才是 CPU 杀手。这也是为什么我们需要设置 innodb_thread_concurrency 参数的原因。
+并发连接数达到几千个影响并不大，就是多占一些内存而已。我们应该关注的是并发查询，因为并发查询太高才是 CPU 杀手。这也是为什么我们需要设置 `innodb_thread_concurrency` 参数的原因。
 
-然后，你可能还会想起我们在[第 7 篇文章](https://time.geekbang.org/column/article/70215)中讲到的热点更新和死锁检测的时候，如果把 innodb_thread_concurrency 设置为 128 的话，那么出现同一行热点更新的问题时，是不是很快就把 128 消耗完了，这样整个系统是不是就挂了呢？
+然后，你可能还会想起我们在[第 7 篇文章](https://time.geekbang.org/column/article/70215)中讲到的热点更新和死锁检测的时候，如果把 `innodb_thread_concurrency` 设置为 128 的话，那么出现同一行热点更新的问题时，是不是很快就把 128 消耗完了，这样整个系统是不是就挂了呢？
 
 实际上，**在线程进入锁等待以后，并发线程的计数会减一**，也就是说等行锁（也包括间隙锁）的线程是不算在 128 里面的。
 
@@ -8596,9 +8861,9 @@ MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已�
 
 为什么呢？假设处于锁等待的线程也占并发线程的计数，你可以设想一下这个场景：
 
-1.  线程 1 执行 begin; update t set c=c+1 where id=1, 启动了事务 trx1， 然后保持这个状态。这时候，线程处于空闲状态，不算在并发线程里面。
+1.  线程 1 执行 `begin; update t set c=c+1 where id=1`, 启动了事务 trx1， 然后保持这个状态。这时候，线程处于空闲状态，不算在并发线程里面。
 
-2.  线程 2 到线程 129 都执行 update t set c=c+1 where id=1; 由于等行锁，进入等待状态。这样就有 128 个线程处于等待状态；
+2.  线程 2 到线程 129 都执行 `update t set c=c+1 where id=1;` 由于等行锁，进入等待状态。这样就有 128 个线程处于等待状态；
 
 3.  如果处于锁等待状态的线程计数不减一，InnoDB 就会认为线程数用满了，会阻止其他语句进入引擎执行，这样线程 1 不能提交事务。而另外的 128 个线程又处于锁等待状态，整个系统就堵住了。
 
@@ -8611,7 +8876,7 @@ MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已�
 
 虽然说等锁的线程不算在并发线程计数里，但如果它在真正地执行查询，就比如我们上面例子中前三个事务中的 select sleep(100) from t，还是要算进并发线程的计数的。
 
-在这个例子中，同时在执行的语句超过了设置的 innodb_thread_concurrency 的值，这时候系统其实已经不行了，但是通过 select 1 来检测系统，会认为系统还是正常的。
+在这个例子中，同时在执行的语句超过了设置的 `innodb_thread_concurrency` 的值，这时候系统其实已经不行了，但是通过 select 1 来检测系统，会认为系统还是正常的。
 
 因此，我们使用 select 1 的判断逻辑要修改一下。
 
@@ -8645,10 +8910,15 @@ mysql> update mysql.health_check set t_modified=now();
 
 但是，如果主库 A 和备库 B 都用相同的更新命令，就可能出现行冲突，也就是可能会导致主备同步停止。所以，现在看来 mysql.health_check 这个表就不能只有一行数据了。
 
-为了让主备之间的更新不产生冲突，我们可以在 mysql.health_check 表上存入多行数据，并用 A、B 的 server_id 做主键。
+为了让主备之间的更新不产生冲突，我们可以在 `mysql.health_check` 表上存入多行数据，并用 A、B 的 `server_id` 做主键。
 
 ```
-mysql> CREATE TABLE `health_check` (  `id` int(11) NOT NULL,  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  PRIMARY KEY (`id`)) ENGINE=InnoDB; /* 检测命令 */insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on duplicate key update t_modified=now();
+mysql> CREATE TABLE `health_check` (
+  `id` int(11) NOT NULL,  
+  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; /* 检测命令 */
+insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on duplicate key update t_modified=now();
 ```
 
 由于 MySQL 规定了主库和备库的 server_id 必须不同（否则创建主备关系的时候就会报错），这样就可以保证主、备库各自的检测命令不会发生冲突。
@@ -8679,9 +8949,9 @@ mysql> CREATE TABLE `health_check` (  `id` int(11) NOT NULL,  `t_modified` times
 
 针对磁盘利用率这个问题，如果 MySQL 可以告诉我们，内部每一次 IO 请求的时间，那我们判断数据库是否出问题的方法就可靠得多了。
 
-其实，MySQL 5.6 版本以后提供的 performance_schema 库，就在 file_summary_by_event_name 表里统计了每次 IO 请求的时间。
+其实，MySQL 5.6 版本以后提供的 `performance_schema` 库，就在 `file_summary_by_event_name` 表里统计了每次 IO 请求的时间。
 
-file_summary_by_event_name 表里有很多行数据，我们先来看看 event_name='wait/io/file/innodb/innodb_log_file’这一行。
+`file_summary_by_event_name` 表里有很多行数据，我们先来看看 `event_name='wait/io/file/innodb/innodb_log_file`’这一行。
 
 
 图 3 performance_schema.file_summary_by_event_name 的一行
@@ -8692,13 +8962,13 @@ file_summary_by_event_name 表里有很多行数据，我们先来看看 event_n
 
 第一组五列，是所有 IO 类型的统计。其中，COUNT_STAR 是所有 IO 的总次数，接下来四列是具体的统计项， 单位是皮秒；前缀 SUM、MIN、AVG、MAX，顾名思义指的就是总和、最小值、平均值和最大值。
 
-第二组六列，是读操作的统计。最后一列 SUM_NUMBER_OF_BYTES_READ 统计的是，总共从 redo log 里读了多少个字节。
+第二组六列，是读操作的统计。最后一列 `SUM_NUMBER_OF_BYTES_READ` 统计的是，总共从 redo log 里读了多少个字节。
 
 第三组六列，统计的是写操作。
 
 最后的第四组数据，是对其他类型数据的统计。在 redo log 里，你可以认为它们就是对 fsync 的统计。
 
-在 performance_schema 库的 file_summary_by_event_name 表里，binlog 对应的是 event_name = "wait/io/file/sql/binlog"这一行。各个字段的统计逻辑，与 redo log 的各个字段完全相同。这里，我就不再赘述了。
+在 `performance_schema` 库的 `file_summary_by_event_name` 表里，binlog 对应的是 `event_name = "wait/io/file/sql/binlog"`这一行。各个字段的统计逻辑，与 redo log 的各个字段完全相同。这里，我就不再赘述了。
 
 因为我们每一次操作数据库，performance_schema 都需要额外地统计这些信息，所以我们打开这个统计功能是有性能损耗的。
 
@@ -8991,10 +9261,14 @@ InnoDB 的策略是尽量使用内存，因此对于一个长时间运行的库�
 
 InnoDB 会根据这两个因素先单独算出两个数字。
 
-参数 innodb_max_dirty_pages_pct 是脏页比例上限，默认值是 75%。InnoDB 会根据当前的脏页比例（假设为 M），算出一个范围在 0 到 100 之间的数字，计算这个数字的伪代码类似这样：
+参数 `innodb_max_dirty_pages_pct` 是脏页比例上限，默认值是 75%。InnoDB 会根据当前的脏页比例（假设为 M），算出一个范围在 0 到 100 之间的数字，计算这个数字的伪代码类似这样：
 
 ```
-F1(M){  if M>=innodb_max_dirty_pages_pct then      return 100;  return 100*M/innodb_max_dirty_pages_pct;}
+F1(M){
+  if M>=innodb_max_dirty_pages_pct then      
+    return 100;
+  return 100*M/innodb_max_dirty_pages_pct;
+}
 ```
 
 InnoDB 每次写入的日志都有一个序号，当前写入的序号跟 checkpoint 对应的序号之间的差值，我们假设为 N。InnoDB 会根据这个 N 算出一个范围在 0 到 100 之间的数字，这个计算公式可以记为 F2(N)。F2(N) 算法比较复杂，你只要知道 N 越大，算出来的值越大就好了。
@@ -9013,20 +9287,22 @@ InnoDB 每次写入的日志都有一个序号，当前写入的序号跟 checkp
 其中，脏页比例是通过 Innodb_buffer_pool_pages_dirty/Innodb_buffer_pool_pages_total 得到的，具体的命令参考下面的代码：
 
 ```
-mysql> select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty';select VARIABLE_VALUE into @b from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_total';select @a/@b;
+mysql> select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty';
+select VARIABLE_VALUE into @b from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_total';
+select @a/@b;
 ```
 
 接下来，我们再看一个有趣的策略。
 
 一旦一个查询请求需要在执行过程中先 flush 掉一个脏页时，这个查询就可能要比平时慢了。而 MySQL 中的一个机制，可能让你的查询会更慢：在准备刷一个脏页的时候，如果这个数据页旁边的数据页刚好是脏页，就会把这个“邻居”也带着一起刷掉；而且这个把“邻居”拖下水的逻辑还可以继续蔓延，也就是对于每个邻居数据页，如果跟它相邻的数据页也还是脏页的话，也会被放到一起刷。
 
-在 InnoDB 中，innodb_flush_neighbors 参数就是用来控制这个行为的，值为 1 的时候会有上述的“连坐”机制，值为 0 时表示不找邻居，自己刷自己的。
+在 InnoDB 中，`innodb_flush_neighbors` 参数就是用来控制这个行为的，值为 1 的时候会有上述的“连坐”机制，值为 0 时表示不找邻居，自己刷自己的。
 
 找“邻居”这个优化在机械硬盘时代是很有意义的，可以减少很多随机 IO。机械硬盘的随机 IOPS 一般只有几百，相同的逻辑操作减少随机 IO 就意味着系统性能的大幅度提升。
 
-而如果使用的是 SSD 这类 IOPS 比较高的设备的话，我就建议你把 innodb_flush_neighbors 的值设置成 0。因为这时候 IOPS 往往不是瓶颈，而“只刷自己”，就能更快地执行完必要的刷脏页操作，减少 SQL 语句响应时间。
+而如果使用的是 SSD 这类 IOPS 比较高的设备的话，我就建议你把 `innodb_flush_neighbors` 的值设置成 0。因为这时候 IOPS 往往不是瓶颈，而“只刷自己”，就能更快地执行完必要的刷脏页操作，减少 SQL 语句响应时间。
 
-在 MySQL 8.0 中，innodb_flush_neighbors 参数的默认值已经是 0 了。
+在 MySQL 8.0 中，`innodb_flush_neighbors` 参数的默认值已经是 0 了。
 
 ### 小结
 
@@ -9045,7 +9321,15 @@ mysql> select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'I
 假设你现在维护了一个交易系统，其中交易记录表 tradelog 包含交易流水号（tradeid）、交易员 id（operator）、交易时间（t_modified）等字段。为了便于描述，我们先忽略其他字段。这个表的建表语句如下：
 
 ```
-mysql> CREATE TABLE `tradelog` (  `id` int(11) NOT NULL,  `tradeid` varchar(32) DEFAULT NULL,  `operator` int(11) DEFAULT NULL,  `t_modified` datetime DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `tradeid` (`tradeid`),  KEY `t_modified` (`t_modified`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+mysql> CREATE TABLE `tradelog` (
+  `id` int(11) NOT NULL,  
+  `tradeid` varchar(32) DEFAULT NULL,  
+  `operator` int(11) DEFAULT NULL,  
+  `t_modified` datetime DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `tradeid` (`tradeid`),  
+  KEY `t_modified` (`t_modified`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 假设，现在已经记录了从 2016 年初到 2018 年底的所有数据，运营部门有一个需求是，要统计发生在所有年份中 7 月份的交易记录总数。这个逻辑看上去并不复杂，你的 SQL 语句可能会这么写：
@@ -9058,36 +9342,39 @@ mysql> select count(*) from tradelog where month(t_modified)=7;
 
 如果你问 DBA 同事为什么会出现这样的情况，他大概会告诉你：如果对字段做了函数计算，就用不上索引了，这是 MySQL 的规定。
 
-现在你已经学过了 InnoDB 的索引结构了，可以再追问一句为什么？为什么条件是 where t_modified='2018-7-1’的时候可以用上索引，而改成 where month(t_modified)=7 的时候就不行了？
+现在你已经学过了 InnoDB 的索引结构了，可以再追问一句为什么？为什么条件是 where `t_modified='2018-7-1’`的时候可以用上索引，而改成 `where month(t_modified)=7` 的时候就不行了？
 
 下面是这个 t_modified 索引的示意图。方框上面的数字就是 month() 函数对应的值。
 
 
 图 1 t_modified 索引示意图
 
-如果你的 SQL 语句条件用的是 where t_modified='2018-7-1’的话，引擎就会按照上面绿色箭头的路线，快速定位到 t_modified='2018-7-1’需要的结果。
+如果你的 SQL 语句条件用的是 `where t_modified='2018-7-1’`的话，引擎就会按照上面绿色箭头的路线，快速定位到 `t_modified='2018-7-1’`需要的结果。
 
 实际上，B+ 树提供的这个快速定位能力，来源于同一层兄弟节点的有序性。
 
-但是，如果计算 month() 函数的话，你会看到传入 7 的时候，在树的第一层就不知道该怎么办了。
+但是，如果计算 `month()` 函数的话，你会看到传入 7 的时候，在树的第一层就不知道该怎么办了。
 
 也就是说，**对索引字段做函数操作，可能会破坏索引值的有序性，因此优化器就决定放弃走树搜索功能。**
 
 需要注意的是，优化器并不是要放弃使用这个索引。
 
-在这个例子里，放弃了树搜索功能，优化器可以选择遍历主键索引，也可以选择遍历索引 t_modified，优化器对比索引大小后发现，索引 t_modified 更小，遍历这个索引比遍历主键索引来得更快。因此最终还是会选择索引 t_modified。
+在这个例子里，放弃了树搜索功能，优化器可以选择遍历主键索引，也可以选择遍历索引 `t_modified`，优化器对比索引大小后发现，索引 t_modified 更小，遍历这个索引比遍历主键索引来得更快。因此最终还是会选择索引 t_modified。
 
 接下来，我们使用 explain 命令，查看一下这条 SQL 语句的执行结果。
 
 
 图 2 explain 结果
 
-key="t_modified"表示的是，使用了 t_modified 这个索引；我在测试表数据中插入了 10 万行数据，rows=100335，说明这条语句扫描了整个索引的所有值；Extra 字段的 Using index，表示的是使用了覆盖索引。
+`key="t_modified"`表示的是，使用了 `t_modified` 这个索引；我在测试表数据中插入了 10 万行数据，rows=100335，说明这条语句扫描了整个索引的所有值；Extra 字段的 Using index，表示的是使用了覆盖索引。
 
-也就是说，由于在 t_modified 字段加了 month() 函数操作，导致了全索引扫描。为了能够用上索引的快速定位能力，我们就要把 SQL 语句改成基于字段本身的范围查询。按照下面这个写法，优化器就能按照我们预期的，用上 t_modified 索引的快速定位能力了。
+也就是说，由于在 `t_modified` 字段加了 month() 函数操作，导致了全索引扫描。为了能够用上索引的快速定位能力，我们就要把 SQL 语句改成基于字段本身的范围查询。按照下面这个写法，优化器就能按照我们预期的，用上 `t_modified` 索引的快速定位能力了。
 
-```
-mysql> select count(*) from tradelog where    -> (t_modified >= '2016-7-1' and t_modified<'2016-8-1') or    -> (t_modified >= '2017-7-1' and t_modified<'2017-8-1') or     -> (t_modified >= '2018-7-1' and t_modified<'2018-8-1');
+```sql
+mysql> select count(*) from tradelog where    
+-> (t_modified >= '2016-7-1' and t_modified<'2016-8-1') or    
+-> (t_modified >= '2017-7-1' and t_modified<'2017-8-1') or     
+-> (t_modified >= '2018-7-1' and t_modified<'2018-8-1');
 ```
 
 当然，如果你的系统上线时间更早，或者后面又插入了之后年份的数据的话，你就需要再把其他年份补齐。
@@ -9158,7 +9445,28 @@ select * from tradelog where id="83126";
 假设系统里还有另外一个表 trade_detail，用于记录交易的操作细节。为了便于量化分析和复现，我往交易日志表 tradelog 和交易详情表 trade_detail 这两个表里插入一些数据。
 
 ```
-mysql> CREATE TABLE `trade_detail` (  `id` int(11) NOT NULL,  `tradeid` varchar(32) DEFAULT NULL,  `trade_step` int(11) DEFAULT NULL, /* 操作步骤 */  `step_info` varchar(32) DEFAULT NULL, /* 步骤信息 */  PRIMARY KEY (`id`),  KEY `tradeid` (`tradeid`)) ENGINE=InnoDB DEFAULT CHARSET=utf8; insert into tradelog values(1, 'aaaaaaaa', 1000, now());insert into tradelog values(2, 'aaaaaaab', 1000, now());insert into tradelog values(3, 'aaaaaaac', 1000, now()); insert into trade_detail values(1, 'aaaaaaaa', 1, 'add');insert into trade_detail values(2, 'aaaaaaaa', 2, 'update');insert into trade_detail values(3, 'aaaaaaaa', 3, 'commit');insert into trade_detail values(4, 'aaaaaaab', 1, 'add');insert into trade_detail values(5, 'aaaaaaab', 2, 'update');insert into trade_detail values(6, 'aaaaaaab', 3, 'update again');insert into trade_detail values(7, 'aaaaaaab', 4, 'commit');insert into trade_detail values(8, 'aaaaaaac', 1, 'add');insert into trade_detail values(9, 'aaaaaaac', 2, 'update');insert into trade_detail values(10, 'aaaaaaac', 3, 'update again');insert into trade_detail values(11, 'aaaaaaac', 4, 'commit');
+mysql> CREATE TABLE `trade_detail` (
+  `id` int(11) NOT NULL,  
+  `tradeid` varchar(32) DEFAULT NULL,  
+  `trade_step` int(11) DEFAULT NULL, /* 操作步骤 */  
+  `step_info` varchar(32) DEFAULT NULL, /* 步骤信息 */  
+  PRIMARY KEY (`id`),  
+  KEY `tradeid` (`tradeid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8; 
+insert into tradelog values(1, 'aaaaaaaa', 1000, now());
+insert into tradelog values(2, 'aaaaaaab', 1000, now());
+insert into tradelog values(3, 'aaaaaaac', 1000, now()); 
+insert into trade_detail values(1, 'aaaaaaaa', 1, 'add');
+insert into trade_detail values(2, 'aaaaaaaa', 2, 'update');
+insert into trade_detail values(3, 'aaaaaaaa', 3, 'commit');
+insert into trade_detail values(4, 'aaaaaaab', 1, 'add');
+insert into trade_detail values(5, 'aaaaaaab', 2, 'update');
+insert into trade_detail values(6, 'aaaaaaab', 3, 'update again');
+insert into trade_detail values(7, 'aaaaaaab', 4, 'commit');
+insert into trade_detail values(8, 'aaaaaaac', 1, 'add');
+insert into trade_detail values(9, 'aaaaaaac', 2, 'update');
+insert into trade_detail values(10, 'aaaaaaac', 3, 'update again');
+insert into trade_detail values(11, 'aaaaaaac', 4, 'commit');
 ```
 
 这时候，如果要查询 id=2 的交易的所有操作步骤信息，SQL 语句可以这么写：
@@ -9176,7 +9484,7 @@ mysql> select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and 
 
 2.  第二行 key=NULL，表示没有用上交易详情表 trade_detail 上的 tradeid 索引，进行了全表扫描。
 
-在这个执行计划里，是从 tradelog 表中取 tradeid 字段，再去 trade_detail 表里查询匹配字段。因此，我们把 tradelog 称为驱动表，把 trade_detail 称为被驱动表，把 tradeid 称为关联字段。
+在这个执行计划里，是从 tradelog 表中取 tradeid 字段，再去 `trade_detail` 表里查询匹配字段。因此，我们把 tradelog 称为驱动表，把 `trade_detail` 称为被驱动表，把 tradeid 称为关联字段。
 
 接下来，我们看下这个 explain 结果表示的执行流程：
 
@@ -9292,7 +9600,24 @@ MySQL 的优化器确实有“偷懒”的嫌疑，即使简单地把 where id+1
 为了便于描述，我还是构造一个表，基于这个表来说明今天的问题。这个表有两个字段 id 和 c，并且我在里面插入了 10 万行记录。
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB; delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=100000)do    insert into t values(i,i);    set i=i+1;  end while;end;;delimiter ; call idata();
+mysql> CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; 
+delimiter ;;
+create procedure idata()
+begin  
+  declare i int;  
+  set i=1;  
+  while(i<=100000)
+  do   
+    insert into t values(i,i);    
+    set i=i+1;  
+  end while;
+end;;
+delimiter ; 
+call idata();
 ```
 
 接下来，我会用几个不同的场景来举例，有些是前面的文章中我们已经介绍过的知识点，你看看能不能一眼看穿，来检验一下吧。
@@ -9333,9 +9658,9 @@ session A 通过 lock table 命令持有表 t 的 MDL 写锁，而 session B 的
 
 这类问题的处理方式，就是找到谁持有 MDL 写锁，然后把它 kill 掉。
 
-但是，由于在 show processlist 的结果里面，session A 的 Command 列是“Sleep”，导致查找起来很不方便。不过有了 performance_schema 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 performance_schema=on，相比于设置为 off 会有 10% 左右的性能损失)
+但是，由于在 show processlist 的结果里面，session A 的 Command 列是“Sleep”，导致查找起来很不方便。不过有了 `performance_schema` 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 `performance_schema=on`，相比于设置为 off 会有 10% 左右的性能损失)
 
-通过查询 sys.schema_table_lock_waits 这张表，我们就可以直接找出造成阻塞的 process id，把这个连接用 kill 命令断开即可。
+通过查询 `sys.schema_table_lock_waits` 这张表，我们就可以直接找出造成阻塞的 process id，把这个连接用 kill 命令断开即可。
 
 
 图 4 查获加表锁的线程 id
@@ -9402,7 +9727,7 @@ mysql> select * from t where id=1 lock in share mode;
 
 显然，session A 启动了事务，占有写锁，还不提交，是导致 session B 被堵住的原因。
 
-这个问题并不难分析，但问题是怎么查出是谁占着这个写锁。如果你用的是 MySQL 5.7 版本，可以通过 sys.innodb_lock_waits 表查到。
+这个问题并不难分析，但问题是怎么查出是谁占着这个写锁。如果你用的是 MySQL 5.7 版本，可以通过 `sys.innodb_lock_waits` 表查到。
 
 查询方法是：
 
@@ -9509,13 +9834,13 @@ session B 更新完 100 万次，生成了 100 万个回滚日志 (undo log)。
 
 在机器负载比较高的时候，处理现有请求的时间变长，每个连接保持的时间也更长。这时，再有新建连接的话，就可能会超过 max_connections 的限制。
 
-碰到这种情况时，一个比较自然的想法，就是调高 max_connections 的值。但这样做是有风险的。因为设计 max_connections 这个参数的目的是想保护 MySQL，如果我们把它改得太大，让更多的连接都可以进来，那么系统的负载可能会进一步加大，大量的资源耗费在权限验证等逻辑上，结果可能是适得其反，已经连接的线程拿不到 CPU 资源去执行业务的 SQL 请求。
+碰到这种情况时，一个比较自然的想法，就是调高 `max_connections` 的值。但这样做是有风险的。因为设计 max_connections 这个参数的目的是想保护 MySQL，如果我们把它改得太大，让更多的连接都可以进来，那么系统的负载可能会进一步加大，大量的资源耗费在权限验证等逻辑上，结果可能是适得其反，已经连接的线程拿不到 CPU 资源去执行业务的 SQL 请求。
 
 那么这种情况下，你还有没有别的建议呢？我这里还有两种方法，但要注意，这些方法都是有损的。
 
 **第一种方法：先处理掉那些占着连接但是不工作的线程。**
 
-max_connections 的计算，不是看谁在 running，是只要连着就占用一个计数位置。对于那些不需要保持的连接，我们可以通过 kill connection 主动踢掉。这个行为跟事先设置 wait_timeout 的效果是一样的。设置 wait_timeout 参数表示的是，一个线程空闲 wait_timeout 这么多秒之后，就会被 MySQL 直接断开连接。
+`max_connections` 的计算，不是看谁在 running，是只要连着就占用一个计数位置。对于那些不需要保持的连接，我们可以通过 kill connection 主动踢掉。这个行为跟事先设置 `wait_timeout` 的效果是一样的。设置 `wait_timeout` 参数表示的是，一个线程空闲 `wait_timeout` 这么多秒之后，就会被 MySQL 直接断开连接。
 
 但是需要注意，在 show processlist 的结果里，踢掉显示为 sleep 的线程，可能是有损的。我们来看下面这个例子。
 
@@ -9529,12 +9854,12 @@ max_connections 的计算，不是看谁在 running，是只要连着就占用�
 
 图 2 sleep 线程的两种状态，show processlist 结果
 
-图中 id=4 和 id=5 的两个会话都是 Sleep 状态。而要看事务具体状态的话，你可以查 information_schema 库的 innodb_trx 表。
+图中 id=4 和 id=5 的两个会话都是 Sleep 状态。而要看事务具体状态的话，你可以查 `information_schema` 库的 innodb_trx 表。
 
 
 图 3 从 information_schema.innodb_trx 查询事务状态
 
-这个结果里，trx_mysql_thread_id=4，表示 id=4 的线程还处在事务中。
+这个结果里，`trx_mysql_thread_id=4`，表示 id=4 的线程还处在事务中。
 
 因此，如果是连接数过多，你可以优先断开事务外空闲太久的连接；如果这样还不够，再考虑断开事务内空闲太久的连接。
 
@@ -9593,10 +9918,11 @@ max_connections 的计算，不是看谁在 running，是只要连着就占用�
 比如，语句被错误地写成了 select * from t where id + 1 = 10000，你可以通过下面的方式，增加一个语句改写规则。
 
 ```
-mysql> insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) values ("select * from t where id + 1 = ?", "select * from t where id = ? - 1", "db1"); call query_rewrite.flush_rewrite_rules();
+mysql> insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) values ("select * from t where id + 1 = ?", "select * from t where id = ? - 1", "db1"); 
+call query_rewrite.flush_rewrite_rules();
 ```
 
-这里，call query_rewrite.flush_rewrite_rules() 这个存储过程，是让插入的新规则生效，也就是我们说的“查询重写”。你可以用图 4 中的方法来确认改写规则是否生效。
+这里，`call query_rewrite.flush_rewrite_rules()` 这个存储过程，是让插入的新规则生效，也就是我们说的“查询重写”。你可以用图 4 中的方法来确认改写规则是否生效。
 
 
 图 4 查询重写效果
@@ -9609,11 +9935,11 @@ mysql> insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_dat
 
 上面我和你讨论的由慢查询导致性能问题的三种可能情况，实际上出现最多的是前两种，即：索引没设计好和语句没写好。而这两种情况，恰恰是完全可以避免的。比如，通过下面这个过程，我们就可以预先发现问题。
 
-1.  上线前，在测试环境，把慢查询日志（slow log）打开，并且把 long_query_time 设置成 0，确保每个语句都会被记录入慢查询日志；
+1.  上线前，在测试环境，把慢查询日志（slow log）打开，并且把 `long_query_time` 设置成 0，确保每个语句都会被记录入慢查询日志；
 
 2.  在测试表里插入模拟线上的数据，做一遍回归测试；
 
-3.  观察慢查询日志里每类语句的输出，特别留意 Rows_examined 字段是否与预期一致。（我们在前面文章中已经多次用到过 Rows_examined 方法了，相信你已经动手尝试过了。如果还有不明白的，欢迎给我留言，我们一起讨论）。
+3.  观察慢查询日志里每类语句的输出，特别留意 Rows_examined 字段是否与预期一致。（我们在前面文章中已经多次用到过 `Rows_examined` 方法了，相信你已经动手尝试过了。如果还有不明白的，欢迎给我留言，我们一起讨论）。
 
 不要吝啬这段花在上线前的“额外”时间，因为这会帮你省下很多故障复盘的时间。
 
@@ -9662,14 +9988,25 @@ DBA 虽然可以通过语句重写来暂时处理问题，但是这本身是一�
 
 为了说明分区表的组织形式，我先创建一个表 t：
 
-```
-CREATE TABLE `t` (  `ftime` datetime NOT NULL,  `c` int(11) DEFAULT NULL,  KEY (`ftime`)) ENGINE=InnoDB DEFAULT CHARSET=latin1PARTITION BY RANGE (YEAR(ftime))(PARTITION p_2017 VALUES LESS THAN (2017) ENGINE = InnoDB, PARTITION p_2018 VALUES LESS THAN (2018) ENGINE = InnoDB, PARTITION p_2019 VALUES LESS THAN (2019) ENGINE = InnoDB,PARTITION p_others VALUES LESS THAN MAXVALUE ENGINE = InnoDB);insert into t values('2017-4-1',1),('2018-4-1',1);
+```sql
+CREATE TABLE `t` (
+  `ftime` datetime NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  KEY (`ftime`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+PARTITION BY RANGE (YEAR(ftime))(
+  PARTITION p_2017 VALUES LESS THAN (2017) ENGINE = InnoDB, 
+  PARTITION p_2018 VALUES LESS THAN (2018) ENGINE = InnoDB, 
+  PARTITION p_2019 VALUES LESS THAN (2019) ENGINE = InnoDB,
+  PARTITION p_others VALUES LESS THAN MAXVALUE ENGINE = InnoDB
+);
+insert into t values('2017-4-1',1),('2018-4-1',1);
 ```
 
 
 图 1 表 t 的磁盘文件
 
-我在表 t 中初始化插入了两行记录，按照定义的分区规则，这两行记录分别落在 p_2018 和 p_2019 这两个分区上。
+我在表 t 中初始化插入了两行记录，按照定义的分区规则，这两行记录分别落在 `p_2018` 和 `p_2019` 这两个分区上。
 
 可以看到，这个表包含了一个.frm 文件和 4 个.ibd 文件，每个分区对应一个.ibd 文件。也就是说：
 
@@ -9694,7 +10031,7 @@ CREATE TABLE `t` (  `ftime` datetime NOT NULL,  `c` int(11) DEFAULT NULL,  KEY (
 
 也就是说，‘2017-4-1’ 和’2018-4-1’ 这两个记录之间的间隙是会被锁住的。那么，sesion B 的两条插入语句应该都要进入锁等待状态。
 
-但是，从上面的实验效果可以看出，session B 的第一个 insert 语句是可以执行成功的。这是因为，对于引擎来说，p_2018 和 p_2019 是两个不同的表，也就是说 2017-4-1 的下一个记录并不是 2018-4-1，而是 p_2018 分区的 supremum。所以 T1 时刻，在表 t 的 ftime 索引上，间隙和加锁的状态其实是图 4 这样的：
+但是，从上面的实验效果可以看出，session B 的第一个 insert 语句是可以执行成功的。这是因为，对于引擎来说，`p_2018` 和 `p_2019` 是两个不同的表，也就是说 2017-4-1 的下一个记录并不是 2018-4-1，而是 p_2018 分区的 supremum。所以 T1 时刻，在表 t 的 ftime 索引上，间隙和加锁的状态其实是图 4 这样的：
 
 
 图 4 分区表 t 的加锁范围
@@ -9834,13 +10171,13 @@ MySQL 从 5.7.17 开始，将 MyISAM 分区表标记为即将弃用 (deprecated)
 
 在[第 24 篇文章](https://time.geekbang.org/column/article/76446)中，我们提到如果是使用 delete 语句误删了数据行，可以用 Flashback 工具通过闪回把数据恢复回来。
 
-Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重放。而能够使用这个方案的前提是，需要确保 binlog_format=row 和 binlog_row_image=FULL。
+Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重放。而能够使用这个方案的前提是，需要确保 `binlog_format=row` 和 `binlog_row_image=FULL`。
 
 具体恢复数据时，对单个事务做如下处理：
 
-1.  对于 insert 语句，对应的 binlog event 类型是 Write_rows event，把它改成 Delete_rows event 即可；
+1.  对于 insert 语句，对应的 binlog event 类型是 `Write_rows event`，把它改成 `Delete_rows event` 即可；
 
-2.  同理，对于 delete 语句，也是将 Delete_rows event 改为 Write_rows event；
+2.  同理，对于 delete 语句，也是将 `Delete_rows event` 改为 `Write_rows event`；
 
 3.  而如果是 Update_rows 的话，binlog 里面记录了数据行修改前和修改后的值，对调这两行的位置即可。
 
@@ -9868,11 +10205,11 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 当然，**我们不止要说误删数据的事后处理办法，更重要是要做到事前预防**。我有以下两个建议：
 
-1.  把 sql_safe_updates 参数设置为 on。这样一来，如果我们忘记在 delete 或者 update 语句中写 where 条件，或者 where 条件里面没有包含索引字段的话，这条语句的执行就会报错。
+1.  把 `sql_safe_updates` 参数设置为 on。这样一来，如果我们忘记在 delete 或者 update 语句中写 where 条件，或者 where 条件里面没有包含索引字段的话，这条语句的执行就会报错。
 
 2.  代码上线前，必须经过 SQL 审计。
 
-你可能会说，设置了 sql_safe_updates=on，如果我真的要把一个小表的数据全部删掉，应该怎么办呢？
+你可能会说，设置了 `sql_safe_updates=on`，如果我真的要把一个小表的数据全部删掉，应该怎么办呢？
 
 如果你确定这个删除操作没问题的话，可以在 delete 语句中加上 where 条件，比如 where id>=0。
 
@@ -10019,8 +10356,27 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 为了便于说明，我还是先创建一个表 db1.t，并插入 1000 行数据，同时创建一个相同结构的表 db2.t。
 
-```
-create database db1;use db1; create table t(id int primary key, a int, b int, index(a))engine=innodb;delimiter ;;  create procedure idata()  begin    declare i int;    set i=1;    while(i<=1000)do      insert into t values(i,i,i);      set i=i+1;    end while;  end;;delimiter ;call idata(); create database db2;create table db2.t like db1.t
+```sql
+create database db1;
+use db1; 
+create table t(
+  id int primary key, a int, b int, index(a)
+)engine=innodb;
+delimiter ;;  
+create procedure idata()  
+begin    
+  declare i int;    
+  set i=1;    
+  while(i<=1000) //>
+  do      
+    insert into t values(i,i,i);      
+    set i=i+1;    
+  end while;  
+end;;
+delimiter ;
+call idata(); 
+create database db2;
+create table db2.t like db1.t
 ```
 
 假设，我们要把 db1.t 里面 a>900 的数据行导出来，插入到 db2.t 中。
@@ -10039,7 +10395,7 @@ mysqldump -h$host -P$port -u$user --add-locks=0 --no-create-info --single-transa
 
 1.  –single-transaction 的作用是，在导出数据的时候不需要对表 db1.t 加表锁，而是使用 START TRANSACTION WITH CONSISTENT SNAPSHOT 的方法；
 
-2.  –add-locks 设置为 0，表示在输出的文件结果里，不增加" LOCK TABLES `t` WRITE;" ；
+2.  –add-locks 设置为 0，表示在输出的文件结果里，不增加" LOCK TABLES `t` WRITE;" ；
 
 3.  –no-create-info 的意思是，不需要导出表结构；
 
@@ -10082,7 +10438,7 @@ select * from db1.t where a>900 into outfile '/server_tmp/t.csv';
 
 1.  这条语句会将结果保存在服务端。如果你执行命令的客户端和 MySQL 服务端不在同一个机器上，客户端机器的临时目录下是不会生成 t.csv 文件的。
 
-2.  into outfile 指定了文件的生成位置（/server_tmp/），这个位置必须受参数 secure_file_priv 的限制。参数 secure_file_priv 的可选值和作用分别是：
+2.  into outfile 指定了文件的生成位置（`/server_tmp/`），这个位置必须受参数 `secure_file_priv` 的限制。参数 `secure_file_priv` 的可选值和作用分别是：
 
     *   如果设置为 empty，表示不限制文件生成的位置，这是不安全的设置；
     *   如果设置为一个表示路径的字符串，就要求生成的文件只能放在这个指定的目录，或者它的子目录；
@@ -10099,7 +10455,7 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 
 这条语句的执行流程如下所示。
 
-1.  打开文件 /server_tmp/t.csv，以制表符 (\t) 作为字段间的分隔符，以换行符（\n）作为记录之间的分隔符，进行数据读取；
+1.  打开文件 `/server_tmp/t.csv`，以制表符 (\t) 作为字段间的分隔符，以换行符（\n）作为记录之间的分隔符，进行数据读取；
 
 2.  启动事务。
 
@@ -10117,12 +10473,12 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 
 1.  主库执行完成后，将 /server_tmp/t.csv 文件的内容直接写到 binlog 文件中。
 
-2.  往 binlog 文件中写入语句 load data local infile ‘/tmp/SQL_LOAD_MB-1-0’ INTO TABLE `db2`.`t`。
+2.  往 binlog 文件中写入语句 `load data local infile ‘/tmp/SQL_LOAD_MB-1-0’ INTO TABLE db2.t`。
 
 3.  把这个 binlog 日志传到备库。
 
 4.  备库的 apply 线程在执行这个事务日志时：
-    a. 先将 binlog 中 t.csv 文件的内容读出来，写入到本地临时目录 /tmp/SQL_LOAD_MB-1-0 中；
+    a. 先将 binlog 中 t.csv 文件的内容读出来，写入到本地临时目录 `/tmp/SQL_LOAD_MB-1-0` 中；
     b. 再执行 load data 语句，往备库的 db2.t 表中插入跟主库相同的数据。
 
 执行流程如图 2 所示：
@@ -10218,7 +10574,7 @@ create user 'ua'@'%' identified by 'pa';
 
 1.  磁盘上，往 mysql.user 表里插入一行，由于没有指定权限，所以这行数据上所有表示权限的字段的值都是 N；
 
-2.  内存里，往数组 acl_users 里插入一个 acl_user 对象，这个对象的 access 字段值为 0。
+2.  内存里，往数组 `acl_users` 里插入一个 `acl_user` 对象，这个对象的 access 字段值为 0。
 
 图 1 就是这个时刻用户 ua 在 user 表中的状态。
 
@@ -10303,12 +10659,14 @@ grant 操作对于已经存在的连接的影响，在全局权限和基于 db �
 
 ### 表权限和列权限
 
-除了 db 级别的权限外，MySQL 支持更细粒度的表权限和列权限。其中，表权限定义存放在表 mysql.tables_priv 中，列权限定义存放在表 mysql.columns_priv 中。这两类权限，组合起来存放在内存的 hash 结构 column_priv_hash 中。
+除了 db 级别的权限外，MySQL 支持更细粒度的表权限和列权限。其中，表权限定义存放在表 `mysql.tables_priv` 中，列权限定义存放在表 `mysql.columns_priv` 中。这两类权限，组合起来存放在内存的 hash 结构 `column_priv_hash` 中。
 
 这两类权限的赋权命令如下：
 
-```
-create table db1.t1(id int, a int); grant all privileges on db1.t1 to 'ua'@'%' with grant option;GRANT SELECT(id), INSERT (id,a) ON mydb.mytbl TO 'ua'@'%' with grant option;
+```sql
+create table db1.t1(id int, a int); 
+grant all privileges on db1.t1 to 'ua'@'%' with grant option;
+GRANT SELECT(id), INSERT (id,a) ON mydb.mytbl TO 'ua'@'%' with grant option;
 ```
 
 跟 db 权限类似，这两个权限每次 grant 的时候都会修改数据表，也会同步修改内存中的 hash 结构。因此，对这两类权限的操作，也会马上影响到已经存在的连接。
@@ -10317,7 +10675,7 @@ create table db1.t1(id int, a int); grant all privileges on db1.t1 to 'ua'@'%' w
 
 答案也确实是这样的。
 
-flush privileges 命令会清空 acl_users 数组，然后从 mysql.user 表中读取数据重新加载，重新构造一个 acl_users 数组。也就是说，以数据表中的数据为准，会将全局权限内存数组重新加载一遍。
+flush privileges 命令会清空 `acl_users` 数组，然后从 `mysql.user` 表中读取数据重新加载，重新构造一个 `acl_users` 数组。也就是说，以数据表中的数据为准，会将全局权限内存数组重新加载一遍。
 
 同样地，对于 db 权限、表权限和列权限，MySQL 也做了这样的处理。
 

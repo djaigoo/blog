@@ -13,14 +13,25 @@ tags:
 
 为了说明分区表的组织形式，我先创建一个表 t：
 
-```
-CREATE TABLE `t` (  `ftime` datetime NOT NULL,  `c` int(11) DEFAULT NULL,  KEY (`ftime`)) ENGINE=InnoDB DEFAULT CHARSET=latin1PARTITION BY RANGE (YEAR(ftime))(PARTITION p_2017 VALUES LESS THAN (2017) ENGINE = InnoDB, PARTITION p_2018 VALUES LESS THAN (2018) ENGINE = InnoDB, PARTITION p_2019 VALUES LESS THAN (2019) ENGINE = InnoDB,PARTITION p_others VALUES LESS THAN MAXVALUE ENGINE = InnoDB);insert into t values('2017-4-1',1),('2018-4-1',1);
+```sql
+CREATE TABLE `t` (
+  `ftime` datetime NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  KEY (`ftime`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+PARTITION BY RANGE (YEAR(ftime))(
+  PARTITION p_2017 VALUES LESS THAN (2017) ENGINE = InnoDB, 
+  PARTITION p_2018 VALUES LESS THAN (2018) ENGINE = InnoDB, 
+  PARTITION p_2019 VALUES LESS THAN (2019) ENGINE = InnoDB,
+  PARTITION p_others VALUES LESS THAN MAXVALUE ENGINE = InnoDB
+);
+insert into t values('2017-4-1',1),('2018-4-1',1);
 ```
 
 
 图 1 表 t 的磁盘文件
 
-我在表 t 中初始化插入了两行记录，按照定义的分区规则，这两行记录分别落在 p_2018 和 p_2019 这两个分区上。
+我在表 t 中初始化插入了两行记录，按照定义的分区规则，这两行记录分别落在 `p_2018` 和 `p_2019` 这两个分区上。
 
 可以看到，这个表包含了一个.frm 文件和 4 个.ibd 文件，每个分区对应一个.ibd 文件。也就是说：
 
@@ -45,7 +56,7 @@ CREATE TABLE `t` (  `ftime` datetime NOT NULL,  `c` int(11) DEFAULT NULL,  KEY (
 
 也就是说，‘2017-4-1’ 和’2018-4-1’ 这两个记录之间的间隙是会被锁住的。那么，sesion B 的两条插入语句应该都要进入锁等待状态。
 
-但是，从上面的实验效果可以看出，session B 的第一个 insert 语句是可以执行成功的。这是因为，对于引擎来说，p_2018 和 p_2019 是两个不同的表，也就是说 2017-4-1 的下一个记录并不是 2018-4-1，而是 p_2018 分区的 supremum。所以 T1 时刻，在表 t 的 ftime 索引上，间隙和加锁的状态其实是图 4 这样的：
+但是，从上面的实验效果可以看出，session B 的第一个 insert 语句是可以执行成功的。这是因为，对于引擎来说，`p_2018` 和 `p_2019` 是两个不同的表，也就是说 2017-4-1 的下一个记录并不是 2018-4-1，而是 p_2018 分区的 supremum。所以 T1 时刻，在表 t 的 ftime 索引上，间隙和加锁的状态其实是图 4 这样的：
 
 
 图 4 分区表 t 的加锁范围

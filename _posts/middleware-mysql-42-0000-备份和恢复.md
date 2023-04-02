@@ -28,13 +28,13 @@ tags:
 
 在[第 24 篇文章](https://time.geekbang.org/column/article/76446)中，我们提到如果是使用 delete 语句误删了数据行，可以用 Flashback 工具通过闪回把数据恢复回来。
 
-Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重放。而能够使用这个方案的前提是，需要确保 binlog_format=row 和 binlog_row_image=FULL。
+Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重放。而能够使用这个方案的前提是，需要确保 `binlog_format=row` 和 `binlog_row_image=FULL`。
 
 具体恢复数据时，对单个事务做如下处理：
 
-1.  对于 insert 语句，对应的 binlog event 类型是 Write_rows event，把它改成 Delete_rows event 即可；
+1.  对于 insert 语句，对应的 binlog event 类型是 `Write_rows event`，把它改成 `Delete_rows event` 即可；
 
-2.  同理，对于 delete 语句，也是将 Delete_rows event 改为 Write_rows event；
+2.  同理，对于 delete 语句，也是将 `Delete_rows event` 改为 `Write_rows event`；
 
 3.  而如果是 Update_rows 的话，binlog 里面记录了数据行修改前和修改后的值，对调这两行的位置即可。
 
@@ -62,11 +62,11 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 当然，**我们不止要说误删数据的事后处理办法，更重要是要做到事前预防**。我有以下两个建议：
 
-1.  把 sql_safe_updates 参数设置为 on。这样一来，如果我们忘记在 delete 或者 update 语句中写 where 条件，或者 where 条件里面没有包含索引字段的话，这条语句的执行就会报错。
+1.  把 `sql_safe_updates` 参数设置为 on。这样一来，如果我们忘记在 delete 或者 update 语句中写 where 条件，或者 where 条件里面没有包含索引字段的话，这条语句的执行就会报错。
 
 2.  代码上线前，必须经过 SQL 审计。
 
-你可能会说，设置了 sql_safe_updates=on，如果我真的要把一个小表的数据全部删掉，应该怎么办呢？
+你可能会说，设置了 `sql_safe_updates=on`，如果我真的要把一个小表的数据全部删掉，应该怎么办呢？
 
 如果你确定这个删除操作没问题的话，可以在 delete 语句中加上 where 条件，比如 where id>=0。
 
@@ -213,8 +213,27 @@ Flashback 恢复数据的原理，是修改 binlog 的内容，拿回原库重�
 
 为了便于说明，我还是先创建一个表 db1.t，并插入 1000 行数据，同时创建一个相同结构的表 db2.t。
 
-```
-create database db1;use db1; create table t(id int primary key, a int, b int, index(a))engine=innodb;delimiter ;;  create procedure idata()  begin    declare i int;    set i=1;    while(i<=1000)do      insert into t values(i,i,i);      set i=i+1;    end while;  end;;delimiter ;call idata(); create database db2;create table db2.t like db1.t
+```sql
+create database db1;
+use db1; 
+create table t(
+  id int primary key, a int, b int, index(a)
+)engine=innodb;
+delimiter ;;  
+create procedure idata()  
+begin    
+  declare i int;    
+  set i=1;    
+  while(i<=1000) //>
+  do      
+    insert into t values(i,i,i);      
+    set i=i+1;    
+  end while;  
+end;;
+delimiter ;
+call idata(); 
+create database db2;
+create table db2.t like db1.t
 ```
 
 假设，我们要把 db1.t 里面 a>900 的数据行导出来，插入到 db2.t 中。
@@ -233,7 +252,7 @@ mysqldump -h$host -P$port -u$user --add-locks=0 --no-create-info --single-transa
 
 1.  –single-transaction 的作用是，在导出数据的时候不需要对表 db1.t 加表锁，而是使用 START TRANSACTION WITH CONSISTENT SNAPSHOT 的方法；
 
-2.  –add-locks 设置为 0，表示在输出的文件结果里，不增加" LOCK TABLES `t` WRITE;" ；
+2.  –add-locks 设置为 0，表示在输出的文件结果里，不增加" LOCK TABLES `t` WRITE;" ；
 
 3.  –no-create-info 的意思是，不需要导出表结构；
 
@@ -276,7 +295,7 @@ select * from db1.t where a>900 into outfile '/server_tmp/t.csv';
 
 1.  这条语句会将结果保存在服务端。如果你执行命令的客户端和 MySQL 服务端不在同一个机器上，客户端机器的临时目录下是不会生成 t.csv 文件的。
 
-2.  into outfile 指定了文件的生成位置（/server_tmp/），这个位置必须受参数 secure_file_priv 的限制。参数 secure_file_priv 的可选值和作用分别是：
+2.  into outfile 指定了文件的生成位置（`/server_tmp/`），这个位置必须受参数 `secure_file_priv` 的限制。参数 `secure_file_priv` 的可选值和作用分别是：
 
     *   如果设置为 empty，表示不限制文件生成的位置，这是不安全的设置；
     *   如果设置为一个表示路径的字符串，就要求生成的文件只能放在这个指定的目录，或者它的子目录；
@@ -293,7 +312,7 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 
 这条语句的执行流程如下所示。
 
-1.  打开文件 /server_tmp/t.csv，以制表符 (\t) 作为字段间的分隔符，以换行符（\n）作为记录之间的分隔符，进行数据读取；
+1.  打开文件 `/server_tmp/t.csv`，以制表符 (\t) 作为字段间的分隔符，以换行符（\n）作为记录之间的分隔符，进行数据读取；
 
 2.  启动事务。
 
@@ -311,12 +330,12 @@ load data infile '/server_tmp/t.csv' into table db2.t;
 
 1.  主库执行完成后，将 /server_tmp/t.csv 文件的内容直接写到 binlog 文件中。
 
-2.  往 binlog 文件中写入语句 load data local infile ‘/tmp/SQL_LOAD_MB-1-0’ INTO TABLE `db2`.`t`。
+2.  往 binlog 文件中写入语句 `load data local infile ‘/tmp/SQL_LOAD_MB-1-0’ INTO TABLE db2.t`。
 
 3.  把这个 binlog 日志传到备库。
 
 4.  备库的 apply 线程在执行这个事务日志时：
-    a. 先将 binlog 中 t.csv 文件的内容读出来，写入到本地临时目录 /tmp/SQL_LOAD_MB-1-0 中；
+    a. 先将 binlog 中 t.csv 文件的内容读出来，写入到本地临时目录 `/tmp/SQL_LOAD_MB-1-0` 中；
     b. 再执行 load data 语句，往备库的 db2.t 表中插入跟主库相同的数据。
 
 执行流程如图 2 所示：

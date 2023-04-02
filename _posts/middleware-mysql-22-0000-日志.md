@@ -506,7 +506,19 @@ begin;insert into t1 ...insert into t2 ...commit;
 接下来，我把 @ithunter 同学说的表模拟出来，方便我们讨论。
 
 ```
-CREATE TABLE `like` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `user_id` int(11) NOT NULL,  `liker_id` int(11) NOT NULL,  PRIMARY KEY (`id`),  UNIQUE KEY `uk_user_id_liker_id` (`user_id`,`liker_id`)) ENGINE=InnoDB; CREATE TABLE `friend` (  id` int(11) NOT NULL AUTO_INCREMENT,  `friend_1_id` int(11) NOT NULL,  `firned_2_id` int(11) NOT NULL,  UNIQUE KEY `uk_friend` (`friend_1_id`,`firned_2_id`)  PRIMARY KEY (`id`)) ENGINE=InnoDB;
+CREATE TABLE `like` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `liker_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_id_liker_id` (`user_id`,`liker_id`))
+ENGINE=InnoDB;
+
+CREATE TABLE `friend` (
+  id` int(11) NOT NULL AUTO_INCREMENT,
+  `friend_1_id` int(11) NOT NULL,
+  `firned_2_id` int(11) NOT NULL,
+  UNIQUE KEY `uk_friend` (`friend_1_id`,`firned_2_id`)  PRIMARY KEY (`id`)) ENGINE=InnoDB;
 ```
 
 虽然这个题干中，并没有说到 friend 表的索引结构。但我猜测 friend_1_id 和 friend_2_id 也有索引，为便于描述，我给加上唯一索引。
@@ -535,19 +547,29 @@ CREATE TABLE `like` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `user_id` int(11) 
 
 然后，当 A 关注 B 的时候，逻辑改成如下所示的样子：
 
-应用代码里面，比较 A 和 B 的大小，如果 A<B，就执行下面的逻辑
+应用代码里面，比较 A 和 B 的大小，如果 A&lt;B，就执行下面的逻辑
 
 ```
-mysql> begin; /* 启动事务 */insert into `like`(user_id, liker_id, relation_ship) values(A, B, 1) on duplicate key update relation_ship=relation_ship | 1;select relation_ship from `like` where user_id=A and liker_id=B;/* 代码中判断返回的 relation_ship，  如果是 1，事务结束，执行 commit  如果是 3，则执行下面这两个语句：  */insert ignore into friend(friend_1_id, friend_2_id) values(A,B);commit;
+mysql> begin; /* 启动事务 */
+insert into `like`(user_id, liker_id, relation_ship) values(A, B, 1) on duplicate key update relation_ship=relation_ship | 1;
+
+select relation_ship from `like` where user_id=A and liker_id=B;/* 代码中判断返回的 relation_ship，  如果是 1，事务结束，执行 commit  如果是 3，则执行下面这两个语句：  */
+
+insert ignore into friend(friend_1_id, friend_2_id) values(A,B);commit;
 ```
 
 如果 A>B，则执行下面的逻辑
 
 ```
-mysql> begin; /* 启动事务 */insert into `like`(user_id, liker_id, relation_ship) values(B, A, 2) on duplicate key update relation_ship=relation_ship | 2;select relation_ship from `like` where user_id=B and liker_id=A;/* 代码中判断返回的 relation_ship，  如果是 2，事务结束，执行 commit  如果是 3，则执行下面这两个语句：*/insert ignore into friend(friend_1_id, friend_2_id) values(B,A);commit;
+mysql> begin; /* 启动事务 */
+insert into `like`(user_id, liker_id, relation_ship) values(B, A, 2) on duplicate key update relation_ship=relation_ship | 2;
+
+select relation_ship from `like` where user_id=B and liker_id=A;/* 代码中判断返回的 relation_ship，  如果是 2，事务结束，执行 commit  如果是 3，则执行下面这两个语句：*/
+
+insert ignore into friend(friend_1_id, friend_2_id) values(B,A);commit;
 ```
 
-这个设计里，让“like”表里的数据保证 user_id < liker_id，这样不论是 A 关注 B，还是 B 关注 A，在操作“like”表的时候，如果反向的关系已经存在，就会出现行锁冲突。
+这个设计里，让“like”表里的数据保证 `user_id < liker_id`，这样不论是 A 关注 B，还是 B 关注 A，在操作“like”表的时候，如果反向的关系已经存在，就会出现行锁冲突。
 
 然后，insert … on duplicate 语句，确保了在事务内部，执行了这个 SQL 语句后，就强行占住了这个行锁，之后的 select 判断 relation_ship 这个逻辑时就确保了是在行锁保护下的读操作。
 

@@ -347,6 +347,175 @@ MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别
 |LONGBLOB (M)    |非常大的BLOB        | L+4 字节，在此，L<2^32|
 
 
+### 变量
+#### 局部变量
+局部变量一般用在sql语句块中，比如存储过程的begin/end。其作用域仅限于该语句块，在该语句块执行完毕后，局部变量就消失了。declare语句专门用于定义局部变量，可以使用default来说明默认值。set语句是设置不同类型的变量，包括会话变量和全局变量。 
+局部变量定义语法形式
+```sql
+declare var_name [, var_name]... data_type [ DEFAULT value ];
+```
+例如在begin/end语句块中添加如下一段语句，接受函数传进来的a/b变量然后相加，通过set语句赋值给c变量。 
+
+set语句语法形式set var_name=expr [, var_name=expr]...; set语句既可以用于局部变量的赋值，也可以用于用户变量的申明并赋值。
+```sql
+declare c int default 0;
+set c=a+b;
+select c as C;
+```
+或者用select …. into…形式赋值
+```sql
+select col_name[,...] into var_name[,...] table_expr [where...];
+```
+
+#### 用户变量
+
+MySQL中用户变量不用事前申明，在用的时候直接用“@变量名”使用就可以了。 
+第一种用法：set @num=1; 或set @num:=1; //这里要使用set语句创建并初始化变量，直接使用@num变量 
+第二种用法：select @num:=1; 或 select @num:=字段名 from 表名 where ……， 
+
+select语句一般用来输出用户变量，比如select @变量名，用于输出数据源不是表格的数据。
+注意上面两种赋值符号，使用set时可以用“=”或“:=”，但是使用select时必须用“:=赋值”
+用户变量与数据库连接有关，在连接中声明的变量，在存储过程中创建了用户变量后一直到数据库实例接断开的时候，变量就会消失。
+在此连接中声明的变量无法在另一连接中使用。
+
+用户变量的变量名的形式为@varname的形式。
+名字必须以@开头。
+声明变量的时候需要使用set语句，比如下面的语句声明了一个名为@a的变量。
+```sql
+set @a = 1;
+```
+
+声明一个名为@a的变量，并将它赋值为1，MySQL里面的变量是不严格限制数据类型的，它的数据类型根据你赋给它的值而随时变化 。（SQL SERVER中使用declare语句声明变量，且严格限制数据类型。） 
+
+我们还可以使用select语句为变量赋值 。 
+
+比如：
+```sql
+set @name = '';
+select @name:=password from user limit 0,1;
+```
+
+从数据表中获取一条记录password字段的值给@name变量。在执行后输出到查询结果集上面。（注意等于号前面有一个冒号，后面的limit 0,1是用来限制返回结果的，表示可以是0或1个。相当于SQL SERVER里面的top 1） 
+
+如果直接写：`select @name:=password from user;`
+
+如果这个查询返回多个值的话，那@name变量的值就是最后一条记录的password字段的值 。 
+
+用户变量可以作用于当前整个连接，但当当前连接断开后，其所定义的用户变量都会消失。 
+
+用户变量使用如下（我们无须使用declare关键字对用户变量进行定义，可以直接这样使用）定义，变量名必须以@开始：
+```sql
+-- 定义
+select @变量名  或者 select @变量名:= 字段名 from 表名 where 过滤语句;
+set @变量名;
+-- 赋值 @num为变量名，value为值
+set @num=value;或select @num:=value;
+```
+
+对用户变量赋值有两种方式，一种是直接用”=”号，另一种是用”:=”号。其区别在于使用set命令对用户变量进行赋值时，两种方式都可以使用；当使用select语句对用户变量进行赋值时，只能使用”:=”方式，因为在select语句中，”=”号declare语句专门用于定义局部变量。set语句是设置不同类型的变量，包括会话变量和全局变量。
+
+例如：
+```sql
+begin
+    declare c int default 0;
+    set @var1=143;  #定义一个用户变量，并初始化为143
+    set @var2=34;
+    set c=a+b;
+    set @d=c;
+    select @sum:=(@var1+@var2) as sum, @dif:=(@var1-@var2) as dif, @d as C;#使用用户变量。@var1表示变量名
+
+    set c=100;
+    select c as CA;
+end
+```
+
+###在查询中执行下面语句段
+call `order`(12,13);  #执行上面定义的存储过程
+select @var1;  #看定义的用户变量在存储过程执行完后，是否还可以输出，结果是可以输出用户变量@var1,@var2两个变量的。
+select @var2;
+复制代码
+在执行完order存储过程后，在存储过程中新建的var1，var2用户变量还是可以用select语句输出的，但是存储过程里面定义的局部变量c不能识别。
+
+#### 系统变量
+系统变量又分为全局变量与会话变量。
+
+全局变量在MySQL启动的时候由服务器自动将它们初始化为默认值，这些默认值可以通过更改my.ini这个文件来更改。
+
+会话变量在每次建立一个新的连接的时候，由MySQL来初始化。MySQL会将当前所有全局变量的值复制一份。来做为会话变量。
+
+（也就是说，如果在建立会话以后，没有手动更改过会话变量与全局变量的值，那所有这些变量的值都是一样的。）
+
+全局变量与会话变量的区别就在于，对全局变量的修改会影响到整个服务器，但是对会话变量的修改，只会影响到当前的会话（也就是当前的数据库连接）。
+
+我们可以利用
+
+show session variables;
+语句将所有的会话变量输出（可以简写为show variables，没有指定是输出全局变量还是会话变量的话，默认就输出会话变量。）如果想输出所有全局变量：
+
+show global variables
+有些系统变量的值是可以利用语句来动态进行更改的，但是有些系统变量的值却是只读的。
+
+对于那些可以更改的系统变量，我们可以利用set语句进行更改。
+
+系统变量在变量名前面有两个@； 
+
+如果想要更改会话变量的值，利用语句：
+`set session varname = value;`或者`set @@session.varname = value;`
+
+
+#### 会话变量
+
+服务器为每个连接的客户端维护一系列会话变量。在客户端连接数据库实例时，使用相应全局变量的当前值对客户端的会话变量进行初始化。设置会话变量不需要特殊权限，但客户端只能更改自己的会话变量，而不能更改其它客户端的会话变量。会话变量的作用域与用户变量一样，仅限于当前连接。当当前连接断开后，其设置的所有会话变量均失效。
+
+设置会话变量有如下三种方式更改会话变量的值：
+
+```sql
+set session var_name = value;
+set @@session.var_name = value;
+set var_name = value;  -- 缺省session关键字默认认为是session
+```
+
+
+查看所有的会话变量
+```sql
+show session variables;
+```
+查看一个会话变量也有如下三种方式：
+```sql
+select @@var_name;
+select @@session.var_name;
+show session variables like "%var%";
+```
+
+凡是上面提到的session，都可以用local这个关键字来代替。 
+```sql
+select @@local.sort_buffer_size 
+```
+
+无论是在设置系统变量还是查询系统变量值的时候，只要没有指定到底是全局变量还是会话变量。都当做会话变量来处理。 
+
+
+#### 全局变量
+
+全局变量影响服务器整体操作。当服务器启动时，它将所有全局变量初始化为默认值。这些默认值可以在选项文件中或在命令行中指定的选项进行更改。要想更改全局变量，必须具有super权限。全局变量作用于server的整个生命周期，但是不能跨重启。即重启后所有设置的全局变量均失效。要想让全局变量重启后继续生效，需要更改相应的配置文件。
+
+要设置一个全局变量，有如下两种方式：
+```sql
+set global var_name = value; -- 注意：此处的global不能省略。根据手册，set命令设置变量时若不指定GLOBAL、SESSION或者LOCAL，默认使用SESSION
+set @@global.var_name = value; -- 同上
+```
+
+查看所有的全局变量 
+```sql
+show global variables; 
+```
+
+要想查看一个全局变量，有如下两种方式：
+```sql
+select @@global.var_name;
+show global variables like “%var%”;
+```
+
 # 基础篇-SQL
 ## 数据定义语句（Data-Definition-Statements）
 Data Definition Statements 定义相关结构，包括：数据库（DATABASE）、事件（EVENT）、方法（FUNCTION）、索引（INDEX）、存储过程（PROCEDURE）、数据表（TABLE）、触发器（TRIGGER）、视图（VIEW）等。
@@ -2552,6 +2721,182 @@ mysql> insert into t(id,k) values(id1,k1),(id2,k2);
 今天，我从普通索引和唯一索引的选择开始，和你分享了数据的查询和更新过程，然后说明了 change buffer 的机制以及应用场景，最后讲到了索引选择的实践。
 
 由于唯一索引用不上 change buffer 的优化机制，因此如果业务可以接受，从性能角度出发我建议你优先考虑非唯一索引。
+
+
+
+
+我经常会被问到这样一个问题：我的主机内存只有 100G，现在要对一个 200G 的大表做全表扫描，会不会把数据库主机的内存用光了？
+
+这个问题确实值得担心，被系统 OOM（out of memory）可不是闹着玩的。但是，反过来想想，逻辑备份的时候，可不就是做整库扫描吗？如果这样就会把内存吃光，逻辑备份不是早就挂了？
+
+所以说，对大表做全表扫描，看来应该是没问题的。但是，这个流程到底是怎么样的呢？
+
+### 全表扫描对 server 层的影响
+
+假设，我们现在要对一个 200G 的 InnoDB 表 db1\. t，执行一个全表扫描。当然，你要把扫描结果保存在客户端，会使用类似这样的命令：
+
+```
+mysql -h$host -P$port -u$user -p$pwd -e "select * from db1.t" > $target_file
+```
+
+你已经知道了，InnoDB 的数据是保存在主键索引上的，所以全表扫描实际上是直接扫描表 t 的主键索引。这条查询语句由于没有其他的判断条件，所以查到的每一行都可以直接放到结果集里面，然后返回给客户端。
+
+那么，这个“结果集”存在哪里呢？
+
+实际上，服务端并不需要保存一个完整的结果集。取数据和发数据的流程是这样的：
+
+1.  获取一行，写到 net_buffer 中。这块内存的大小是由参数 net_buffer_length 定义的，默认是 16k。
+
+2.  重复获取行，直到 net_buffer 写满，调用网络接口发出去。
+
+3.  如果发送成功，就清空 net_buffer，然后继续取下一行，并写入 net_buffer。
+
+4.  如果发送函数返回 EAGAIN 或 WSAEWOULDBLOCK，就表示本地网络栈（socket send buffer）写满了，进入等待。直到网络栈重新可写，再继续发送。
+
+这个过程对应的流程图如下所示。
+
+
+图 1 查询结果发送流程
+
+从这个流程中，你可以看到：
+
+1.  一个查询在发送过程中，占用的 MySQL 内部的内存最大就是 net_buffer_length 这么大，并不会达到 200G；
+
+2.  socket send buffer 也不可能达到 200G（默认定义 /proc/sys/net/core/wmem_default），如果 socket send buffer 被写满，就会暂停读数据的流程。
+
+也就是说，**MySQL 是“边读边发的”**，这个概念很重要。这就意味着，如果客户端接收得慢，会导致 MySQL 服务端由于结果发不出去，这个事务的执行时间变长。
+
+比如下面这个状态，就是我故意让客户端不去读 socket receive buffer 中的内容，然后在服务端 show processlist 看到的结果。
+
+
+图 2 服务端发送阻塞
+
+如果你看到 State 的值一直处于**“Sending to client”**，就表示服务器端的网络栈写满了。
+
+我在上一篇文章中曾提到，如果客户端使用–quick 参数，会使用 mysql_use_result 方法。这个方法是读一行处理一行。你可以想象一下，假设有一个业务的逻辑比较复杂，每读一行数据以后要处理的逻辑如果很慢，就会导致客户端要过很久才会去取下一行数据，可能就会出现如图 2 所示的这种情况。
+
+因此，**对于正常的线上业务来说，如果一个查询的返回结果不会很多的话，我都建议你使用 mysql_store_result 这个接口，直接把查询结果保存到本地内存。**
+
+当然前提是查询返回结果不多。在[第 30 篇文章](https://time.geekbang.org/column/article/78427)评论区，有同学说到自己因为执行了一个大查询导致客户端占用内存近 20G，这种情况下就需要改用 mysql_use_result 接口了。
+
+另一方面，如果你在自己负责维护的 MySQL 里看到很多个线程都处于“Sending to client”这个状态，就意味着你要让业务开发同学优化查询结果，并评估这么多的返回结果是否合理。
+
+而如果要快速减少处于这个状态的线程的话，将 net_buffer_length 参数设置为一个更大的值是一个可选方案。
+
+与“Sending to client”长相很类似的一个状态是**“Sending data”**，这是一个经常被误会的问题。有同学问我说，在自己维护的实例上看到很多查询语句的状态是“Sending data”，但查看网络也没什么问题啊，为什么 Sending data 要这么久？
+
+实际上，一个查询语句的状态变化是这样的（注意：这里，我略去了其他无关的状态）：
+
+*   MySQL 查询语句进入执行阶段后，首先把状态设置成“Sending data”；
+*   然后，发送执行结果的列相关的信息（meta data) 给客户端；
+*   再继续执行语句的流程；
+*   执行完成后，把状态设置成空字符串。
+
+也就是说，“Sending data”并不一定是指“正在发送数据”，而可能是处于执行器过程中的任意阶段。比如，你可以构造一个锁等待的场景，就能看到 Sending data 状态。
+
+
+图 3 读全表被锁
+
+
+图 4 Sending data 状态
+
+可以看到，session B 明显是在等锁，状态显示为 Sending data。
+
+也就是说，仅当一个线程处于“等待客户端接收结果”的状态，才会显示"Sending to client"；而如果显示成“Sending data”，它的意思只是“正在执行”。
+
+现在你知道了，查询的结果是分段发给客户端的，因此扫描全表，查询返回大量的数据，并不会把内存打爆。
+
+在 server 层的处理逻辑我们都清楚了，在 InnoDB 引擎里面又是怎么处理的呢？ 扫描全表会不会对引擎系统造成影响呢？
+
+### 全表扫描对 InnoDB 的影响
+
+在[第 2](https://time.geekbang.org/column/article/68633)和[第 15 篇](https://time.geekbang.org/column/article/73161)文章中，我介绍 WAL 机制的时候，和你分析了 InnoDB 内存的一个作用，是保存更新的结果，再配合 redo log，就避免了随机写盘。
+
+内存的数据页是在 Buffer Pool (BP) 中管理的，在 WAL 里 Buffer Pool 起到了加速更新的作用。而实际上，Buffer Pool 还有一个更重要的作用，就是加速查询。
+
+在第 2 篇文章的评论区有同学问道，由于有 WAL 机制，当事务提交的时候，磁盘上的数据页是旧的，那如果这时候马上有一个查询要来读这个数据页，是不是要马上把 redo log 应用到数据页呢？
+
+答案是不需要。因为这时候内存数据页的结果是最新的，直接读内存页就可以了。你看，这时候查询根本不需要读磁盘，直接从内存拿结果，速度是很快的。所以说，Buffer Pool 还有加速查询的作用。
+
+而 Buffer Pool 对查询的加速效果，依赖于一个重要的指标，即：**内存命中率**。
+
+你可以在 show engine innodb status 结果中，查看一个系统当前的 BP 命中率。一般情况下，一个稳定服务的线上系统，要保证响应时间符合要求的话，内存命中率要在 99% 以上。
+
+执行 show engine innodb status ，可以看到“Buffer pool hit rate”字样，显示的就是当前的命中率。比如图 5 这个命中率，就是 99.0%。
+
+
+图 5 show engine innodb status 显示内存命中率
+
+如果所有查询需要的数据页都能够直接从内存得到，那是最好的，对应的命中率就是 100%。但，这在实际生产上是很难做到的。
+
+InnoDB Buffer Pool 的大小是由参数 innodb_buffer_pool_size 确定的，一般建议设置成可用物理内存的 60%~80%。
+
+在大约十年前，单机的数据量是上百个 G，而物理内存是几个 G；现在虽然很多服务器都能有 128G 甚至更高的内存，但是单机的数据量却达到了 T 级别。
+
+所以，innodb_buffer_pool_size 小于磁盘的数据量是很常见的。如果一个 Buffer Pool 满了，而又要从磁盘读入一个数据页，那肯定是要淘汰一个旧数据页的。
+
+InnoDB 内存管理用的是最近最少使用 (Least Recently Used, LRU) 算法，这个算法的核心就是淘汰最久未使用的数据。
+
+下图是一个 LRU 算法的基本模型。
+
+
+图 6 基本 LRU 算法
+
+InnoDB 管理 Buffer Pool 的 LRU 算法，是用链表来实现的。
+
+1.  在图 6 的状态 1 里，链表头部是 P1，表示 P1 是最近刚刚被访问过的数据页；假设内存里只能放下这么多数据页；
+
+2.  这时候有一个读请求访问 P3，因此变成状态 2，P3 被移到最前面；
+
+3.  状态 3 表示，这次访问的数据页是不存在于链表中的，所以需要在 Buffer Pool 中新申请一个数据页 Px，加到链表头部。但是由于内存已经满了，不能申请新的内存。于是，会清空链表末尾 Pm 这个数据页的内存，存入 Px 的内容，然后放到链表头部。
+
+4.  从效果上看，就是最久没有被访问的数据页 Pm，被淘汰了。
+
+这个算法乍一看上去没什么问题，但是如果考虑到要做一个全表扫描，会不会有问题呢？
+
+假设按照这个算法，我们要扫描一个 200G 的表，而这个表是一个历史数据表，平时没有业务访问它。
+
+那么，按照这个算法扫描的话，就会把当前的 Buffer Pool 里的数据全部淘汰掉，存入扫描过程中访问到的数据页的内容。也就是说 Buffer Pool 里面主要放的是这个历史数据表的数据。
+
+对于一个正在做业务服务的库，这可不妙。你会看到，Buffer Pool 的内存命中率急剧下降，磁盘压力增加，SQL 语句响应变慢。
+
+所以，InnoDB 不能直接使用这个 LRU 算法。实际上，InnoDB 对 LRU 算法做了改进。
+
+
+图 7 改进的 LRU 算法
+
+在 InnoDB 实现上，按照 5:3 的比例把整个 LRU 链表分成了 young 区域和 old 区域。图中 LRU_old 指向的就是 old 区域的第一个位置，是整个链表的 5/8 处。也就是说，靠近链表头部的 5/8 是 young 区域，靠近链表尾部的 3/8 是 old 区域。
+
+改进后的 LRU 算法执行流程变成了下面这样。
+
+1.  图 7 中状态 1，要访问数据页 P3，由于 P3 在 young 区域，因此和优化前的 LRU 算法一样，将其移到链表头部，变成状态 2。
+
+2.  之后要访问一个新的不存在于当前链表的数据页，这时候依然是淘汰掉数据页 Pm，但是新插入的数据页 Px，是放在 LRU_old 处。
+
+3.  处于 old 区域的数据页，每次被访问的时候都要做下面这个判断：
+
+    *   若这个数据页在 LRU 链表中存在的时间超过了 1 秒，就把它移动到链表头部；
+    *   如果这个数据页在 LRU 链表中存在的时间短于 1 秒，位置保持不变。1 秒这个时间，是由参数 innodb_old_blocks_time 控制的。其默认值是 1000，单位毫秒。
+
+这个策略，就是为了处理类似全表扫描的操作量身定制的。还是以刚刚的扫描 200G 的历史数据表为例，我们看看改进后的 LRU 算法的操作逻辑：
+
+1.  扫描过程中，需要新插入的数据页，都被放到 old 区域 ;
+
+2.  一个数据页里面有多条记录，这个数据页会被多次访问到，但由于是顺序扫描，这个数据页第一次被访问和最后一次被访问的时间间隔不会超过 1 秒，因此还是会被保留在 old 区域；
+
+3.  再继续扫描后续的数据，之前的这个数据页之后也不会再被访问到，于是始终没有机会移到链表头部（也就是 young 区域），很快就会被淘汰出去。
+
+可以看到，这个策略最大的收益，就是在扫描这个大表的过程中，虽然也用到了 Buffer Pool，但是对 young 区域完全没有影响，从而保证了 Buffer Pool 响应正常业务的查询命中率。
+
+### 小结
+
+今天，我用“大查询会不会把内存用光”这个问题，和你介绍了 MySQL 的查询结果，发送给客户端的过程。
+
+由于 MySQL 采用的是边算边发的逻辑，因此对于数据量很大的查询结果来说，不会在 server 端保存完整的结果集。所以，如果客户端读结果不及时，会堵住 MySQL 的查询过程，但是不会把内存打爆。
+
+而对于 InnoDB 引擎内部，由于有淘汰策略，大查询也不会导致内存暴涨。并且，由于 InnoDB 对 LRU 算法做了改进，冷数据的全表扫描，对 Buffer Pool 的影响也能做到可控。
+
+当然，我们前面文章有说过，全表扫描还是比较耗费 IO 资源的，所以业务高峰期还是不能直接在线上主库执行全表扫描的。
 ## 锁
 今天我要跟你聊聊 MySQL 的锁。数据库锁设计的初衷是处理并发问题。作为多用户共享的资源，当出现并发访问的时候，数据库需要合理地控制资源的访问规则。而锁就是用来实现这些访问规则的重要数据结构。
 
@@ -5126,6 +5471,113 @@ InnoDB 的行数据有多个版本，每个数据版本有自己的 row trx_id�
 你也可以想一下，为什么表结构不支持“可重复读”？这是因为表结构没有对应的行数据，也没有 row trx_id，因此只能遵循当前读的逻辑。
 
 当然，MySQL 8.0 已经可以把表结构放在 InnoDB 字典里了，也许以后会支持表结构的可重复读。
+
+
+### 自动提交事务
+自动提交事务
+```sql
+mysql> show variables like 'autocommit';
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| autocommit    | ON    |
++---------------+-------+
+
+mysql> select @@autocommit;
++--------------+
+| @@autocommit |
++--------------+
+|            1 |
++--------------+
+```
+
+### 事务隔离
+隔离性和隔离级别
+
+ACID
+* 原子性（Atomicity），事务是一个完整的操作。事务的各元素是不可分的（原子的）。事务中的所有元素必须作为一个整体提交或回滚。如果事务中的任何元素失败，则整个事务将失败。
+* 一致性（Consistency），当事务完成时，数据必须处于一致状态。也就是说，在事务开始之前，数据库中存储的数据处于一致状态。在正在进行的事务中. 数据可能处于不一致的状态，如数据可能有部分被修改。然而，当事务成功完成时，数据必须再次回到已知的一致状态。通过事务对数据所做的修改不能损坏数据，或者说事务不能使数据存储处于不稳定的状态。
+* 隔离性（Isolation），对数据进行修改的所有并发事务是彼此隔离的，这表明事务必须是独立的，它不应以任何方式依赖于或影响其他事务。修改数据的事务可以在另一个使用相同数据的事务开始之前访问这些数据，或者在另一个使用相同数据的事务结束之后访问这些数据。
+* 持久性（Durability），事务的持久性指不管系统是否发生了故障，事务处理的结果都是永久的。
+
+InnoDB 存储引擎事务主要通过 UNDO 日志和 REDO 日志实现：
+* UNDO 日志：复制事务执行前的数据，用于在事务发生异常时回滚数据。
+* REDO 日志：记录在事务执行中，每条对数据进行更新的操作，当事务提交时，该内容将被刷新到磁盘。
+
+默认设置下，每条 SQL 语句就是一个事务，即执行 SQL 语句后自动提交。为了达到将几个操作做为一个整体的目的，需要使用 BEGIN 或 START TRANSACTION 开启一个事务，或者禁止当前会话的自动提交。
+
+事务控制语句：
+* BEGIN 或 START TRANSACTION 显式地开启一个事务；
+* COMMIT 也可以使用 COMMIT WORK，不过二者是等价的。COMMIT 会提交事务，并使已对数据库进行的所有修改成为永久性的；
+* ROLLBACK 也可以使用 ROLLBACK WORK，不过二者是等价的。回滚会结束用户的事务，并撤销正在进行的所有未提交的修改；
+* SAVEPOINT identifier，SAVEPOINT 允许在事务中创建一个保存点，一个事务中可以有多个 SAVEPOINT；
+* RELEASE SAVEPOINT identifier 删除一个事务的保存点，当没有指定的保存点时，执行该语句会抛出一个异常；
+* ROLLBACK TO identifier 把事务回滚到标记点；
+* SET TRANSACTION 用来设置事务的隔离级别。InnoDB 存储引擎提供事务的隔离级别有READ UNCOMMITTED、READ COMMITTED、REPEATABLE READ 和 SERIALIZABLE。
+
+MYSQL 事务处理主要有两种方法：
+* 用 BEGIN, ROLLBACK, COMMIT来实现
+  - BEGIN 开始一个事务
+  - ROLLBACK 事务回滚
+  - COMMIT 事务确认
+* 直接用 SET 来改变 MySQL 的自动提交模式:
+  - SET AUTOCOMMIT=0 禁止自动提交
+  - SET AUTOCOMMIT=1 开启自动提交
+  
+### 事务隔离级别
+数据库事务的隔离级别有4个，由低到高依次为`Read uncommitted`、`Read committed`、`Repeatable read`、`Serializable` ，这四个级别可以逐个解决脏读 、不可重复读 、幻读 这几类问题。
+
+不同事务隔离级别引发的问题：
+
+| 事务隔离级别 | 脏读 | 不可重复读 | 幻读 |
+|--|--|--|--|
+| `Read uncommitted` | ✅  | ✅ | ✅ |
+| `Read committed` | ❎ | ✅ | ✅ |
+| `Repeatable read` | ❎ | ❎ | ✅ |
+| `Serializable` | ❎ | ❎ | ❎ |
+
+
+* `Read uncommitted (RU)` 读未提交，就是一个事务可以读取另一个未提交事务的数据。MySQL 事务隔离其实是依靠锁来实现的，加锁自然会带来性能的损失。而读未提交隔离级别是不加锁的，所以它的性能是最好的，没有加锁、解锁带来的性能开销。但有利就有弊，这基本上就相当于裸奔啊，所以它连脏读的问题都没办法解决。
+* `Read committed (RC)` 读提交，就是一个事务要等另一个事务提交后才能读取数据。
+* `Repeatable read (RR)` 重复读，就是在开始读取数据（事务开启）时，不再允许修改操作。可重复是对比不可重复而言的，上面说不可重复读是指同一事物不同时刻读到的数据值可能不一致。而可重复读是指，事务不会读到其他事务对已有数据的修改，及时其他事务已提交，也就是说，事务开始时读到的已有数据是什么，在事务提交前的任意时刻，这些数据的值都是一样的。但是，对于其他事务新插入的数据是可以读到的，这也就引发了幻读问题。
+* `Serializable` 串行化，是最高的事务隔离级别，在该级别下，事务串行化顺序执行，可以避免脏读、不可重复读与幻读。但是这种事务隔离级别效率低下，比较耗数据库性能，一般不使用。
+
+Mysql的默认隔离级别就是`Repeatable read`，查看事务隔离级别：`select @@tx_isolation;`或`show variables like '%tx_isolation%';`；，设置事务隔离级别`set global transaction isolation level repeatable read;`。
+
+* 脏读，读取了未提交的事务修改的数据
+* 不可重复读，一个事务范围内两个相同的查询却返回了不同数据，一般是另一个事务在进行update操作
+* 幻读，一个事务范围内两个相同的查询却返回了不同数据，一般是另一个事务在进行insert操作。假设事务A对某些行的内容作了更改，但是还未提交，此时事务B插入了与事务A更改前的记录相同的记录行，并且在事务A提交之前先提交了，而这时，在事务A中查询，会发现好像刚刚的更改对于某些数据未起作用，但其实是事务B刚插入进来的，让用户感觉很魔幻，感觉出现了幻觉，这就叫幻读。
+
+
+
+### MySQL 中是如何实现事务隔离的
+首先说读未提交，它是性能最好，也可以说它是最野蛮的方式，因为它压根儿就不加锁，所以根本谈不上什么隔离效果，可以理解为没有隔离。MySQL 事务隔离其实是依靠锁来实现的，加锁自然会带来性能的损失。而读未提交隔离级别是不加锁的，所以它的性能是最好的，没有加锁、解锁带来的性能开销。但有利就有弊，这基本上就相当于裸奔啊，所以它连脏读的问题都没办法解决。
+
+
+再来说串行化。读的时候加共享锁，也就是其他事务可以并发读，但是不能写。写的时候加排它锁，其他事务不能并发写也不能并发读。
+
+#### 实现可重复读
+为了解决不可重复读，或者为了实现可重复读，MySQL 采用了 MVVC (多版本并发控制) 的方式。
+我们在数据库表中看到的一行记录可能实际上有多个版本，每个版本的记录除了有数据本身外，还要有一个表示版本的字段，记为 row trx_id，而这个字段就是使其产生的事务的 id，事务 ID 记为 transaction id，它在事务开始的时候向事务系统申请，按时间先后顺序递增。
+可重复读是在事务开始的时候生成一个当前事务全局性的快照，而读提交则是每次执行语句的时候都重新生成一次快照。
+
+对于一个快照来说，它能够读到那些版本数据，要遵循以下规则：
+
+* 当前事务内的更新，可以读到；
+* 版本未提交，不能读到；
+* 版本已提交，但是却在快照创建后提交的，不能读到；
+* 版本已提交，且是在快照创建前提交的，可以读到；
+
+利用上面的规则，再返回去套用到读提交和可重复读的那两张图上就很清晰了。还是要强调，两者主要的区别就是在快照的创建上，可重复读仅在事务开始是创建一次，而读提交每次执行语句的时候都要重新创建一次。
+
+并发写问题
+
+存在这的情况，两个事务，对同一条数据做修改。最后结果应该是哪个事务的结果呢，肯定要是时间靠后的那个对不对。并且更新之前要先读数据，这里所说的读和上面说到的读不一样，更新之前的读叫做“当前读”，总是当前版本的数据，也就是多版本中最新一次提交的那版。
+
+#### 解决幻读
+前面刚说了并发写问题的解决方式就是行锁，而解决幻读用的也是锁，叫做间隙锁，MySQL 把行锁和间隙锁合并在一起，解决了并发写和幻读的问题，这个锁叫做 Next-Key锁。在数据库中会为索引维护一套B+树，用来快速定位行记录。B+索引树是有序的，所以会把这张表的索引分割成几个区间。
+
+
 ## group-by
 
 ### distinct 和 group by 的性能
@@ -6265,6 +6717,76 @@ MySQL5.6和MySQL5.7默认的sql_mode模式参数是不一样的,5.6的mode是`NO
 改为严格模式后可能会存在的问题：若设置模式中包含了`NO_ZERO_DATE`，那么MySQL数据库不允许插入零日期，插入零日期会抛出错误而不是警告。例如表中含字段TIMESTAMP列（如果未声明为NULL或显示DEFAULT子句）将自动分配DEFAULT '0000-00-00 00:00:00'（零时间戳），也或者是本测试的表day列默认允许插入零日期 '0000-00-00' COMMENT '日期'；这些显然是不满足`sql_mode`中的`NO_ZERO_DATE`而报错。
 
 ## 预读
+
+InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是一个i/o请求，它会异步地在缓冲池中预先回迁多个页面，预计很快就会需要这些页面，这些请求在一个范围内引入所有页面。InnoDB以64个page为一个extent，那么InnoDB的预读是以page为单位还是以extent？
+数据库请求数据的时候，会将读请求交给文件系统，放入请求队列中；相关进程从请求队列中将读请求取出，根据需求到相关数据区(内存、磁盘)读取数据；取出的数据，放入响应队列中，最后数据库就会从响应队列中将数据取走，完成一次数据读操作过程。
+接着进程继续处理请求队列，(如果数据库是全表扫描的话，数据读请求将会占满请求队列)，判断后面几个数据读请求的数据是否相邻，再根据自身系统IO带宽处理量，进行预读，进行读请求的合并处理，一次性读取多块数据放入响应队列中，再被数据库取走。(如此，一次物理读操作，实现多页数据读取，rrqm>0（# iostat -x），假设是4个读请求合并，则rrqm参数显示的就是4)
+
+InnoDB使用两种预读算法来提高I/O性能：线性预读（`linear read-ahead`）和随机预读（`randomread-ahead`）
+为了区分这两种预读的方式，我们可以把线性预读放到以extent为单位，而随机预读放到以extent中的page为单位。线性预读着眼于将下一个extent提前读取到buffer pool中，而随机预读着眼于将当前extent中的剩余的page提前读取到buffer pool中。
+
+##### 线性预读（linear read-ahead）
+线性预读方式有一个很重要的变量控制是否将下一个extent预读到buffer pool中，通过使用配置参数`innodb_read_ahead_threshold`，控制触发innodb执行预读操作的时间。
+
+如果一个extent中的被顺序读取的page超过或者等于该参数变量时，Innodb将会异步的将下一个extent读取到buffer pool中，`innodb_read_ahead_threshold`可以设置为0-64的任何值(因为一个extent中也就只有64页)，默认值为56，值越高，访问模式检查越严格。
+
+```sql
+mysql> show variables like 'innodb_read_ahead_threshold';
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_read_ahead_threshold | 56    |
++-----------------------------+-------+
+```
+
+例如，如果将值设置为48，则InnoDB只有在顺序访问当前extent中的48个pages时才触发线性预读请求，将下一个extent读到内存中。如果值为8，InnoDB触发异步预读，即使程序段中只有8页被顺序访问。
+可以在MySQL配置文件中设置此参数的值，或者使用SET GLOBAL需要该SUPER权限的命令动态更改该参数。
+在没有该变量之前，当访问到extent的最后一个page的时候，innodb会决定是否将下一个extent放入到buffer pool中。
+
+##### 随机预读（randomread-ahead）
+随机预读方式则是表示当同一个extent中的一些page在buffer pool中发现时，Innodb会将该extent中的剩余page一并读到buffer pool中。
+```sql
+mysql> show variables like 'innodb_random_read_ahead';
++--------------------------+-------+
+| Variable_name            | Value |
++--------------------------+-------+
+| innodb_random_read_ahead | OFF   |
++--------------------------+-------+
+```
+
+由于随机预读方式给`innodb code`带来了一些不必要的复杂性，同时在性能也存在不稳定性，在5.5中已经将这种预读方式废弃，默认是OFF。若要启用此功能，即将配置变量设置`innodb_random_read_ahead`为ON。
+
+##### 查看预读信息
+可以通过`show engine innodb status\G`显示统计信息
+```sql
+mysql> show engine innodb status\G
+----------------------
+BUFFER POOL AND MEMORY
+----------------------
+……
+Pages read ahead 0.00/s, evicted without access 0.00/s, Random read ahead 0.00/s
+……
+```
+
+* Pages read ahead：表示每秒读入的pages；
+* evicted without access：表示每秒读出的pages；
+* 一般随机预读都是关闭的，也就是0。
+
+通过两个状态值，评估预读算法的有效性
+```sql
+mysql> show global status like '%read_ahead%';
++---------------------------------------+-------+
+| Variable_name                         | Value |
++---------------------------------------+-------+
+| Innodb_buffer_pool_read_ahead_rnd     | 0     |
+| Innodb_buffer_pool_read_ahead         | 2303  |
+| Innodb_buffer_pool_read_ahead_evicted | 0     |
++---------------------------------------+-------+
+3 rows in set (0.01 sec)
+```
+
+* Innodb_buffer_pool_read_ahead：通过预读(后台线程)读入innodb buffer pool中数据页数
+* Innodb_buffer_pool_read_ahead_evicted：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
 ## 自增ID
 
 在[第 4 篇文章](https://time.geekbang.org/column/article/69236)中，我们提到过自增主键，由于自增主键可以让主键索引尽量地保持递增顺序插入，避免了页分裂，因此索引更紧凑。
@@ -8217,6 +8739,159 @@ MHA 中的另一个可选方法是只做连接，就是 “如果连接成功就
 我个人比较倾向的方案，是优先考虑 update 系统表，然后再配合增加检测 performance_schema 的信息。
 ## 读写分离
 ## 慢日志
+
+慢查询性能
+查看慢日志
+`log_output` 参数是指定日志的存储方式。`log_output='FILE'`表示将日志存入文件，默认值是'FILE'。
+`log_output='TABLE'`表示将日志存入数据库，这样日志信息就会被写入到mysql.`slow_log`表中。
+MySQL数据库支持同时两种日志存储方式，配置的时候以逗号隔开即可，如：`log_output='FILE,TABLE'`。
+日志记录到系统的专用日志表中，要比记录到文件耗费更多的系统资源，因此对于需要启用慢查询日志，又需要能够获得更高的系统性能，那么建议优先记录到文件。
+
+
+分析语句
+```sql
+{EXPLAIN | DESCRIBE | DESC}
+    tbl_name [col_name | wild]
+
+{EXPLAIN | DESCRIBE | DESC}
+    [explain_type]
+    {explainable_stmt | FOR CONNECTION connection_id}
+
+explain_type: {
+    EXTENDED
+  | PARTITIONS
+  | FORMAT = format_name
+}
+
+format_name: {
+    TRADITIONAL
+  | JSON
+}
+
+explainable_stmt: {
+    SELECT statement
+  | DELETE statement
+  | INSERT statement
+  | REPLACE statement
+  | UPDATE statement
+}
+```
+
+DESCRIBE 和 EXPLAIN 语句是同义词。
+在实践中，DESCRIBE 关键字更多地用于获取表结构信息，而 EXPLAIN 用于获取查询执行计划（即 MySQL 将如何执行查询的解释）。DESCRIBE 是 SHOW COLUMNS 的快捷方式，所以支持显示表中的单列数据.
+
+* EXPLAIN 适用于 SELECT、DELETE、INSERT、REPLACE 和 UPDATE 语句。
+* 当 EXPLAIN 与可解释的语句一起使用时，MySQL 会显示来自优化器的有关语句执行计划的信息。也就是说，MySQL 解释了它将如何处理该语句，包括有关表如何连接以及连接顺序的信息。
+* EXPLAIN 对于检查涉及分区表的查询很有用。
+* FORMAT 选项可用于选择输出格式。 TRADITIONAL 以表格格式显示输出。如果没有 FORMAT 选项，这是默认值。 JSON 格式以 JSON 格式显示信息。
+* EXPLAIN 需要执行解释语句所需的相同特权。此外，EXPLAIN 还需要所有需要 EXPLAIN 视图的 SHOW VIEW 权限。
+
+在 EXPLAIN 的帮助下，您可以看到应该在表的何处添加索引，以便通过使用索引查找行来更快地执行语句。您还可以使用 EXPLAIN 检查优化器是否以最佳顺序连接表。要提示优化器使用与表在 SELECT 语句中的命名顺序相对应的连接顺序，请以 SELECT STRAIGHT_JOIN 而不是只是 SELECT 开始该语句。
+
+
+EXPLAIN 为 SELECT 语句中使用的每个表返回一行信息。它按照 MySQL 在处理语句时读取它们的顺序列出输出中的表。 MySQL 使用嵌套循环连接方法解析所有连接。这意味着 MySQL 从第一个表中读取一行，然后在第二个表、第三个表等中找到匹配的行。当所有的表都被处理完后，MySQL 将选择的列输出，并在表列表中回溯，直到找到一个有更多匹配行的表。从此表中读取下一行，然后继续处理下一个表。
+
+EXPLAIN 输出列
+
+| Column | JSON Name | Meaning |
+| --- | --- | --- |
+| [`id`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_id) | `select_id` | The `SELECT` identifier |
+| [`select_type`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_select_type) | None | The `SELECT` type |
+| [`table`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_table) | `table_name` | The table for the output row |
+| [`partitions`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_partitions) | `partitions` | The matching partitions |
+| [`type`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_type) | `access_type` | The join type |
+| [`possible_keys`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_possible_keys) | `possible_keys` | The possible indexes to choose |
+| [`key`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_key) | `key` | The index actually chosen |
+| [`key_len`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_key_len) | `key_length` | The length of the chosen key |
+| [`ref`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_ref) | `ref` | The columns compared to the index |
+| [`rows`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_rows) | `rows` | Estimate of rows to be examined |
+| [`filtered`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_filtered) | `filtered` | Percentage of rows filtered by table condition |
+| [`Extra`](https://dev.mysql.com/doc/refman/5.7/en/explain-output.html#explain_extra) | None | Additional information |
+
+* id 选择标识符。这是查询中 SELECT 的序号。如果该行引用其他行的联合结果，则该值可以为 NULL。在这种情况下，表列显示一个类似 `<unionM,N>` 的值，表示该行引用 id 值为 M 和 N 的行的并集。
+* `select_type` SELECT 的类型，可以是下表中显示的任何一种。 JSON 格式的 EXPLAIN 将 SELECT 类型公开为 `query_block` 的属性，除非它是 SIMPLE 或 PRIMARY。 JSON 名称（如果适用）也显示在表中。
+| `select_type` Value | JSON Name | Meaning |
+| --- | --- | --- |
+| `SIMPLE` | None | Simple [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") (not using [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") or subqueries) |
+| `PRIMARY` | None | Outermost [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") |
+| [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") | None | Second or later [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") statement in a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") |
+| `DEPENDENT UNION` | `dependent` (`true`) | Second or later [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") statement in a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause"), dependent on outer query |
+| `UNION RESULT` | `union_result` | Result of a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause"). |
+| [`SUBQUERY`](https://dev.mysql.com/doc/refman/5.7/en/optimizer-hints.html#optimizer-hints-subquery "Subquery Optimizer Hints") | None | First [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") in subquery |
+| `DEPENDENT SUBQUERY` | `dependent` (`true`) | First [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") in subquery, dependent on outer query |
+| `DERIVED` | None | Derived table |
+| `MATERIALIZED` | `materialized_from_subquery` | Materialized subquery |
+| `UNCACHEABLE SUBQUERY` | `cacheable` (`false`) | A subquery for which the result cannot be cached and must be re-evaluated for each row of the outer query |
+| `UNCACHEABLE UNION` | `cacheable` (`false`) | The second or later select in a [`UNION`](https://dev.mysql.com/doc/refman/5.7/en/union.html "13.2.9.3 UNION Clause") that belongs to an uncacheable subquery (see `UNCACHEABLE SUBQUERY`) |
+
+* `table` 输出行所引用的表的名称。这也可以是以下值之一：
+  - `<unionM,N>`：该行是指id值为M和N的行的并集。
+  - `<derivedN>`：该行引用 id 值为 N 的行的派生表结果。例如，派生表可能来自 FROM 子句中的子查询。
+  - `<subqueryN>`：该行引用 id 值为 N 的行的具体化子查询的结果。
+* `partitions` 查询将匹配记录的分区。对于非分区表，该值为 NULL。
+* `type` join的类型。在 JSON 格式的输出中，这些作为 access_type 属性的值被发现。下面的列表描述了连接类型，从最好的类型到最差的排序：
+  - `system` 该表只有一行（=系统表）。这是 const 连接类型的特例。
+  - `const` 该表最多有一个匹配行，在查询开始时读取。因为只有一行，所以优化器的其余部分可以将这一行中列的值视为常量。 const 表非常快，因为它们只读一次。
+  - `eq_ref` 对于先前表中行的每个组合，从该表中读取一行。除了 system 和 const 类型，这是最好的连接类型。当连接使用索引的所有部分并且索引是 PRIMARY KEY 或 UNIQUE NOT NULL 索引时使用它。eq_ref 可用于使用 = 运算符进行比较的索引列。比较值可以是常量或表达式，它使用在此表之前读取的表中的列。
+  - `ref` 对于先前表中行的每个组合，从该表中读取具有匹配索引值的所有行。如果连接仅使用键的最左边前缀，或者如果键不是 PRIMARY KEY 或 UNIQUE 索引（换句话说，如果连接不能根据键值选择单个行），则使用 ref。如果使用的键只匹配几行，这是一个很好的连接类型。ref 可用于使用 = 或 <=> 运算符进行比较的索引列。
+  - `fulltext` 使用 FULLTEXT 索引执行的。
+  - `ref_or_null` 这种连接类型类似于 ref，但 MySQL 会额外搜索包含 NULL 值的行。这种连接类型优化最常用于解析子查询。
+  - `index_merge` 此连接类型表示使用索引合并优化。在这种情况下，输出行中的键列包含使用的索引列表，key_len 包含使用的索引的最长键部分列表。
+  - `unique_subquery` 只是一个索引查找函数，它完全取代了子查询以提高效率。
+  - `index_subquery` 这种连接类型类似于 unique_subquery。它取代了 IN 子查询，但它适用于以下形式的子查询中的非唯一索引。
+  - `range` 仅检索给定范围内的行，使用索引来选择行。输出行中的键列指示使用了哪个索引。 key_len 包含使用过的最长密钥部分。此类型的 ref 列为 NULL。range 被用于 =、<>、>、>=、<、<=、IS NULL、<=>、BETWEEN、LIKE 或 IN() 运算符将键列与常量进行比较时。
+  - `index` 索引连接类型与ALL相同，只是扫描索引树。当查询仅使用属于单个索引的列时，MySQL 可以使用此连接类型。这有两种情况：
+    + 如果索引是查询的覆盖索引，可以用来满足表中所有需要的数据，则只扫描索引树。在这种情况下，额外列显示使用索引。仅索引扫描通常比 ALL 更快，因为索引的大小通常小于表数据。
+    + 使用从索引读取以按索引顺序查找数据行来执行全表扫描。使用索引不会出现在 Extra 列中。
+  - `ALL` 对先前表中的每个行组合进行全表扫描。如果表是第一个未标记为 const 的表，这通常是不好的，并且在所有其他情况下通常非常糟糕。通常，您可以通过添加索引来避免 ALL，这些索引允许根据先前表中的常量值或列值从表中检索行。
+* `possible_keys` 列指示 MySQL 可以从中选择的索引来查找该表中的行。请注意，此列完全独立于 EXPLAIN 输出中显示的表的顺序。这意味着 possible_keys 中的某些键在实践中可能无法用于生成的表顺序。如果此列为 NULL（或在 JSON 格式的输出中未定义），则没有相关索引。在这种情况下，您可以通过检查 WHERE 子句来检查它是否引用适合索引的某个或多个列来提高查询的性能。如果是这样，请创建一个适当的索引并再次使用 EXPLAIN 检查查询。
+* `key` 列表示 MySQL 实际决定使用的键（索引）。如果 MySQL 决定使用 `possible_keys` 索引之一来查找行，则该索引被列为键值。key 可以命名一个在 `possible_keys` 值中不存在的索引。如果 `possible_keys` 索引都不适合查找行，但查询选择的所有列都是某个其他索引的列，则可能会发生这种情况。也就是说，命名索引覆盖了选定的列，因此虽然它不用于确定检索哪些行，但索引扫描比数据行扫描更有效。对于 InnoDB，即使查询还选择了主键，二级索引也可能覆盖选定的列，因为 InnoDB 将主键值与每个二级索引一起存储。如果 key 为 NULL，则 MySQL 找不到可用于更有效地执行查询的索引。要强制 MySQL 使用或忽略 `possible_keys` 列中列出的索引，请在查询中使用 FORCE INDEX、USE INDEX 或 IGNORE INDEX。
+* `key_len` 列指示 MySQL 决定使用的 key 的长度。 `key_len` 的值使您能够确定 MySQL 实际使用多部分键的多少部分。如果 key 列为 NULL，则 `key_len` 列也为 NULL。由于 key 存储格式的原因，可以为 NULL 的列的密钥长度比 NOT NULL 列的密钥长度长一倍。
+* `ref` 显示将哪些列或常量与键列中指定的索引进行比较以从表中选择行。如果值为 func，则使用的值是某个函数的结果。要查看哪个函数，请在 EXPLAIN 之后使用 SHOW WARNINGS 来查看扩展的 EXPLAIN 输出。该函数实际上可能是一个运算符，例如算术运算符。
+* `rows` 表示 MySQL 认为它必须检查以执行查询的行数。对于 InnoDB 表，这个数字是一个估计值，可能并不总是准确的。
+* `filtered` 过滤列表示按表条件过滤的表行的估计百分比。最大值为 100，这意味着没有发生行过滤。值从 100 开始减少表示过滤量增加。 rows 显示检查的估计行数，rows × filtered 显示与下表连接的行数。例如rows为1000，filtered为50.00（50%），则下表join的行数为1000×50%=500。
+* `Extra` 此列包含有关 MySQL 如何解析查询的附加信息。以下列表解释了可以出现在该列中的值。每个项目还为 JSON 格式的输出指示哪个属性显示 Extra 值。对于其中一些，有一个特定的属性。其他显示为消息属性的文本。
+  - `Child of 'table' pushed join@1 (JSON: message text)`，该表被引用为连接中表的子表，可以向下推送到 NDB 内核。仅在启用下推连接时适用于 NDB Cluster。
+  - `const row not found (JSON property: const_row_not_found)`，对于诸如 SELECT ... FROM tbl_name 之类的查询，表是空的。
+  - `Deleting all rows (JSON property: message)`，对于 DELETE，某些存储引擎（如 MyISAM）支持一种处理程序方法，该方法可以简单快速地删除所有表行。如果引擎使用此优化，则会显示此额外值。
+  - `Distinct (JSON property: distinct)`，MySQL 正在寻找不同的值，因此它在找到第一个匹配行后停止为当前行组合搜索更多行。
+  - `FirstMatch(tbl_name) (JSON property: first_match)`，semijoin FirstMatch 连接快捷策略用于 tbl_name。
+  - `Full scan on NULL key (JSON property: message)`，当优化器不能使用索引查找访问方法时，子查询优化会作为后备策略发生这种情况。
+  - `Impossible HAVING (JSON property: message)`，HAVING 子句始终为 false，并且不能选择任何行。
+  - `Impossible WHERE (JSON property: message)`，WHERE 子句始终为 false，并且不能选择任何行。
+  - `Impossible WHERE noticed after reading const tables (JSON property: message)`，MySQL 已读取所有常量（和系统）表并注意到 WHERE 子句始终为假。
+  - `LooseScan(m..n) (JSON property: message)`，使用半连接 LooseScan 策略。 m 和 n 是关键部件号。
+  - `No matching min/max row (JSON property: message)`，没有行满足查询条件，例如 SELECT MIN(...) FROM ... WHERE 条件。
+  - `no matching row in const table (JSON property: message)`，对于带有连接的查询，有一个空表或没有满足唯一索引条件的行的表。
+  - `No matching rows after partition pruning (JSON property: message)`，对于 DELETE 或 UPDATE，优化器在分区修剪后没有发现要删除或更新的内容。它的含义类似于 SELECT 语句的 Impossible WHERE。
+  - `No tables used (JSON property: message)`，查询没有 FROM 子句，或者有 FROM DUAL 子句。对于 INSERT 或 REPLACE 语句，EXPLAIN 在没有 SELECT 部分时显示此值。例如，它出现在 EXPLAIN INSERT INTO t VALUES(10) 中，因为它等同于 EXPLAIN INSERT INTO t SELECT 10 FROM DUAL。
+  - `Not exists (JSON property: message)`，MySQL 能够对查询执行 LEFT JOIN 优化，并且在找到与 LEFT JOIN 条件匹配的行后，不会检查此表中的更多行以查找前一个行组合。以下是可以通过这种方式优化的查询类型的示例：假设 t2.id 被定义为 NOT NULL。在这种情况下，MySQL 扫描 t1 并使用 t1.id 的值查找 t2 中的行。如果 MySQL 在 t2 中找到匹配的行，它知道 t2.id 永远不能为 NULL，并且不会扫描 t2 中具有相同 id 值的其余行。换句话说，对于 t1 中的每一行，MySQL 只需要在 t2 中执行一次查找，而不管在 t2 中实际匹配了多少行。
+  - `Plan isn't ready yet (JSON property: none)`，当优化器尚未完成为在命名连接中执行的语句创建执行计划时，此值与 EXPLAIN FOR CONNECTION 一起出现。如果执行计划输出包含多行，则其中任何一行或所有行都可能具有此 Extra 值，具体取决于优化程序确定完整执行计划的进度。
+  - `Range checked for each record (index map: N) (JSON property: message)`，MySQL 没有找到好的索引可以使用，但发现在知道前面表的列值后，可能会使用某些索引。对于前面表中的每个行组合，MySQL 检查是否可以使用范围或索引合并访问方法来检索行。这不是很快，但比执行完全没有索引的连接要快。适用性标准如第 8.2.1.2 节“范围优化”和第 8.2.1.3 节“索引合并优化”中所述，除了上表的所有列值都是已知的并被视为常量。索引从 1 开始编号，顺序与表的 SHOW INDEX 所示顺序相同。索引映射值 N 是一个位掩码值，指示哪些索引是候选索引。例如，值 0x19（二进制 11001）表示考虑索引 1、4 和 5。
+  - `Scanned N databases (JSON property: message)`，这表示服务器在处理 `INFORMATION_SCHEMA` 表查询时执行的目录扫描次数，如第 8.2.3 节“优化 `INFORMATION_SCHEMA` 查询”中所述。 N 的值可以是 0、1 或全部。
+  - `Select tables optimized away (JSON property: message)`，优化器确定 1) 最多应返回一行，以及 2) 要生成该行，必须读取一组确定的行。当要读取的行可以在优化阶段读取时（例如，通过读取索引行），在查询执行期间不需要读取任何表。当查询被隐式分组（包含聚合函数但没有 GROUP BY 子句）时，第一个条件得到满足。当对每个使用的索引执行一行查找时，第二个条件就满足了。读取的索引数决定了要读取的行数。对于每个表维护精确行数的存储引擎（例如 MyISAM，但不是 InnoDB），对于缺少 WHERE 子句或始终为真且没有 GROUP BY 子句的 `COUNT(*) `查询，可能会出现此额外值。 （这是一个隐式分组查询的实例，其中存储引擎会影响是否可以读取确定数量的行。）
+  - `Skip_open_table, Open_frm_only, Open_full_table (JSON property: message)`，这些值表示适用于 INFORMATION_SCHEMA 表查询的文件打开优化：
+    + `skip_open_table`：表文件不需要打开。通过扫描数据库目录，该信息已在查询中变得可用。
+    + `Open_frm_only`：只需要打开表的.frm 文件。
+    + `open_full_table`：未优化的信息查找。必须打开 .frm、.MYD 和 .MYI 文件。
+  - `Start temporary, End temporary (JSON property: message)`，这表明临时表用于 semijoin Duplicate Weedout 策略。
+  - `unique row not found (JSON property: message)`，对于诸如 SELECT ... FROM tbl_name 之类的查询，没有行满足表上 UNIQUE 索引或 PRIMARY KEY 的条件。
+  - `Using filesort (JSON property: using_filesort)`，MySQL 必须执行额外的传递以找出如何按排序顺序检索行。排序是通过根据连接类型遍历所有行并存储排序键和指向与 WHERE 子句匹配的所有行的行的指针来完成的。然后对键进行排序，并按排序顺序检索行。
+  - `Using index (JSON property: using_index)`，仅使用索引树中的信息从表中检索列信息，而无需执行额外的查找操作来读取实际行。当查询仅使用属于单个索引的列时，可以使用此策略。对于具有用户定义聚集索引的 InnoDB 表，即使在 Extra 列中没有使用索引时也可以使用该索引。如果 type 是 index 并且 key 是 PRIMARY，就会出现这种情况。
+  - `Using index condition (JSON property: using_index_condition)`，通过访问索引元组并首先测试它们以确定是否读取完整的表行来读取表。以这种方式，索引信息用于延迟（“下推”）读取全表行，除非有必要。
+  - `Using index for group-by (JSON property: using_index_for_group_by)`，与 Using index table access 方法类似，Using index for group-by 表示 MySQL 找到了一个索引，该索引可用于检索 GROUP BY 或 DISTINCT 查询的所有列，而无需对实际表进行任何额外的磁盘访问。此外，索引以最有效的方式使用，因此对于每个组，只读取几个索引条目。
+  - `Using join buffer (Block Nested Loop), Using join buffer (Batched Key Access) (JSON property: using_join_buffer)`，来自早期连接的表被部分读入连接缓冲区，然后使用缓冲区中的行来执行与当前表的连接。 (Block Nested Loop) 表示使用 Block Nested-Loop 算法，(Batched Key Access) 表示使用 Batched Key Access 算法。也就是说，EXPLAIN 输出的前一行表中的键被缓冲，匹配的行从出现 Using join buffer 的行所代表的表中批量提取。在 JSON 格式的输出中，`using_join_buffer` 的值始终是 Block Nested Loop 或 Batched Key Access 之一。有关这些算法的更多信息，请参阅块嵌套循环连接算法和批量密钥访问连接。
+  - `Using MRR (JSON property: message)`，使用多范围读取优化策略读取表。
+  - `Using sort_union(...), Using union(...), Using intersect(...) (JSON property: message)`，这些指示特定算法，显示如何为 index_merge 连接类型合并索引扫描。
+  - `Using temporary (JSON property: using_temporary_table)`，为了解析查询，MySQL 需要创建一个临时表来保存结果。如果查询包含以不同方式列出列的 GROUP BY 和 ORDER BY 子句，通常会发生这种情况。
+  - `Using where (JSON property: attached_condition)`，WHERE 子句用于限制哪些行与下一个表匹配或发送给客户端。除非您特别打算从表中获取或检查所有行，否则如果 Extra 值不是 Using where 并且表连接类型是 ALL 或索引，则您的查询可能有问题。在 JSON 格式的输出中使用 where 没有直接的对应物； attached_condition 属性包含使用的任何 WHERE 条件。
+  - `Using where with pushed condition (JSON property: message)`，此项仅适用于 NDB 表。这意味着 NDB Cluster 正在使用条件下推优化来提高非索引列和常量之间直接比较的效率。在这种情况下，条件被“下推”到集群的数据节点，并同时在所有数据节点上进行评估。这消除了通过网络发送不匹配行的需要，并且可以将此类查询的速度提高 5 到 10 倍，这比可以使用但未使用条件下推的情况要快。
+  - `Zero limit (JSON property: message)`，查询有一个 LIMIT 0 子句，不能选择任何行。
+
+
+常见Extra：`NULL`、`Using where`、`Using index`、`Using temporary`、`Using filesort`
+
+
 ## 优化查询
 平时的工作中，不知道你有没有遇到过这样的场景，一条 SQL 语句，正常执行的时候特别快，但是有时也不知道怎么回事，它就会变得特别慢，并且这样的场景很难复现，它不只随机，而且持续时间还很短。
 

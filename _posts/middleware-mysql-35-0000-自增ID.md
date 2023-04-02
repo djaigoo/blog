@@ -16,7 +16,13 @@ tags:
 为了便于说明，我们创建一个表 t，其中 id 是自增主键字段、c 是唯一索引。
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `c` int(11) DEFAULT NULL,  `d` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  UNIQUE KEY `c` (`c`)) ENGINE=InnoDB;
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,  
+  `c` int(11) DEFAULT NULL,  
+  `d` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  UNIQUE KEY `c` (`c`)
+) ENGINE=InnoDB;
 ```
 
 # 自增值保存在哪儿？
@@ -35,8 +41,8 @@ CREATE TABLE `t` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `c` int(11) DEFAULT N
 *   MyISAM 引擎的自增值保存在数据文件中。
 *   InnoDB 引擎的自增值，其实是保存在了内存里，并且到了 MySQL 8.0 版本后，才有了“自增值持久化”的能力，也就是才实现了“如果发生重启，表的自增值可以恢复为 MySQL 重启前的值”，具体情况是：
     *   在 MySQL 5.7 及之前的版本，自增值保存在内存里，并没有持久化。每次重启后，第一次打开表的时候，都会去找自增值的最大值 max(id)，然后将 max(id)+1 作为这个表当前的自增值。﻿
-        举例来说，如果一个表当前数据行里最大的 id 是 10，AUTO_INCREMENT=11。这时候，我们删除 id=10 的行，AUTO_INCREMENT 还是 11。但如果马上重启实例，重启后这个表的 AUTO_INCREMENT 就会变成 10。﻿
-        也就是说，MySQL 重启可能会修改一个表的 AUTO_INCREMENT 的值。
+        举例来说，如果一个表当前数据行里最大的 id 是 10，`AUTO_INCREMENT=11`。这时候，我们删除 id=10 的行，`AUTO_INCREMENT` 还是 11。但如果马上重启实例，重启后这个表的 `AUTO_INCREMENT` 就会变成 10。﻿
+        也就是说，MySQL 重启可能会修改一个表的 `AUTO_INCREMENT` 的值。
     *   在 MySQL 8.0 版本，将自增值的变更记录在了 redo log 中，重启的时候依靠 redo log 恢复重启之前的值。
 
 理解了 MySQL 对自增值的保存策略以后，我们再看看自增值修改机制。
@@ -51,19 +57,19 @@ CREATE TABLE `t` (  `id` int(11) NOT NULL AUTO_INCREMENT,  `c` int(11) DEFAULT N
 
 根据要插入的值和当前自增值的大小关系，自增值的变更结果也会有所不同。假设，某次要插入的值是 X，当前的自增值是 Y。
 
-1.  如果 X<Y，那么这个表的自增值不变；
+1.  如果 `X&lt;Y`，那么这个表的自增值不变；
 
-2.  如果 X≥Y，就需要把当前自增值修改为新的自增值。
+2.  如果 `X≥Y`，就需要把当前自增值修改为新的自增值。
 
-**新的自增值生成算法是**：从 auto_increment_offset 开始，以 auto_increment_increment 为步长，持续叠加，直到找到第一个大于 X 的值，作为新的自增值。
+**新的自增值生成算法是**：从 `auto_increment_offset` 开始，以 `auto_increment_increment` 为步长，持续叠加，直到找到第一个大于 X 的值，作为新的自增值。
 
-其中，auto_increment_offset 和 auto_increment_increment 是两个系统参数，分别用来表示自增的初始值和步长，默认值都是 1。
+其中，`auto_increment_offset` 和 `auto_increment_increment` 是两个系统参数，分别用来表示自增的初始值和步长，默认值都是 1。
 
 > 备注：在一些场景下，使用的就不全是默认值。比如，双 M 的主备结构里要求双写的时候，我们就可能会设置成 auto_increment_increment=2，让一个库的自增 id 都是奇数，另一个库的自增 id 都是偶数，避免两个库生成的主键发生冲突。
 
-当 auto_increment_offset 和 auto_increment_increment 都是 1 的时候，新的自增值生成逻辑很简单，就是：
+当 `auto_increment_offset` 和 `auto_increment_increment` 都是 1 的时候，新的自增值生成逻辑很简单，就是：
 
-1.  如果准备插入的值 >= 当前自增值，新的自增值就是“准备插入的值 +1”；
+1.  如果准备插入的值 `>=` 当前自增值，新的自增值就是“准备插入的值 +1”；
 
 2.  否则，自增值不变。
 
@@ -112,7 +118,11 @@ insert into t values(null, 1, 1);
 下面这个语句序列就可以构造不连续的自增 id，你可以自己验证一下。
 
 ```
-insert into t values(null,1,1);begin;insert into t values(null,2,2);rollback;insert into t values(null,2,2);// 插入的行是 (3,2,2)
+insert into t values(null,1,1);
+begin;
+insert into t values(null,2,2);
+rollback;
+insert into t values(null,2,2);// 插入的行是 (3,2,2)
 ```
 
 你可能会问，为什么在出现唯一键冲突或者回滚的时候，MySQL 没有把表 t 的自增值改回去呢？如果把表 t 的当前自增值从 3 改回 2，再插入新数据的时候，不就可以生成 id=2 的一行数据了吗？
@@ -147,7 +157,7 @@ insert into t values(null,1,1);begin;insert into t values(null,2,2);rollback;ins
 
 在 MySQL 5.0 版本的时候，自增锁的范围是语句级别。也就是说，如果一个语句申请了一个表自增锁，这个锁会等语句执行结束以后才释放。显然，这样设计会影响并发度。
 
-MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb_autoinc_lock_mode，默认值是 1。
+MySQL 5.1.22 版本引入了一个新策略，新增参数 `innodb_autoinc_lock_mode`，默认值是 1。
 
 1.  这个参数的值被设置为 0 时，表示采用之前 MySQL 5.0 版本的策略，即语句执行结束后才释放锁；
 
@@ -190,13 +200,13 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb_autoinc_lock_m
 
 1.  一种思路是，让原库的批量插入数据语句，固定生成连续的 id 值。所以，自增锁直到语句执行结束才释放，就是为了达到这个目的。
 
-2.  另一种思路是，在 binlog 里面把插入数据的操作都如实记录进来，到备库执行的时候，不再依赖于自增主键去生成。这种情况，其实就是 innodb_autoinc_lock_mode 设置为 2，同时 binlog_format 设置为 row。
+2.  另一种思路是，在 binlog 里面把插入数据的操作都如实记录进来，到备库执行的时候，不再依赖于自增主键去生成。这种情况，其实就是 `innodb_autoinc_lock_mode` 设置为 2，同时 `binlog_format` 设置为 row。
 
 因此，**在生产上，尤其是有 insert … select 这种批量插入数据的场景时，从并发插入数据性能的角度考虑，我建议你这样设置：innodb_autoinc_lock_mode=2 ，并且 binlog_format=row**. 这样做，既能提升并发性，又不会出现数据一致性问题。
 
 需要注意的是，我这里说的**批量插入数据，包含的语句类型是 insert … select、replace … select 和 load data 语句。**
 
-但是，在普通的 insert 语句里面包含多个 value 值的情况下，即使 innodb_autoinc_lock_mode 设置为 1，也不会等语句执行完成才释放锁。因为这类语句在申请自增 id 的时候，是可以精确计算出需要多少个 id 的，然后一次性申请，申请完成后锁就可以释放了。
+但是，在普通的 insert 语句里面包含多个 value 值的情况下，即使 `innodb_autoinc_lock_mode` 设置为 1，也不会等语句执行完成才释放锁。因为这类语句在申请自增 id 的时候，是可以精确计算出需要多少个 id 的，然后一次性申请，申请完成后锁就可以释放了。
 
 也就是说，批量插入数据的语句，之所以需要这么设置，是因为“不知道要预先申请多少个 id”。
 
@@ -215,7 +225,13 @@ MySQL 5.1.22 版本引入了一个新策略，新增参数 innodb_autoinc_lock_m
 举个例子，我们一起看看下面的这个语句序列：
 
 ```
-insert into t values(null, 1,1);insert into t values(null, 2,2);insert into t values(null, 3,3);insert into t values(null, 4,4);create table t2 like t;insert into t2(c,d) select c,d from t;insert into t2 values(null, 5,5);
+insert into t values(null, 1,1);
+insert into t values(null, 2,2);
+insert into t values(null, 3,3);
+insert into t values(null, 4,4);
+create table t2 like t;
+insert into t2(c,d) select c,d from t;
+insert into t2 values(null, 5,5);
 ```
 
 insert…select，实际上往表 t2 中插入了 4 行数据。但是，这四行数据是分三次申请的自增 id，第一次申请到了 id=1，第二次被分配了 id=2 和 id=3， 第三次被分配到 id=4 到 id=7。
@@ -232,7 +248,7 @@ insert…select，实际上往表 t2 中插入了 4 行数据。但是，这四�
 
 然后，我和你分享了在一个语句执行过程中，自增值改变的时机，分析了为什么 MySQL 在事务回滚的时候不能回收自增 id。
 
-MySQL 5.1.22 版本开始引入的参数 innodb_autoinc_lock_mode，控制了自增值申请时的锁范围。从并发性能的角度考虑，我建议你将其设置为 2，同时将 binlog_format 设置为 row。我在前面的文章中其实多次提到，binlog_format 设置为 row，是很有必要的。今天的例子给这个结论多了一个理由。
+MySQL 5.1.22 版本开始引入的参数 `innodb_autoinc_lock_mode`，控制了自增值申请时的锁范围。从并发性能的角度考虑，我建议你将其设置为 2，同时将 `binlog_format` 设置为 row。我在前面的文章中其实多次提到，`binlog_format` 设置为 row，是很有必要的。今天的例子给这个结论多了一个理由。
 
 MySQL 里有很多自增的 id，每个自增 id 都是定义了初始值，然后不停地往上加步长。虽然自然数是没有上限的，但是在计算机里，只要定义了表示这个数的字节长度，那它就有上限。比如，无符号整型 (unsigned int) 是 4 个字节，上限就是 232-1。
 
@@ -249,26 +265,35 @@ MySQL 里有很多自增的 id，每个自增 id 都是定义了初始值，然�
 我们可以通过下面这个语句序列验证一下：
 
 ```
-create table t(id int unsigned auto_increment primary key) auto_increment=4294967295;insert into t values(null);// 成功插入一行 4294967295show create table t;/* CREATE TABLE `t` (  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,  PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=4294967295;*/ insert into t values(null);//Duplicate entry '4294967295' for key 'PRIMARY'
+create table t(id int unsigned auto_increment primary key) auto_increment=4294967295;
+insert into t values(null);// 成功插入一行 4294967295
+show create table t;
+/* 
+CREATE TABLE `t` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4294967295;
+*/ 
+insert into t values(null);//Duplicate entry '4294967295' for key 'PRIMARY'
 ```
 
 可以看到，第一个 insert 语句插入数据成功后，这个表的 AUTO_INCREMENT 没有改变（还是 4294967295），就导致了第二个 insert 语句又拿到相同的自增 id 值，再试图执行插入语句，报主键冲突错误。
 
-232-1（4294967295）不是一个特别大的数，对于一个频繁插入删除数据的表来说，是可能会被用完的。因此在建表的时候你需要考察你的表是否有可能达到这个上限，如果有可能，就应该创建成 8 个字节的 bigint unsigned。
+$2^{32}-1$（4294967295）不是一个特别大的数，对于一个频繁插入删除数据的表来说，是可能会被用完的。因此在建表的时候你需要考察你的表是否有可能达到这个上限，如果有可能，就应该创建成 8 个字节的 bigint unsigned。
 
 # InnoDB 系统自增 row_id
 
-如果你创建的 InnoDB 表没有指定主键，那么 InnoDB 会给你创建一个不可见的，长度为 6 个字节的 row_id。InnoDB 维护了一个全局的 dict_sys.row_id 值，所有无主键的 InnoDB 表，每插入一行数据，都将当前的 dict_sys.row_id 值作为要插入数据的 row_id，然后把 dict_sys.row_id 的值加 1。
+如果你创建的 InnoDB 表没有指定主键，那么 InnoDB 会给你创建一个不可见的，长度为 6 个字节的 `row_id`。InnoDB 维护了一个全局的 `dict_sys.row_id` 值，所有无主键的 InnoDB 表，每插入一行数据，都将当前的 `dict_sys.row_id` 值作为要插入数据的 `row_id`，然后把 `dict_sys.row_id` 的值加 1。
 
-实际上，在代码实现时 row_id 是一个长度为 8 字节的无符号长整型 (bigint unsigned)。但是，InnoDB 在设计时，给 row_id 留的只是 6 个字节的长度，这样写到数据表中时只放了最后 6 个字节，所以 row_id 能写到数据表中的值，就有两个特征：
+实际上，在代码实现时 `row_id` 是一个长度为 8 字节的无符号长整型 (bigint unsigned)。但是，InnoDB 在设计时，给 `row_id` 留的只是 6 个字节的长度，这样写到数据表中时只放了最后 6 个字节，所以 `row_id` 能写到数据表中的值，就有两个特征：
 
 1.  row_id 写入表中的值范围，是从 0 到 248-1；
 
-2.  当 dict_sys.row_id=248时，如果再有插入数据的行为要来申请 row_id，拿到以后再取最后 6 个字节的话就是 0。
+2.  当 `dict_sys.row_id=248`时，如果再有插入数据的行为要来申请 row_id，拿到以后再取最后 6 个字节的话就是 0。
 
-也就是说，写入表的 row_id 是从 0 开始到 248-1。达到上限后，下一个值就是 0，然后继续循环。
+也就是说，写入表的 `row_id` 是从 0 开始到 248-1。达到上限后，下一个值就是 0，然后继续循环。
 
-当然，248-1 这个值本身已经很大了，但是如果一个 MySQL 实例跑得足够久的话，还是可能达到这个上限的。在 InnoDB 逻辑里，申请到 row_id=N 后，就将这行数据写入表中；如果表中已经存在 row_id=N 的行，新写入的行就会覆盖原有的行。
+当然，248-1 这个值本身已经很大了，但是如果一个 MySQL 实例跑得足够久的话，还是可能达到这个上限的。在 InnoDB 逻辑里，申请到 `row_id=N` 后，就将这行数据写入表中；如果表中已经存在 `row_id=N` 的行，新写入的行就会覆盖原有的行。
 
 要验证这个结论的话，你可以通过 gdb 修改系统的自增 row_id 来实现。注意，用 gdb 改变量这个操作是为了便于我们复现问题，只能在测试环境使用。
 
@@ -278,7 +303,7 @@ create table t(id int unsigned auto_increment primary key) auto_increment=429496
 
 图 2 row_id 用完的效果验证
 
-可以看到，在我用 gdb 将 dict_sys.row_id 设置为 248之后，再插入的 a=2 的行会出现在表 t 的第一行，因为这个值的 row_id=0。之后再插入的 a=3 的行，由于 row_id=1，就覆盖了之前 a=1 的行，因为 a=1 这一行的 row_id 也是 1。
+可以看到，在我用 gdb 将 `dict_sys.row_id` 设置为 248之后，再插入的 a=2 的行会出现在表 t 的第一行，因为这个值的 `row_id=0`。之后再插入的 a=3 的行，由于 `row_id=1`，就覆盖了之前 `a=1` 的行，因为 `a=1` 这一行的 `row_id` 也是 1。
 
 从这个角度看，我们还是应该在 InnoDB 表中主动创建自增主键。因为，表自增 id 到达上限后，再插入数据时报主键冲突错误，是更能被接受的。
 
@@ -290,19 +315,19 @@ create table t(id int unsigned auto_increment primary key) auto_increment=429496
 
 那么，Xid 在 MySQL 内部是怎么生成的呢？
 
-MySQL 内部维护了一个全局变量 global_query_id，每次执行语句的时候将它赋值给 Query_id，然后给这个变量加 1。如果当前语句是这个事务执行的第一条语句，那么 MySQL 还会同时把 Query_id 赋值给这个事务的 Xid。
+MySQL 内部维护了一个全局变量 `global_query_id`，每次执行语句的时候将它赋值给 `Query_id`，然后给这个变量加 1。如果当前语句是这个事务执行的第一条语句，那么 MySQL 还会同时把 `Query_id` 赋值给这个事务的 Xid。
 
-而 global_query_id 是一个纯内存变量，重启之后就清零了。所以你就知道了，在同一个数据库实例中，不同事务的 Xid 也是有可能相同的。
+而 `global_query_id` 是一个纯内存变量，重启之后就清零了。所以你就知道了，在同一个数据库实例中，不同事务的 Xid 也是有可能相同的。
 
 但是 MySQL 重启之后会重新生成新的 binlog 文件，这就保证了，同一个 binlog 文件里，Xid 一定是惟一的。
 
-虽然 MySQL 重启不会导致同一个 binlog 里面出现两个相同的 Xid，但是如果 global_query_id 达到上限后，就会继续从 0 开始计数。从理论上讲，还是就会出现同一个 binlog 里面出现相同 Xid 的场景。
+虽然 MySQL 重启不会导致同一个 binlog 里面出现两个相同的 Xid，但是如果 `global_query_id` 达到上限后，就会继续从 0 开始计数。从理论上讲，还是就会出现同一个 binlog 里面出现相同 Xid 的场景。
 
-因为 global_query_id 定义的长度是 8 个字节，这个自增值的上限是 264-1。要出现这种情况，必须是下面这样的过程：
+因为 `global_query_id` 定义的长度是 8 个字节，这个自增值的上限是 264-1。要出现这种情况，必须是下面这样的过程：
 
 1.  执行一个事务，假设 Xid 是 A；
 
-2.  接下来执行 264次查询语句，让 global_query_id 回到 A；
+2.  接下来执行 264次查询语句，让 `global_query_id` 回到 A；
 
 3.  再启动一个事务，这个事务的 Xid 也是 A。
 
@@ -316,64 +341,64 @@ Xid 是由 server 层维护的。InnoDB 内部使用 Xid，就是为了能够在
 
 其实，你应该非常熟悉这个 trx_id。它就是在我们在第 8 篇文章[《事务到底是隔离的还是不隔离的？》](https://time.geekbang.org/column/article/70562)中讲事务可见性时，用到的事务 id（transaction id）。
 
-InnoDB 内部维护了一个 max_trx_id 全局变量，每次需要申请一个新的 trx_id 时，就获得 max_trx_id 的当前值，然后并将 max_trx_id 加 1。
+InnoDB 内部维护了一个 `max_trx_id` 全局变量，每次需要申请一个新的 `trx_id` 时，就获得 `max_trx_id` 的当前值，然后并将 `max_trx_id` 加 1。
 
-InnoDB 数据可见性的核心思想是：每一行数据都记录了更新它的 trx_id，当一个事务读到一行数据的时候，判断这个数据是否可见的方法，就是通过事务的一致性视图与这行数据的 trx_id 做对比。
+InnoDB 数据可见性的核心思想是：每一行数据都记录了更新它的 `trx_id`，当一个事务读到一行数据的时候，判断这个数据是否可见的方法，就是通过事务的一致性视图与这行数据的 `trx_id` 做对比。
 
-对于正在执行的事务，你可以从 information_schema.innodb_trx 表中看到事务的 trx_id。
+对于正在执行的事务，你可以从 `information_schema.innodb_trx` 表中看到事务的 trx_id。
 
-我在上一篇文章的末尾留给你的思考题，就是关于从 innodb_trx 表里面查到的 trx_id 的。现在，我们一起来看一个事务现场：
+我在上一篇文章的末尾留给你的思考题，就是关于从 `innodb_trx` 表里面查到的 `trx_id` 的。现在，我们一起来看一个事务现场：
 
 
 图 3 事务的 trx_id
 
-session B 里，我从 innodb_trx 表里查出的这两个字段，第二个字段 trx_mysql_thread_id 就是线程 id。显示线程 id，是为了说明这两次查询看到的事务对应的线程 id 都是 5，也就是 session A 所在的线程。
+session B 里，我从 `innodb_trx` 表里查出的这两个字段，第二个字段 `trx_mysql_thread_id` 就是线程 id。显示线程 id，是为了说明这两次查询看到的事务对应的线程 id 都是 5，也就是 session A 所在的线程。
 
-可以看到，T2 时刻显示的 trx_id 是一个很大的数；T4 时刻显示的 trx_id 是 1289，看上去是一个比较正常的数字。这是什么原因呢？
+可以看到，T2 时刻显示的 `trx_id` 是一个很大的数；T4 时刻显示的 trx_id 是 1289，看上去是一个比较正常的数字。这是什么原因呢？
 
 实际上，在 T1 时刻，session A 还没有涉及到更新，是一个只读事务。而对于只读事务，InnoDB 并不会分配 trx_id。也就是说：
 
 1.  在 T1 时刻，trx_id 的值其实就是 0。而这个很大的数，只是显示用的。一会儿我会再和你说说这个数据的生成逻辑。
 
-2.  直到 session A 在 T3 时刻执行 insert 语句的时候，InnoDB 才真正分配了 trx_id。所以，T4 时刻，session B 查到的这个 trx_id 的值就是 1289。
+2.  直到 session A 在 T3 时刻执行 insert 语句的时候，InnoDB 才真正分配了 `trx_id`。所以，T4 时刻，session B 查到的这个 `trx_id` 的值就是 1289。
 
 需要注意的是，除了显而易见的修改类语句外，如果在 select 语句后面加上 for update，这个事务也不是只读事务。
 
 在上一篇文章的评论区，有同学提出，实验的时候发现不止加 1。这是因为：
 
-1.  update 和 delete 语句除了事务本身，还涉及到标记删除旧数据，也就是要把数据放到 purge 队列里等待后续物理删除，这个操作也会把 max_trx_id+1， 因此在一个事务中至少加 2；
+1.  update 和 delete 语句除了事务本身，还涉及到标记删除旧数据，也就是要把数据放到 purge 队列里等待后续物理删除，这个操作也会把 `max_trx_id+1`， 因此在一个事务中至少加 2；
 
-2.  InnoDB 的后台操作，比如表的索引信息统计这类操作，也是会启动内部事务的，因此你可能看到，trx_id 值并不是按照加 1 递增的。
+2.  InnoDB 的后台操作，比如表的索引信息统计这类操作，也是会启动内部事务的，因此你可能看到，`trx_id` 值并不是按照加 1 递增的。
 
 那么，**T2 时刻查到的这个很大的数字是怎么来的呢？**
 
 其实，这个数字是每次查询的时候由系统临时计算出来的。它的算法是：把当前事务的 trx 变量的指针地址转成整数，再加上 248。使用这个算法，就可以保证以下两点：
 
-1.  因为同一个只读事务在执行期间，它的指针地址是不会变的，所以不论是在 innodb_trx 还是在 innodb_locks 表里，同一个只读事务查出来的 trx_id 就会是一样的。
+1.  因为同一个只读事务在执行期间，它的指针地址是不会变的，所以不论是在 `innodb_trx` 还是在 `innodb_locks` 表里，同一个只读事务查出来的 `trx_id` 就会是一样的。
 
-2.  如果有并行的多个只读事务，每个事务的 trx 变量的指针地址肯定不同。这样，不同的并发只读事务，查出来的 trx_id 就是不同的。
+2.  如果有并行的多个只读事务，每个事务的 trx 变量的指针地址肯定不同。这样，不同的并发只读事务，查出来的 `trx_id` 就是不同的。
 
 那么，**为什么还要再加上 248呢？**
 
-在显示值里面加上 248，目的是要保证只读事务显示的 trx_id 值比较大，正常情况下就会区别于读写事务的 id。但是，trx_id 跟 row_id 的逻辑类似，定义长度也是 8 个字节。因此，在理论上还是可能出现一个读写事务与一个只读事务显示的 trx_id 相同的情况。不过这个概率很低，并且也没有什么实质危害，可以不管它。
+在显示值里面加上 248，目的是要保证只读事务显示的 `trx_id` 值比较大，正常情况下就会区别于读写事务的 id。但是，`trx_id` 跟 `row_id` 的逻辑类似，定义长度也是 8 个字节。因此，在理论上还是可能出现一个读写事务与一个只读事务显示的 `trx_id` 相同的情况。不过这个概率很低，并且也没有什么实质危害，可以不管它。
 
 另一个问题是，**只读事务不分配 trx_id，有什么好处呢？**
 
-*   一个好处是，这样做可以减小事务视图里面活跃事务数组的大小。因为当前正在运行的只读事务，是不影响数据的可见性判断的。所以，在创建事务的一致性视图时，InnoDB 就只需要拷贝读写事务的 trx_id。
-*   另一个好处是，可以减少 trx_id 的申请次数。在 InnoDB 里，即使你只是执行一个普通的 select 语句，在执行过程中，也是要对应一个只读事务的。所以只读事务优化后，普通的查询语句不需要申请 trx_id，就大大减少了并发事务申请 trx_id 的锁冲突。
+*   一个好处是，这样做可以减小事务视图里面活跃事务数组的大小。因为当前正在运行的只读事务，是不影响数据的可见性判断的。所以，在创建事务的一致性视图时，InnoDB 就只需要拷贝读写事务的 `trx_id`。
+*   另一个好处是，可以减少 `trx_id` 的申请次数。在 InnoDB 里，即使你只是执行一个普通的 select 语句，在执行过程中，也是要对应一个只读事务的。所以只读事务优化后，普通的查询语句不需要申请 `trx_id`，就大大减少了并发事务申请 `trx_id` 的锁冲突。
 
-由于只读事务不分配 trx_id，一个自然而然的结果就是 trx_id 的增加速度变慢了。
+由于只读事务不分配 `trx_id`，一个自然而然的结果就是 trx_id 的增加速度变慢了。
 
-但是，max_trx_id 会持久化存储，重启也不会重置为 0，那么从理论上讲，只要一个 MySQL 服务跑得足够久，就可能出现 max_trx_id 达到 248-1 的上限，然后从 0 开始的情况。
+但是，`max_trx_id` 会持久化存储，重启也不会重置为 0，那么从理论上讲，只要一个 MySQL 服务跑得足够久，就可能出现 `max_trx_id` 达到 248-1 的上限，然后从 0 开始的情况。
 
 当达到这个状态后，MySQL 就会持续出现一个脏读的 bug，我们来复现一下这个 bug。
 
-首先我们需要把当前的 max_trx_id 先修改成 248-1。注意：这个 case 里使用的是可重复读隔离级别。具体的操作流程如下：
+首先我们需要把当前的 `max_trx_id` 先修改成 248-1。注意：这个 case 里使用的是可重复读隔离级别。具体的操作流程如下：
 
 
 图 4 复现脏读
 
-由于我们已经把系统的 max_trx_id 设置成了 248-1，所以在 session A 启动的事务 TA 的低水位就是 248-1。
+由于我们已经把系统的 `max_trx_id` 设置成了 248-1，所以在 session A 启动的事务 TA 的低水位就是 248-1。
 
 在 T2 时刻，session B 执行第一条 update 语句的事务 id 就是 248-1，而第二条 update 语句的事务 id 就是 0 了，这条 update 语句执行后生成的数据版本上的 trx_id 就是 0。
 
@@ -383,7 +408,7 @@ session B 里，我从 innodb_trx 表里查出的这两个字段，第二个字�
 
 由于低水位值会持续增加，而事务 id 从 0 开始计数，就导致了系统在这个时刻之后，所有的查询都会出现脏读的。
 
-并且，MySQL 重启时 max_trx_id 也不会清 0，也就是说重启 MySQL，这个 bug 仍然存在。
+并且，MySQL 重启时 `max_trx_id` 也不会清 0，也就是说重启 MySQL，这个 bug 仍然存在。
 
 那么，**这个 bug 也是只存在于理论上吗？**
 
@@ -393,11 +418,11 @@ session B 里，我从 innodb_trx 表里查出的这两个字段，第二个字�
 
 # thread_id
 
-接下来，我们再看看线程 id（thread_id）。其实，线程 id 才是 MySQL 中最常见的一种自增 id。平时我们在查各种现场的时候，show processlist 里面的第一列，就是 thread_id。
+接下来，我们再看看线程 id（`thread_id`）。其实，线程 id 才是 MySQL 中最常见的一种自增 id。平时我们在查各种现场的时候，show processlist 里面的第一列，就是 `thread_id`。
 
-thread_id 的逻辑很好理解：系统保存了一个全局变量 thread_id_counter，每新建一个连接，就将 thread_id_counter 赋值给这个新连接的线程变量。
+`thread_id` 的逻辑很好理解：系统保存了一个全局变量 `thread_id_counter`，每新建一个连接，就将 `thread_id_counter` 赋值给这个新连接的线程变量。
 
-thread_id_counter 定义的大小是 4 个字节，因此达到 232-1 后，它就会重置为 0，然后继续增加。但是，你不会在 show processlist 里看到两个相同的 thread_id。
+`thread_id_counter` 定义的大小是 4 个字节，因此达到 232-1 后，它就会重置为 0，然后继续增加。但是，你不会在 show processlist 里看到两个相同的 thread_id。
 
 这，是因为 MySQL 设计了一个唯一数组的逻辑，给新线程分配 thread_id 的时候，逻辑代码是这样的：
 
@@ -415,7 +440,7 @@ do {  new_id= thread_id_counter++;} while (!thread_ids.insert_unique(new_id).sec
 
 1.  表的自增 id 达到上限后，再申请时它的值就不会改变，进而导致继续插入数据时报主键冲突的错误。
 
-2.  row_id 达到上限后，则会归 0 再重新递增，如果出现相同的 row_id，后写的数据会覆盖之前的数据。
+2.  `row_id` 达到上限后，则会归 0 再重新递增，如果出现相同的 row_id，后写的数据会覆盖之前的数据。
 
 3.  Xid 只需要不在同一个 binlog 文件中出现重复值即可。虽然理论上会出现重复值，但是概率极小，可以忽略不计。
 

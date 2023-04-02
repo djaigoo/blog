@@ -85,7 +85,8 @@ MySQL 从你输入的"select"这个关键字识别出来，这是一个查询语
 如果你的语句不对，就会收到“You have an error in your SQL syntax”的错误提醒，比如下面这个语句 select 少打了开头的字母“s”。
 
 ```
-mysql> elect * from t where ID=1; ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'elect * from t where ID=1' at line 1
+mysql> elect * from t where ID=1;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'elect * from t where ID=1' at line 1
 ```
 
 一般语法错误会提示第一个出现错误的位置，所以你要关注的是紧接“use near”的内容。
@@ -114,7 +115,8 @@ MySQL 通过分析器知道了你要做什么，通过优化器知道了该怎�
 开始执行的时候，要先判断一下你对这个表 T 有没有执行查询的权限，如果没有，就会返回没有权限的错误，如下所示 (在工程实现上，如果命中查询缓存，会在查询缓存返回结果的时候，做权限验证。查询也会在优化器之前调用 precheck 验证权限)。
 
 ```
-mysql> select * from T where ID=10; ERROR 1142 (42000): SELECT command denied to user 'b'@'localhost' for table 'T'
+mysql> select * from T where ID=10;
+ERROR 1142 (42000): SELECT command denied to user 'b'@'localhost' for table 'T'
 ```
 
 如果有权限，就打开表继续执行。打开表的时候，执行器就会根据表的引擎定义，去使用这个引擎提供的接口。

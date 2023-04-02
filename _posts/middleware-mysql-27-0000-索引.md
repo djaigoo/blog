@@ -88,7 +88,12 @@ N 叉树由于在读写上的性能优点，以及适配磁盘的访问模式，
 这个表的建表语句是：
 
 ```
-mysql> create table T(id int primary key, k int not null, name varchar(16),index (k))engine=InnoDB;
+mysql> create table T(
+ id int primary key,
+ k int not null,
+ name varchar(16), 
+ index (k)
+)engine=InnoDB;
 ```
 
 表中 R1~R5 的 (ID,k) 值分别为 (100,1)、(200,2)、(300,3)、(500,5) 和 (600,6)，两棵树的示例示意图如下。
@@ -166,7 +171,13 @@ B+ 树为了维护索引有序性，在插入新值的时候需要做必要的�
 下面是这个表的初始化语句。
 
 ```
-mysql> create table T (ID int primary key,k int NOT NULL DEFAULT 0, s varchar(16) NOT NULL DEFAULT '',index k(k))engine=InnoDB; insert into T values(100,1, 'aa'),(200,2,'bb'),(300,3,'cc'),(500,5,'ee'),(600,6,'ff'),(700,7,'gg');
+mysql> create table T (
+ID int primary key,
+k int NOT NULL DEFAULT 0,
+s varchar(16) NOT NULL DEFAULT '',
+index k(k))engine=InnoDB; 
+
+insert into T values(100,1, 'aa'),(200,2,'bb'),(300,3,'cc'),(500,5,'ee'),(600,6,'ff'),(700,7,'gg');
 ```
 
 
@@ -203,7 +214,16 @@ mysql> create table T (ID int primary key,k int NOT NULL DEFAULT 0, s varchar(16
 假设这个市民表的定义是这样的：
 
 ```
-CREATE TABLE `tuser` (  `id` int(11) NOT NULL,  `id_card` varchar(32) DEFAULT NULL,  `name` varchar(32) DEFAULT NULL,  `age` int(11) DEFAULT NULL,  `ismale` tinyint(1) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `id_card` (`id_card`),  KEY `name_age` (`name`,`age`)) ENGINE=InnoDB
+CREATE TABLE `tuser` (
+  `id` int(11) NOT NULL,  
+  `id_card` varchar(32) DEFAULT NULL,  
+  `name` varchar(32) DEFAULT NULL,  
+  `age` int(11) DEFAULT NULL,  
+  `ismale` tinyint(1) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `id_card` (`id_card`),  
+  KEY `name_age` (`name`,`age`)
+) ENGINE=InnoDB
 ```
 
 我们知道，身份证号是市民的唯一标识。也就是说，如果有根据身份证号查询市民信息的需求，我们只要在身份证号字段上建立索引就够了。而再建立一个（身份证号、姓名）的联合索引，是不是浪费空间？
@@ -288,7 +308,13 @@ mysql> select * from tuser where name like '张 %' and age=10 and ismale=1;
 我们先建一个简单的表，表里有 a、b 两个字段，并分别建上索引：
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `a` (`a`),  KEY `b` (`b`)) ENGINE=InnoDB；
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `b` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `a` (`a`),  KEY `b` (`b`)
+) ENGINE=InnoDB；
 ```
 
 然后，我们往表 t 中插入 10 万行记录，取值按整数递增，即：(1,1,1)，(2,2,2)，(3,3,3) 直到 (100000,100000,100000)。
@@ -296,7 +322,19 @@ CREATE TABLE `t` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(1
 我是用存储过程来插入数据的，这里我贴出来方便你复现：
 
 ```
-delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=100000)do    insert into t values(i, i, i);    set i=i+1;  end while;end;;delimiter ;call idata();
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;  
+  set i=1;  
+  while(i<=100000)
+  do    
+    insert into t values(i, i, i);    
+    set i=i+1;  
+  end while;
+end;;
+delimiter ;
+call idata();
 ```
 
 接下来，我们分析一条 SQL 语句：
@@ -328,7 +366,9 @@ mysql> select * from t where a between 10000 and 20000;
 下面的三条 SQL 语句，就是这个实验过程。
 
 ```
-set long_query_time=0;select * from t where a between 10000 and 20000; /*Q1*/select * from t force index(a) where a between 10000 and 20000;/*Q2*/
+set long_query_time=0;
+select * from t where a between 10000 and 20000; /*Q1*/
+select * from t force index(a) where a between 10000 and 20000;/*Q2*/
 ```
 
 *   第一句，是将慢查询日志的阈值设置为 0，表示这个线程接下来的语句都会被记录入慢查询日志中；
@@ -541,7 +581,9 @@ mysql> select f1, f2 from SUser where email='xxx';
 比如，这两个在 email 字段上创建索引的语句：
 
 ```
-mysql> alter table SUser add index index1(email);或mysql> alter table SUser add index index2(email(6));
+mysql> alter table SUser add index index1(email);
+或
+mysql> alter table SUser add index index2(email(6));
 ```
 
 第一个语句创建的 index1 索引里面，包含了每个记录的整个字符串；而第二个语句创建的 index2 索引里面，对于每个记录都是只取前 6 个字节。
@@ -605,7 +647,7 @@ mysql> select count(distinct email) as L from SUser;
 然后，依次选取不同长度的前缀来看这个值，比如我们要看一下 4~7 个字节的前缀索引，可以用这个语句：
 
 ```
-mysql> select   count(distinct left(email,4)）as L4,  count(distinct left(email,5)）as L5,  count(distinct left(email,6)）as L6,  count(distinct left(email,7)）as L7,from SUser;
+mysql> select count(distinct left(email,4)）as L4,  count(distinct left(email,5)）as L5,  count(distinct left(email,6)）as L6,  count(distinct left(email,7)）as L7,from SUser;
 ```
 
 当然，使用前缀索引很可能会损失区分度，所以你需要预先设定一个可以接受的损失比例，比如 5%。然后，在返回的 L4~L7 中，找出不小于 L * 95% 的值，假设这里 L6、L7 都满足，你就可以选择前缀长度为 6。

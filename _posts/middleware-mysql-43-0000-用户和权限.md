@@ -24,7 +24,7 @@ create user 'ua'@'%' identified by 'pa';
 
 1.  磁盘上，往 mysql.user 表里插入一行，由于没有指定权限，所以这行数据上所有表示权限的字段的值都是 N；
 
-2.  内存里，往数组 acl_users 里插入一个 acl_user 对象，这个对象的 access 字段值为 0。
+2.  内存里，往数组 `acl_users` 里插入一个 `acl_user` 对象，这个对象的 access 字段值为 0。
 
 图 1 就是这个时刻用户 ua 在 user 表中的状态。
 
@@ -109,12 +109,14 @@ grant 操作对于已经存在的连接的影响，在全局权限和基于 db �
 
 # 表权限和列权限
 
-除了 db 级别的权限外，MySQL 支持更细粒度的表权限和列权限。其中，表权限定义存放在表 mysql.tables_priv 中，列权限定义存放在表 mysql.columns_priv 中。这两类权限，组合起来存放在内存的 hash 结构 column_priv_hash 中。
+除了 db 级别的权限外，MySQL 支持更细粒度的表权限和列权限。其中，表权限定义存放在表 `mysql.tables_priv` 中，列权限定义存放在表 `mysql.columns_priv` 中。这两类权限，组合起来存放在内存的 hash 结构 `column_priv_hash` 中。
 
 这两类权限的赋权命令如下：
 
-```
-create table db1.t1(id int, a int); grant all privileges on db1.t1 to 'ua'@'%' with grant option;GRANT SELECT(id), INSERT (id,a) ON mydb.mytbl TO 'ua'@'%' with grant option;
+```sql
+create table db1.t1(id int, a int); 
+grant all privileges on db1.t1 to 'ua'@'%' with grant option;
+GRANT SELECT(id), INSERT (id,a) ON mydb.mytbl TO 'ua'@'%' with grant option;
 ```
 
 跟 db 权限类似，这两个权限每次 grant 的时候都会修改数据表，也会同步修改内存中的 hash 结构。因此，对这两类权限的操作，也会马上影响到已经存在的连接。
@@ -123,7 +125,7 @@ create table db1.t1(id int, a int); grant all privileges on db1.t1 to 'ua'@'%' w
 
 答案也确实是这样的。
 
-flush privileges 命令会清空 acl_users 数组，然后从 mysql.user 表中读取数据重新加载，重新构造一个 acl_users 数组。也就是说，以数据表中的数据为准，会将全局权限内存数组重新加载一遍。
+flush privileges 命令会清空 `acl_users` 数组，然后从 `mysql.user` 表中读取数据重新加载，重新构造一个 `acl_users` 数组。也就是说，以数据表中的数据为准，会将全局权限内存数组重新加载一遍。
 
 同样地，对于 db 权限、表权限和列权限，MySQL 也做了这样的处理。
 

@@ -16,8 +16,31 @@ tags:
 
 为了便于量化分析，我还是创建两个表 t1 和 t2 来和你说明。
 
-```
-CREATE TABLE `t2` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `a` (`a`)) ENGINE=InnoDB; drop procedure idata;delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=1000)do    insert into t2 values(i, i, i);    set i=i+1;  end while;end;;delimiter ;call idata(); create table t1 like t2;insert into t1 (select * from t2 where id<=100)
+```sql
+CREATE TABLE `t2` (  
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `b` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `a` (`a`)
+) ENGINE=InnoDB; 
+drop procedure idata;
+
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;  
+  set i=1;  
+  while(i<=1000) // >
+  do    
+    insert into t2 values(i, i, i);    
+    set i=i+1;  
+  end while;
+end;;
+delimiter ;
+call idata(); 
+create table t1 like t2;
+insert into t1 (select * from t2 where id<=100)//>
 ```
 
 可以看到，这两个表都有一个主键索引 id 和一个索引 a，字段 b 上无索引。存储过程 idata() 往表 t2 里插入了 1000 行数据，在表 t1 里插入的是 100 行数据。
@@ -26,7 +49,7 @@ CREATE TABLE `t2` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 我们来看一下这个语句：
 
-```
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.a);
 ```
 
@@ -108,7 +131,7 @@ select * from t1 straight_join t2 on (t1.a=t2.a);
 
 现在，我们把 SQL 语句改成这样：
 
-```
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.b);
 ```
 
@@ -156,15 +179,15 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 然后，你可能马上就会问了，这个例子里表 t1 才 100 行，要是表 t1 是一个大表，join_buffer 放不下怎么办呢？
 
-join_buffer 的大小是由参数 join_buffer_size 设定的，默认值是 256k。**如果放不下表 t1 的所有数据话，策略很简单，就是分段放。**我把 join_buffer_size 改成 1200，再执行：
+`join_buffer` 的大小是由参数 `join_buffer_size` 设定的，默认值是 256k。**如果放不下表 t1 的所有数据话，策略很简单，就是分段放。**我把 `join_buffer_size` 改成 1200，再执行：
 
-```
+```sql
 select * from t1 straight_join t2 on (t1.a=t2.b);
 ```
 
 执行过程就变成了：
 
-1.  扫描表 t1，顺序读取数据行放入 join_buffer 中，放完第 88 行 join_buffer 满了，继续第 2 步；
+1.  扫描表 t1，顺序读取数据行放入 `join_buffer` 中，放完第 88 行 `join_buffer` 满了，继续第 2 步；
 
 2.  扫描表 t2，把 t2 中的每一行取出来，跟 join_buffer 中的数据做对比，满足 join 条件的，作为结果集的一部分返回；
 
@@ -181,29 +204,29 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 这个流程才体现出了这个算法名字中“Block”的由来，表示“分块去 join”。
 
-可以看到，这时候由于表 t1 被分成了两次放入 join_buffer 中，导致表 t2 会被扫描两次。虽然分成两次放入 join_buffer，但是判断等值条件的次数还是不变的，依然是 (88+12)*1000=10 万次。
+可以看到，这时候由于表 t1 被分成了两次放入 `join_buffer` 中，导致表 t2 会被扫描两次。虽然分成两次放入 `join_buffer`，但是判断等值条件的次数还是不变的，依然是 (88+12)*1000=10 万次。
 
 我们再来看下，在这种情况下驱动表的选择问题。
 
 假设，驱动表的数据行数是 N，需要分 K 段才能完成算法流程，被驱动表的数据行数是 M。
 
-注意，这里的 K 不是常数，N 越大 K 就会越大，因此把 K 表示为λ*N，显然λ的取值范围是 (0,1)。
+注意，这里的 K 不是常数，N 越大 K 就会越大，因此把 K 表示为`λ*N`，显然λ的取值范围是 (0,1)。
 
 所以，在这个算法的执行过程中：
 
-1.  扫描行数是 N+λ*N*M；
+1.  扫描行数是 `N+λ*N*M`；
 
-2.  内存判断 N*M 次。
+2.  内存判断 `N*M` 次。
 
 显然，内存判断次数是不受选择哪个表作为驱动表影响的。而考虑到扫描行数，在 M 和 N 大小确定的情况下，N 小一些，整个算式的结果会更小。
 
 所以结论是，应该让小表当驱动表。
 
-当然，你会发现，在 N+λ*N*M 这个式子里，λ才是影响扫描行数的关键因素，这个值越小越好。
+当然，你会发现，在 `N+λ*N*M` 这个式子里，λ才是影响扫描行数的关键因素，这个值越小越好。
 
-刚刚我们说了 N 越大，分段数 K 越大。那么，N 固定的时候，什么参数会影响 K 的大小呢？（也就是λ的大小）答案是 join_buffer_size。join_buffer_size 越大，一次可以放入的行越多，分成的段数也就越少，对被驱动表的全表扫描次数就越少。
+刚刚我们说了 N 越大，分段数 K 越大。那么，N 固定的时候，什么参数会影响 K 的大小呢？（也就是λ的大小）答案是 `join_buffer_size`。`join_buffer_size` 越大，一次可以放入的行越多，分成的段数也就越少，对被驱动表的全表扫描次数就越少。
 
-这就是为什么，你可能会看到一些建议告诉你，如果你的 join 语句很慢，就把 join_buffer_size 改大。
+这就是为什么，你可能会看到一些建议告诉你，如果你的 join 语句很慢，就把 `join_buffer_size` 改大。
 
 理解了 MySQL 执行 join 的两种算法，现在我们再来试着**回答文章开头的两个问题**。
 
@@ -221,8 +244,8 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 
 2.  如果是 Block Nested-Loop Join 算法：
 
-    *   在 join_buffer_size 足够大的时候，是一样的；
-    *   在 join_buffer_size 不够大的时候（这种情况更常见），应该选择小表做驱动表。
+    *   在 `join_buffer_size` 足够大的时候，是一样的；
+    *   在 `join_buffer_size` 不够大的时候（这种情况更常见），应该选择小表做驱动表。
 
 所以，这个问题的结论就是，总是应该使用小表做驱动表。
 
@@ -231,7 +254,8 @@ select * from t1 straight_join t2 on (t1.a=t2.b);
 我们前面的例子是没有加条件的。如果我在语句的 where 条件加上 t2.id<=50 这个限定条件，再来看下这两条语句：
 
 ```
-select * from t1 straight_join t2 on (t1.b=t2.b) where t2.id<=50;select * from t2 straight_join t1 on (t1.b=t2.b) where t2.id<=50;
+select * from t1 straight_join t2 on (t1.b=t2.b) where t2.id<=50;
+select * from t2 straight_join t1 on (t1.b=t2.b) where t2.id<=50;
 ```
 
 注意，为了让两条语句的被驱动表都用不上索引，所以 join 字段都使用了没有索引的字段 b。
@@ -241,13 +265,14 @@ select * from t1 straight_join t2 on (t1.b=t2.b) where t2.id<=50;select * from t
 我们再来看另外一组例子：
 
 ```
-select t1.b,t2.* from  t1  straight_join t2 on (t1.b=t2.b) where t2.id<=100;select t1.b,t2.* from  t2  straight_join t1 on (t1.b=t2.b) where t2.id<=100;
+select t1.b,t2.* from  t1  straight_join t2 on (t1.b=t2.b) where t2.id<=100;
+select t1.b,t2.* from  t2  straight_join t1 on (t1.b=t2.b) where t2.id<=100;
 ```
 
 这个例子里，表 t1 和 t2 都是只有 100 行参加 join。但是，这两条语句每次查询放入 join_buffer 中的数据是不一样的：
 
-*   表 t1 只查字段 b，因此如果把 t1 放到 join_buffer 中，则 join_buffer 中只需要放入 b 的值；
-*   表 t2 需要查所有的字段，因此如果把表 t2 放到 join_buffer 中的话，就需要放入三个字段 id、a 和 b。
+*   表 t1 只查字段 b，因此如果把 t1 放到 `join_buffer` 中，则 `join_buffer` 中只需要放入 b 的值；
+*   表 t2 需要查所有的字段，因此如果把表 t2 放到 `join_buffer` 中的话，就需要放入三个字段 id、a 和 b。
 
 这里，我们应该选择表 t1 作为驱动表。也就是说在这个例子里，“只需要一列参与 join 的表 t1”是那个相对小的表。
 
@@ -278,7 +303,28 @@ select t1.b,t2.* from  t1  straight_join t2 on (t1.b=t2.b) where t2.id<=100;sele
 为了便于分析，我还是创建两个表 t1、t2 来和你展开今天的问题。
 
 ```
-create table t1(id int primary key, a int, b int, index(a));create table t2 like t1;drop procedure idata;delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=1000)do    insert into t1 values(i, 1001-i, i);    set i=i+1;  end while;    set i=1;  while(i<=1000000)do    insert into t2 values(i, i, i);    set i=i+1;  end while; end;;delimiter ;call idata();
+create table t1(id int primary key, a int, b int, index(a));
+create table t2 like t1;drop procedure idata;
+
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;
+  set i=1;  
+  while(i<=1000)
+  do    
+    insert into t1 values(i, 1001-i, i);   
+    set i=i+1;  
+  end while;    
+  set i=1;  
+  while(i<=1000000)
+  do    
+    insert into t2 values(i, i, i);    
+    set i=i+1;  
+  end while; 
+end;;
+delimiter ;
+call idata();
 ```
 
 为了便于后面量化说明，我在表 t1 里，插入了 1000 行数据，每一行的 a=1001-id 的值。也就是说，表 t1 中字段 a 是逆序的。同时，我在表 t2 中插入了 100 万行数据。
@@ -308,15 +354,15 @@ select * from t1 where a>=1 and a<=100;
 
 这，就是 MRR 优化的设计思路。此时，语句的执行流程变成了这样：
 
-1.  根据索引 a，定位到满足条件的记录，将 id 值放入 read_rnd_buffer 中 ;
+1.  根据索引 a，定位到满足条件的记录，将 id 值放入 `read_rnd_buffer` 中 ;
 
-2.  将 read_rnd_buffer 中的 id 进行递增排序；
+2.  将 `read_rnd_buffer` 中的 id 进行递增排序；
 
 3.  排序后的 id 数组，依次到主键 id 索引中查记录，并作为结果返回。
 
-这里，read_rnd_buffer 的大小是由 read_rnd_buffer_size 参数控制的。如果步骤 1 中，read_rnd_buffer 放满了，就会先执行完步骤 2 和 3，然后清空 read_rnd_buffer。之后继续找索引 a 的下个记录，并继续循环。
+这里，`read_rnd_buffer` 的大小是由 `read_rnd_buffer_size` 参数控制的。如果步骤 1 中，`read_rnd_buffer` 放满了，就会先执行完步骤 2 和 3，然后清空 `read_rnd_buffer`。之后继续找索引 a 的下个记录，并继续循环。
 
-另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，需要设置`set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 mrr_cost_based 设置为 off，就是固定使用 MRR 了。）
+另外需要说明的是，如果你想要稳定地使用 MRR 优化的话，需要设置`set optimizer_switch="mrr_cost_based=off"`。（官方文档的说法，是现在的优化器策略，判断消耗的时候，会更倾向于不使用 MRR，把 `mrr_cost_based` 设置为 off，就是固定使用 MRR 了。）
 
 下面两幅图就是使用了 MRR 优化后的执行流程和 explain 结果。
 
@@ -386,7 +432,7 @@ set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
 
 **大表 join 操作虽然对 IO 有影响，但是在语句执行结束后，对 IO 的影响也就结束了。但是，对 Buffer Pool 的影响就是持续性的，需要依靠后续的查询请求慢慢恢复内存命中率。**
 
-为了减少这种影响，你可以考虑增大 join_buffer_size 的值，减少对被驱动表的扫描次数。
+为了减少这种影响，你可以考虑增大 `join_buffer_size` 的值，减少对被驱动表的扫描次数。
 
 也就是说，BNL 算法对系统的影响主要包括三个方面：
 
@@ -414,7 +460,7 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 
 但是，如果使用 BNL 算法来 join 的话，这个语句的执行流程是这样的：
 
-1.  把表 t1 的所有字段取出来，存入 join_buffer 中。这个表只有 1000 行，join_buffer_size 默认值是 256k，可以完全存入。
+1.  把表 t1 的所有字段取出来，存入 `join_buffer` 中。这个表只有 1000 行，`join_buffer_size` 默认值是 256k，可以完全存入。
 
 2.  扫描表 t2，取出每一行数据跟 join_buffer 中的数据进行对比，
 
@@ -444,7 +490,12 @@ select * from t1 join t2 on (t1.b=t2.b) where t2.b>=1 and t2.b<=2000;
 此时，对应的 SQL 语句的写法如下：
 
 ```
-create temporary table temp_t(id int primary key, a int, b int, index(b))engine=innodb;insert into temp_t select * from t2 where b>=1 and b<=2000;select * from t1 join temp_t on (t1.b=temp_t.b);
+create temporary table temp_t(
+  id int primary key, a int, b int, index(b)
+)engine=innodb;
+
+insert into temp_t select * from t2 where b>=1 and b<=2000;
+select * from t1 join temp_t on (t1.b=temp_t.b);
 ```
 
 图 8 就是这个语句序列的执行效果。
@@ -472,7 +523,7 @@ create temporary table temp_t(id int primary key, a int, b int, index(b))engine=
 
 1.  `select * from t1;`取得表 t1 的全部 1000 行数据，在业务端存入一个 hash 结构，比如 C++ 里的 set、PHP 的数组这样的数据结构。
 
-2.  `select * from t2 where b>=1 and b<=2000;` 获取表 t2 中满足条件的 2000 行数据。
+2.  `select * from t2 where b>=1 and b<=2000;` 获取表 t2 中满足条件的 2000 行数据。
 
 3.  把这 2000 行数据，一行一行地取到业务端，到 hash 结构的数据表中寻找匹配的数据。满足匹配的条件的这行数据，就作为结果集的一行。
 
@@ -503,7 +554,11 @@ create temporary table temp_t(id int primary key, a int, b int, index(b))engine=
 为了同时回答这两个问题，我来构造两个表 a 和 b：
 
 ```
-create table a(f1 int, f2 int, index(f1))engine=innodb;create table b(f1 int, f2 int)engine=innodb;insert into a values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6);insert into b values(3,3),(4,4),(5,5),(6,6),(7,7),(8,8);
+create table a(f1 int, f2 int, index(f1))engine=innodb;
+create table b(f1 int, f2 int)engine=innodb;
+
+insert into a values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6);
+insert into b values(3,3),(4,4),(5,5),(6,6),(7,7),(8,8);
 ```
 
 表 a 和 b 都有两个字段 f1 和 f2，不同的是表 a 的字段 f1 上有索引。然后，我往两个表中都插入了 6 条记录，其中在表 a 和 b 中同时存在的数据有 4 行。
@@ -540,7 +595,7 @@ select * from a left join b on(a.f1=b.f1) and (a.f2=b.f2); /*Q1*/select * from a
 
 看到 BNL 算法，你就应该知道这条语句的执行流程其实是这样的：
 
-1.  把表 a 的内容读入 join_buffer 中。因为是 select * ，所以字段 f1 和 f2 都被放入 join_buffer 了。
+1.  把表 a 的内容读入 `join_buffer` 中。因为是 select * ，所以字段 f1 和 f2 都被放入 `join_buffer` 了。
 
 2.  顺序扫描表 b，对于每一行数据，判断 join 条件（也就是 a.f1=b.f1 and a.f2=b.f2) 是否满足，满足条件的记录, 作为结果集的一行返回。如果语句中有 where 子句，需要先判断 where 部分满足条件后，再返回。
 
@@ -612,7 +667,7 @@ select * from a join b where (a.f1=b.f1) and (a.f2=b.f2);
 
 BNL 算法的执行逻辑是：
 
-1.  首先，将驱动表的数据全部读入内存 join_buffer 中，这里 join_buffer 是无序数组；
+1.  首先，将驱动表的数据全部读入内存 `join_buffer` 中，这里 `join_buffer` 是无序数组；
 
 2.  然后，顺序遍历被驱动表的所有行，每一行数据都跟 join_buffer 中的数据进行匹配，匹配成功则作为结果集的一部分返回。
 

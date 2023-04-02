@@ -59,7 +59,18 @@ tags:
 为了便于描述 binlog 的这三种格式间的区别，我创建了一个表，并初始化几行数据。
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  PRIMARY KEY (`id`),  KEY `a` (`a`),  KEY `t_modified`(`t_modified`)) ENGINE=InnoDB; insert into t values(1,1,'2018-11-13');insert into t values(2,2,'2018-11-12');insert into t values(3,3,'2018-11-11');insert into t values(4,4,'2018-11-10');insert into t values(5,5,'2018-11-09');
+mysql> CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  
+  PRIMARY KEY (`id`),  KEY `a` (`a`),  
+  KEY `t_modified`(`t_modified`)
+) ENGINE=InnoDB; 
+insert into t values(1,1,'2018-11-13');
+insert into t values(2,2,'2018-11-12');
+insert into t values(3,3,'2018-11-11');
+insert into t values(4,4,'2018-11-10');
+insert into t values(5,5,'2018-11-09');
 ```
 
 如果要在表中删除一行数据的话，我们来看看这个 delete 语句的 binlog 是怎么记录的。
@@ -100,7 +111,7 @@ mysql> show binlog events in 'master.000001';
 
 1.  如果 delete 语句使用的是索引 a，那么会根据索引 a 找到第一个满足条件的行，也就是说删除的是 a=4 这一行；
 
-2.  但如果使用的是索引 t_modified，那么删除的就是 t_modified='2018-11-09’也就是 a=5 这一行。
+2.  但如果使用的是索引 `t_modified`，那么删除的就是 `t_modified='2018-11-09’`也就是 a=5 这一行。
 
 由于 statement 格式下，记录到 binlog 里的是语句原文，因此可能会出现这样一种情况：在主库执行这条 SQL 语句的时候，用的是索引 a；而在备库执行这条 SQL 语句的时候，却使用了索引 t_modified。因此，MySQL 认为这样写是有风险的。
 
@@ -109,7 +120,7 @@ mysql> show binlog events in 'master.000001';
 
 图 5 row 格式 binlog 示例
 
-可以看到，与 statement 格式的 binlog 相比，前后的 BEGIN 和 COMMIT 是一样的。但是，row 格式的 binlog 里没有了 SQL 语句的原文，而是替换成了两个 event：Table_map 和 Delete_rows。
+可以看到，与 statement 格式的 binlog 相比，前后的 BEGIN 和 COMMIT 是一样的。但是，row 格式的 binlog 里没有了 SQL 语句的原文，而是替换成了两个 event：`Table_map` 和 `Delete_rows`。
 
 1.  Table_map event，用于说明接下来要操作的表是 test 库的表 t;
 
@@ -128,9 +139,9 @@ mysqlbinlog  -vv data/master.000001 --start-position=8900;
 
 *   server id 1，表示这个事务是在 server_id=1 的这个库上执行的。
 *   每个 event 都有 CRC32 的值，这是因为我把参数 binlog_checksum 设置成了 CRC32。
-*   Table_map event 跟在图 5 中看到的相同，显示了接下来要打开的表，map 到数字 226。现在我们这条 SQL 语句只操作了一张表，如果要操作多张表呢？每个表都有一个对应的 Table_map event、都会 map 到一个单独的数字，用于区分对不同表的操作。
+*   `Table_map` event 跟在图 5 中看到的相同，显示了接下来要打开的表，map 到数字 226。现在我们这条 SQL 语句只操作了一张表，如果要操作多张表呢？每个表都有一个对应的 Table_map event、都会 map 到一个单独的数字，用于区分对不同表的操作。
 *   我们在 mysqlbinlog 的命令中，使用了 -vv 参数是为了把内容都解析出来，所以从结果里面可以看到各个字段的值（比如，@1=4、 @2=4 这些值）。
-*   binlog_row_image 的默认配置是 FULL，因此 Delete_event 里面，包含了删掉的行的所有字段的值。如果把 binlog_row_image 设置为 MINIMAL，则只会记录必要的信息，在这个例子里，就是只会记录 id=4 这个信息。
+*   `binlog_row_image` 的默认配置是 FULL，因此 `Delete_event` 里面，包含了删掉的行的所有字段的值。如果把 `binlog_row_image` 设置为 MINIMAL，则只会记录必要的信息，在这个例子里，就是只会记录 id=4 这个信息。
 *   最后的 Xid event，用于表示事务被正确地提交了。
 
 你可以看到，当 binlog_format 使用 row 格式的时候，binlog 里面记录了真实删除行的主键 id，这样 binlog 传到备库去的时候，就肯定会删除 id=4 的行，不会有主备删除不同行的问题。
@@ -265,19 +276,19 @@ binlog 在 MySQL 的各种高可用方案上扮演了重要角色。今天介绍
 
 所谓主备延迟，就是同一个事务，在备库执行完成的时间和主库执行完成的时间之间的差值，也就是 T3-T1。
 
-你可以在备库上执行 show slave status 命令，它的返回结果里面会显示 seconds_behind_master，用于表示当前备库延迟了多少秒。
+你可以在备库上执行 show slave status 命令，它的返回结果里面会显示 `seconds_behind_master`，用于表示当前备库延迟了多少秒。
 
-seconds_behind_master 的计算方法是这样的：
+`seconds_behind_master` 的计算方法是这样的：
 
 1.  每个事务的 binlog 里面都有一个时间字段，用于记录主库上写入的时间；
 
-2.  备库取出当前正在执行的事务的时间字段的值，计算它与当前系统时间的差值，得到 seconds_behind_master。
+2.  备库取出当前正在执行的事务的时间字段的值，计算它与当前系统时间的差值，得到 `seconds_behind_master`。
 
-可以看到，其实 seconds_behind_master 这个参数计算的就是 T3-T1。所以，我们可以用 seconds_behind_master 来作为主备延迟的值，这个值的时间精度是秒。
+可以看到，其实 `seconds_behind_master` 这个参数计算的就是 T3-T1。所以，我们可以用 `seconds_behind_master` 来作为主备延迟的值，这个值的时间精度是秒。
 
 你可能会问，如果主备库机器的系统时间设置不一致，会不会导致主备延迟的值不准？
 
-其实不会的。因为，备库连接到主库的时候，会通过执行 SELECT UNIX_TIMESTAMP() 函数来获得当前主库的系统时间。如果这时候发现主库的系统时间与自己不一致，备库在执行 seconds_behind_master 计算的时候会自动扣掉这个差值。
+其实不会的。因为，备库连接到主库的时候，会通过执行 `SELECT UNIX_TIMESTAMP()` 函数来获得当前主库的系统时间。如果这时候发现主库的系统时间与自己不一致，备库在执行 `seconds_behind_master` 计算的时候会自动扣掉这个差值。
 
 需要说明的是，在网络正常的时候，日志从主库传给备库所需的时间是很短的，即 T2-T1 的值是非常小的。也就是说，网络正常情况下，主备延迟的主要来源是备库接收完 binlog 和执行完这个事务之间的时间差。
 
@@ -371,7 +382,12 @@ seconds_behind_master 的计算方法是这样的：
 接下来，我就和你分享一个可用性优先流程产生数据不一致的例子。假设有一个表 t：
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,  `c` int(11) unsigned DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB; insert into t(c) values(1),(2),(3);
+mysql> CREATE TABLE `t` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,  
+  `c` int(11) unsigned DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; 
+insert into t(c) values(1),(2),(3);
 ```
 
 这个表定义了一个自增主键 id，初始化数据后，主库和备库上都是 3 行数据。接下来，业务人员要继续在表 t 上执行两条插入语句的命令，依次是：
@@ -483,9 +499,9 @@ insert into t(c) values(4);insert into t(c) values(5);
 
 图 2 多线程模型
 
-图 2 中，coordinator 就是原来的 sql_thread, 不过现在它不再直接更新数据了，只负责读取中转日志和分发事务。真正更新日志的，变成了 worker 线程。而 work 线程的个数，就是由参数 slave_parallel_workers 决定的。根据我的经验，把这个值设置为 8~16 之间最好（32 核物理机的情况），毕竟备库还有可能要提供读查询，不能把 CPU 都吃光了。
+图 2 中，coordinator 就是原来的 `sql_thread`, 不过现在它不再直接更新数据了，只负责读取中转日志和分发事务。真正更新日志的，变成了 worker 线程。而 work 线程的个数，就是由参数 `slave_parallel_workers` 决定的。根据我的经验，把这个值设置为 8~16 之间最好（32 核物理机的情况），毕竟备库还有可能要提供读查询，不能把 CPU 都吃光了。
 
-接下来，你需要先思考一个问题：事务能不能按照轮询的方式分发给各个 worker，也就是第一个事务分给 worker_1，第二个事务发给 worker_2 呢？
+接下来，你需要先思考一个问题：事务能不能按照轮询的方式分发给各个 worker，也就是第一个事务分给 `worker_1`，第二个事务发给 `worker_2` 呢？
 
 其实是不行的。因为，事务被分发给 worker 以后，不同的 worker 就独立执行了。但是，由于 CPU 的调度策略，很可能第二个事务最终比第一个事务先执行。而如果这时候刚好这两个事务更新的是同一行，也就意味着，同一行上的两个事务，在主库和备库上的执行顺序相反，会导致主备不一致的问题。
 
@@ -520,21 +536,21 @@ insert into t(c) values(4);insert into t(c) values(5);
 
 在有事务分配给 worker 时，事务里面涉及的表会被加到对应的 hash 表中。worker 执行完成后，这个表会被从 hash 表中去掉。
 
-图 3 中，hash_table_1 表示，现在 worker_1 的“待执行事务队列”里，有 4 个事务涉及到 db1.t1 表，有 1 个事务涉及到 db2.t2 表；hash_table_2 表示，现在 worker_2 中有一个事务会更新到表 t3 的数据。
+图 3 中，`hash_table_1` 表示，现在 `worker_1` 的“待执行事务队列”里，有 4 个事务涉及到 db1.t1 表，有 1 个事务涉及到 db2.t2 表；`hash_table_2` 表示，现在 worker_2 中有一个事务会更新到表 t3 的数据。
 
 假设在图中的情况下，coordinator 从中转日志中读入一个新事务 T，这个事务修改的行涉及到表 t1 和 t3。
 
 现在我们用事务 T 的分配流程，来看一下分配规则。
 
-1.  由于事务 T 中涉及修改表 t1，而 worker_1 队列中有事务在修改表 t1，事务 T 和队列中的某个事务要修改同一个表的数据，这种情况我们说事务 T 和 worker_1 是冲突的。
+1.  由于事务 T 中涉及修改表 t1，而 `worker_1` 队列中有事务在修改表 t1，事务 T 和队列中的某个事务要修改同一个表的数据，这种情况我们说事务 T 和 worker_1 是冲突的。
 
 2.  按照这个逻辑，顺序判断事务 T 和每个 worker 队列的冲突关系，会发现事务 T 跟 worker_2 也冲突。
 
 3.  事务 T 跟多于一个 worker 冲突，coordinator 线程就进入等待。
 
-4.  每个 worker 继续执行，同时修改 hash_table。假设 hash_table_2 里面涉及到修改表 t3 的事务先执行完成，就会从 hash_table_2 中把 db1.t3 这一项去掉。
+4.  每个 worker 继续执行，同时修改 `hash_table`。假设 `hash_table_2` 里面涉及到修改表 t3 的事务先执行完成，就会从 `hash_table_2` 中把 db1.t3 这一项去掉。
 
-5.  这样 coordinator 会发现跟事务 T 冲突的 worker 只有 worker_1 了，因此就把它分配给 worker_1。
+5.  这样 coordinator 会发现跟事务 T 冲突的 worker 只有 `worker_1` 了，因此就把它分配给 `worker_1`。
 
 6.  coordinator 继续读下一个中转日志，继续分配事务。
 
@@ -559,7 +575,14 @@ insert into t(c) values(4);insert into t(c) values(5);
 但是，这个“唯一键”只有主键 id 还是不够的，我们还需要考虑下面这种场景，表 t1 中除了主键，还有唯一索引 a：
 
 ```
-CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(11) DEFAULT NULL,  PRIMARY KEY (`id`),  UNIQUE KEY `a` (`a`)) ENGINE=InnoDB; insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
+CREATE TABLE `t1` (
+  `id` int(11) NOT NULL,  
+  `a` int(11) DEFAULT NULL,  
+  `b` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  UNIQUE KEY `a` (`a`)
+) ENGINE=InnoDB; 
+insert into t1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
 ```
 
 假设，接下来我们要在主库执行这两个事务：
@@ -635,7 +658,7 @@ CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 在实现上，MariaDB 是这么做的：
 
-1.  在一组里面一起提交的事务，有一个相同的 commit_id，下一组就是 commit_id+1；
+1.  在一组里面一起提交的事务，有一个相同的 `commit_id`，下一组就是 `commit_id+1`；
 
 2.  commit_id 直接写到 binlog 里面；
 
@@ -694,9 +717,9 @@ CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 我在第 23 篇文章，讲 binlog 的组提交的时候，介绍过两个参数：
 
-1.  binlog_group_commit_sync_delay 参数，表示延迟多少微秒后才调用 fsync;
+1.  `binlog_group_commit_sync_delay` 参数，表示延迟多少微秒后才调用 fsync;
 
-2.  binlog_group_commit_sync_no_delay_count 参数，表示累积多少次以后才调用 fsync。
+2.  `binlog_group_commit_sync_no_delay_count` 参数，表示累积多少次以后才调用 fsync。
 
 这两个参数是用于故意拉长 binlog 从 write 到 fsync 的时间，以此减少 binlog 的写盘次数。在 MySQL 5.7 的并行复制策略里，它们可以用来制造更多的“同时处于 prepare 阶段的事务”。这样就增加了备库复制的并行度。
 
@@ -732,7 +755,7 @@ CREATE TABLE `t1` (  `id` int(11) NOT NULL,  `a` int(11) DEFAULT NULL,  `b` int(
 
 在今天这篇文章中，我和你介绍了 MySQL 的各种多线程复制策略。
 
-为什么要有多线程复制呢？这是因为单线程复制的能力全面低于多线程复制，对于更新压力较大的主库，备库是可能一直追不上主库的。从现象上看就是，备库上 seconds_behind_master 的值越来越大。
+为什么要有多线程复制呢？这是因为单线程复制的能力全面低于多线程复制，对于更新压力较大的主库，备库是可能一直追不上主库的。从现象上看就是，备库上 `seconds_behind_master` 的值越来越大。
 
 在介绍完每个并行复制策略后，我还和你分享了不同策略的优缺点：
 
@@ -777,8 +800,8 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 这条命令有这么 6 个参数：
 
-*   MASTER_HOST、MASTER_PORT、MASTER_USER 和 MASTER_PASSWORD 四个参数，分别代表了主库 A’的 IP、端口、用户名和密码。
-*   最后两个参数 MASTER_LOG_FILE 和 MASTER_LOG_POS 表示，要从主库的 master_log_name 文件的 master_log_pos 这个位置的日志继续同步。而这个位置就是我们所说的同步位点，也就是主库对应的文件名和日志偏移量。
+*   `MASTER_HOST`、`MASTER_PORT`、`MASTER_USER` 和 `MASTER_PASSWORD` 四个参数，分别代表了主库 A’的 IP、端口、用户名和密码。
+*   最后两个参数 `MASTER_LOG_FILE` 和 `MASTER_LOG_POS` 表示，要从主库的 `master_log_name` 文件的 `master_log_pos` 这个位置的日志继续同步。而这个位置就是我们所说的同步位点，也就是主库对应的文件名和日志偏移量。
 
 那么，这里就有一个问题了，节点 B 要设置成 A’的从库，就要执行 change master 命令，就不可避免地要设置位点的这两个参数，但是这两个参数到底应该怎么设置呢？
 
@@ -807,7 +830,7 @@ mysqlbinlog File --stop-datetime=T --start-datetime=T
 
 图 3 mysqlbinlog 部分输出结果
 
-图中，end_log_pos 后面的值“123”，表示的就是 A’这个实例，在 T 时刻写入新的 binlog 的位置。然后，我们就可以把 123 这个值作为 $master_log_pos ，用在节点 B 的 change master 命令里。
+图中，`end_log_pos` 后面的值“123”，表示的就是 A’这个实例，在 T 时刻写入新的 binlog 的位置。然后，我们就可以把 123 这个值作为 `$master_log_pos` ，用在节点 B 的 change master 命令里。
 
 当然这个值并不精确。为什么呢？
 
@@ -833,22 +856,22 @@ set global sql_slave_skip_counter=1;start slave;
 
 因为切换过程中，可能会不止重复执行一个事务，所以我们需要在从库 B 刚开始接到新主库 A’时，持续观察，每次碰到这些错误就停下来，执行一次跳过命令，直到不再出现停下来的情况，以此来跳过可能涉及的所有事务。
 
-**另外一种方式是，**通过设置 slave_skip_errors 参数，直接设置跳过指定的错误。
+**另外一种方式是，**通过设置 `slave_skip_errors` 参数，直接设置跳过指定的错误。
 
 在执行主备切换时，有这么两类错误，是经常会遇到的：
 
 *   1062 错误是插入数据时唯一键冲突；
 *   1032 错误是删除数据时找不到行。
 
-因此，我们可以把 slave_skip_errors 设置为 “1032,1062”，这样中间碰到这两个错误时就直接跳过。
+因此，我们可以把 `slave_skip_errors` 设置为 “1032,1062”，这样中间碰到这两个错误时就直接跳过。
 
 这里需要注意的是，这种直接跳过指定错误的方法，针对的是主备切换时，由于找不到精确的同步位点，所以只能采用这种方法来创建从库和新主库的主备关系。
 
-这个背景是，我们很清楚在主备切换过程中，直接跳过 1032 和 1062 这两类错误是无损的，所以才可以这么设置 slave_skip_errors 参数。等到主备间的同步关系建立完成，并稳定执行一段时间之后，我们还需要把这个参数设置为空，以免之后真的出现了主从数据不一致，也跳过了。
+这个背景是，我们很清楚在主备切换过程中，直接跳过 1032 和 1062 这两类错误是无损的，所以才可以这么设置 `slave_skip_errors` 参数。等到主备间的同步关系建立完成，并稳定执行一段时间之后，我们还需要把这个参数设置为空，以免之后真的出现了主从数据不一致，也跳过了。
 
 # GTID
 
-通过 sql_slave_skip_counter 跳过事务和通过 slave_skip_errors 忽略错误的方法，虽然都最终可以建立从库 B 和新主库 A’的主备关系，但这两种操作都很复杂，而且容易出错。所以，MySQL 5.6 版本引入了 GTID，彻底解决了这个困难。
+通过 `sql_slave_skip_counter` 跳过事务和通过 `slave_skip_errors` 忽略错误的方法，虽然都最终可以建立从库 B 和新主库 A’的主备关系，但这两种操作都很复杂，而且容易出错。所以，MySQL 5.6 版本引入了 GTID，彻底解决了这个困难。
 
 那么，GTID 到底是什么意思，又是如何解决找同步位点这个问题呢？现在，我就和你简单介绍一下。
 
@@ -869,25 +892,25 @@ GTID=server_uuid:gno
 GTID=source_id:transaction_id
 ```
 
-这里的 source_id 就是 server_uuid；而后面的这个 transaction_id，我觉得容易造成误导，所以我改成了 gno。为什么说使用 transaction_id 容易造成误解呢？
+这里的 `source_id` 就是 `server_uuid`；而后面的这个 `transaction_id`，我觉得容易造成误导，所以我改成了 gno。为什么说使用 `transaction_id` 容易造成误解呢？
 
-因为，在 MySQL 里面我们说 transaction_id 就是指事务 id，事务 id 是在事务执行过程中分配的，如果这个事务回滚了，事务 id 也会递增，而 gno 是在事务提交的时候才会分配。
+因为，在 MySQL 里面我们说 `transaction_id` 就是指事务 id，事务 id 是在事务执行过程中分配的，如果这个事务回滚了，事务 id 也会递增，而 gno 是在事务提交的时候才会分配。
 
 从效果上看，GTID 往往是连续的，因此我们用 gno 来表示更容易理解。
 
-GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 gtid_mode=on 和 enforce_gtid_consistency=on 就可以了。
+GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例的时候，加上参数 `gtid_mode=on` 和 `enforce_gtid_consistency=on` 就可以了。
 
 在 GTID 模式下，每个事务都会跟一个 GTID 一一对应。这个 GTID 有两种生成方式，而使用哪种方式取决于 session 变量 gtid_next 的值。
 
-1.  如果 gtid_next=automatic，代表使用默认值。这时，MySQL 就会把 server_uuid:gno 分配给这个事务。
-    a. 记录 binlog 的时候，先记录一行 SET @@SESSION.GTID_NEXT=‘server_uuid:gno’;
+1.  如果 `gtid_next=automatic`，代表使用默认值。这时，MySQL 就会把 `server_uuid:gno` 分配给这个事务。
+    a. 记录 binlog 的时候，先记录一行 `SET @@SESSION.GTID_NEXT=‘server_uuid:gno’`;
     b. 把这个 GTID 加入本实例的 GTID 集合。
 
-2.  如果 gtid_next 是一个指定的 GTID 的值，比如通过 set gtid_next='current_gtid’指定为 current_gtid，那么就有两种可能：
-    a. 如果 current_gtid 已经存在于实例的 GTID 集合中，接下来执行的这个事务会直接被系统忽略；
-    b. 如果 current_gtid 没有存在于实例的 GTID 集合中，就将这个 current_gtid 分配给接下来要执行的事务，也就是说系统不需要给这个事务生成新的 GTID，因此 gno 也不用加 1。
+2.  如果 `gtid_next` 是一个指定的 GTID 的值，比如通过 `set gtid_next='current_gtid’`指定为 `current_gtid`，那么就有两种可能：
+    a. 如果 `current_gtid` 已经存在于实例的 GTID 集合中，接下来执行的这个事务会直接被系统忽略；
+    b. 如果 `current_gtid` 没有存在于实例的 GTID 集合中，就将这个 current_gtid 分配给接下来要执行的事务，也就是说系统不需要给这个事务生成新的 GTID，因此 gno 也不用加 1。
 
-注意，一个 current_gtid 只能给一个事务使用。这个事务提交后，如果要执行下一个事务，就要执行 set 命令，把 gtid_next 设置成另外一个 gtid 或者 automatic。
+注意，一个 `current_gtid` 只能给一个事务使用。这个事务提交后，如果要执行下一个事务，就要执行 set 命令，把 `gtid_next` 设置成另外一个 gtid 或者 automatic。
 
 这样，每个 MySQL 实例都维护了一个 GTID 集合，用来对应“这个实例执行过的所有事务”。
 
@@ -896,7 +919,12 @@ GTID 模式的启动也很简单，我们只需要在启动一个 MySQL 实例�
 我们在实例 X 中创建一个表 t。
 
 ```
-CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB; insert into t values(1,1);
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; 
+insert into t values(1,1);
 ```
 
 
@@ -917,7 +945,11 @@ insert into t values(1,1);
 处理方法就是，你可以执行下面的这个语句序列：
 
 ```
-set gtid_next='aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10';begin;commit;set gtid_next=automatic;start slave;
+set gtid_next='aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10';
+begin;
+commit;
+set gtid_next=automatic;
+start slave;
 ```
 
 其中，前三条语句的作用，是通过提交一个空事务，把这个 GTID 加到实例 X 的 GTID 集合中。如图 5 所示，就是执行完这个空事务之后的 show master status 的结果。
@@ -941,9 +973,9 @@ set gtid_next='aaaaaaaa-cccc-dddd-eeee-ffffffffffff:10';begin;commit;set gtid_ne
 CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name MASTER_PASSWORD=$password master_auto_position=1 
 ```
 
-其中，master_auto_position=1 就表示这个主备关系使用的是 GTID 协议。可以看到，前面让我们头疼不已的 MASTER_LOG_FILE 和 MASTER_LOG_POS 参数，已经不需要指定了。
+其中，`master_auto_position`=1 就表示这个主备关系使用的是 GTID 协议。可以看到，前面让我们头疼不已的 `MASTER_LOG_FILE` 和 `MASTER_LOG_POS` 参数，已经不需要指定了。
 
-我们把现在这个时刻，实例 A’的 GTID 集合记为 set_a，实例 B 的 GTID 集合记为 set_b。接下来，我们就看看现在的主备切换逻辑。
+我们把现在这个时刻，实例 A’的 GTID 集合记为 `set_a`，实例 B 的 GTID 集合记为 `set_b`。接下来，我们就看看现在的主备切换逻辑。
 
 我们在实例 B 上执行 start slave 命令，取 binlog 的逻辑是这样的：
 
@@ -951,7 +983,7 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 2.  实例 B 把 set_b 发给主库 A’。
 
-3.  实例 A’算出 set_a 与 set_b 的差集，也就是所有存在于 set_a，但是不存在于 set_b 的 GTID 的集合，判断 A’本地是否包含了这个差集需要的所有 binlog 事务。
+3.  实例 A’算出 `set_a` 与 `set_b` 的差集，也就是所有存在于 `set_a`，但是不存在于 `set_b` 的 GTID 的集合，判断 A’本地是否包含了这个差集需要的所有 binlog 事务。
     a. 如果不包含，表示 A’已经把实例 B 需要的 binlog 给删掉了，直接返回错误；
     b. 如果确认全部包含，A’从自己的 binlog 文件里面，找出第一个不在 set_b 的事务，发给 B；
 
@@ -967,9 +999,9 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 其实，严谨地说，主备切换不是不需要找位点了，而是找位点这个工作，在实例 A’内部就已经自动完成了。但由于这个工作是自动的，所以对 HA 系统的开发人员来说，非常友好。
 
-之后这个系统就由新主库 A’写入，主库 A’的自己生成的 binlog 中的 GTID 集合格式是：server_uuid_of_A’:1-M。
+之后这个系统就由新主库 A’写入，主库 A’的自己生成的 binlog 中的 GTID 集合格式是：`server_uuid_of_A’:1-M`。
 
-如果之前从库 B 的 GTID 集合格式是 server_uuid_of_A:1-N， 那么切换之后 GTID 集合的格式就变成了 server_uuid_of_A:1-N, server_uuid_of_A’:1-M。
+如果之前从库 B 的 GTID 集合格式是 `server_uuid_of_A:1-N`， 那么切换之后 GTID 集合的格式就变成了 `server_uuid_of_A:1-N, server_uuid_of_A’:1-M`。
 
 当然，主库 A’之前也是 A 的备库，因此主库 A’和从库 B 的 GTID 集合是一样的。这就达到了我们预期。
 
@@ -979,7 +1011,7 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 
 之前在第 22 篇文章[《MySQL 有哪些“饮鸩止渴”提高性能的方法？》](https://time.geekbang.org/column/article/75746)中，我和你提到业务高峰期的慢查询性能问题时，分析到如果是由于索引缺失引起的性能问题，我们可以通过在线加索引来解决。但是，考虑到要避免新增索引对主库性能造成的影响，我们可以先在备库加索引，然后再切换。
 
-当时我说，在双 M 结构下，备库执行的 DDL 语句也会传给主库，为了避免传回后对主库造成影响，要通过 set sql_log_bin=off 关掉 binlog。
+当时我说，在双 M 结构下，备库执行的 DDL 语句也会传给主库，为了避免传回后对主库造成影响，要通过 `set sql_log_bin=off` 关掉 binlog。
 
 评论区有位同学提出了一个问题：这样操作的话，数据库里面是加了索引，但是 binlog 并没有记录下这一个更新，是不是会导致数据和日志不一致？
 
@@ -996,7 +1028,11 @@ CHANGE MASTER TO MASTER_HOST=$host_name MASTER_PORT=$port MASTER_USER=$user_name
 *   到实例 X 上执行以下语句序列：
 
 ```
-set GTID_NEXT="server_uuid_of_Y:gno";begin;commit;set gtid_next=automatic;start slave;
+set GTID_NEXT="server_uuid_of_Y:gno";
+begin;
+commit;
+set gtid_next=automatic;
+start slave;
 ```
 
 这样做的目的在于，既可以让实例 Y 的更新有 binlog 记录，同时也可以确保不会在实例 X 上执行这条更新。
@@ -1095,9 +1131,9 @@ set GTID_NEXT="server_uuid_of_Y:gno";begin;commit;set gtid_next=automatic;start 
 
 通过前面的[第 25 篇](https://time.geekbang.org/column/article/76795)文章，我们知道 show slave status 结果里的 seconds_behind_master 参数的值，可以用来衡量主备延迟时间的长短。
 
-所以**第一种确保主备无延迟的方法是，**每次从库执行查询请求前，先判断 seconds_behind_master 是否已经等于 0。如果还不等于 0 ，那就必须等到这个参数变为 0 才能执行查询请求。
+所以**第一种确保主备无延迟的方法是，**每次从库执行查询请求前，先判断 `seconds_behind_master` 是否已经等于 0。如果还不等于 0 ，那就必须等到这个参数变为 0 才能执行查询请求。
 
-seconds_behind_master 的单位是秒，如果你觉得精度不够的话，还可以采用对比位点和 GTID 的方法来确保主备无延迟，也就是我们接下来要说的第二和第三种方法。
+`seconds_behind_master` 的单位是秒，如果你觉得精度不够的话，还可以采用对比位点和 GTID 的方法来确保主备无延迟，也就是我们接下来要说的第二和第三种方法。
 
 如图 3 所示，是一个 show slave status 结果的部分截图。
 
@@ -1108,20 +1144,20 @@ seconds_behind_master 的单位是秒，如果你觉得精度不够的话，还�
 
 **第二种方法，**对比位点确保主备无延迟：
 
-*   Master_Log_File 和 Read_Master_Log_Pos，表示的是读到的主库的最新位点；
-*   Relay_Master_Log_File 和 Exec_Master_Log_Pos，表示的是备库执行的最新位点。
+*   `Master_Log_File` 和 `Read_Master_Log_Pos`，表示的是读到的主库的最新位点；
+*   `Relay_Master_Log_File` 和 `Exec_Master_Log_Pos`，表示的是备库执行的最新位点。
 
-如果 Master_Log_File 和 Relay_Master_Log_File、Read_Master_Log_Pos 和 Exec_Master_Log_Pos 这两组值完全相同，就表示接收到的日志已经同步完成。
+如果 `Master_Log_File` 和 `Relay_Master_Log_File`、`Read_Master_Log_Pos` 和 `Exec_Master_Log_Pos` 这两组值完全相同，就表示接收到的日志已经同步完成。
 
 **第三种方法，**对比 GTID 集合确保主备无延迟：
 
-*   Auto_Position=1 ，表示这对主备关系使用了 GTID 协议。
-*   Retrieved_Gtid_Set，是备库收到的所有日志的 GTID 集合；
-*   Executed_Gtid_Set，是备库所有已经执行完成的 GTID 集合。
+*   `Auto_Position=1` ，表示这对主备关系使用了 GTID 协议。
+*   `Retrieved_Gtid_Set`，是备库收到的所有日志的 GTID 集合；
+*   `Executed_Gtid_Set`，是备库所有已经执行完成的 GTID 集合。
 
 如果这两个集合相同，也表示备库接收到的日志都已经同步完成。
 
-可见，对比位点和对比 GTID 这两种方法，都要比判断 seconds_behind_master 是否为 0 更准确。
+可见，对比位点和对比 GTID 这两种方法，都要比判断 `seconds_behind_master` 是否为 0 更准确。
 
 在执行查询请求之前，先判断从库是否同步完成的方法，相比于 sleep 方案，准确度确实提升了不少，但还是没有达到“精确”的程度。为什么这么说呢？
 
@@ -1231,9 +1267,9 @@ select master_pos_wait(file, pos[, timeout]);
 
 2.  选定一个从库执行查询语句；
 
-3.  在从库上执行 select master_pos_wait(File, Position, 1)；
+3.  在从库上执行 `select master_pos_wait(File, Position, 1)`；
 
-4.  如果返回值是 >=0 的正整数，则在这个从库执行查询语句；
+4.  如果返回值是 `>=0` 的正整数，则在这个从库执行查询语句；
 
 5.  否则，到主库执行查询语句。
 
@@ -1242,7 +1278,7 @@ select master_pos_wait(file, pos[, timeout]);
 
 图 6 master_pos_wait 方案
 
-这里我们假设，这条 select 查询最多在从库上等待 1 秒。那么，如果 1 秒内 master_pos_wait 返回一个大于等于 0 的整数，就确保了从库上执行的这个查询结果一定包含了 trx1 的数据。
+这里我们假设，这条 select 查询最多在从库上等待 1 秒。那么，如果 1 秒内 `master_pos_wait` 返回一个大于等于 0 的整数，就确保了从库上执行的这个查询结果一定包含了 trx1 的数据。
 
 步骤 5 到主库执行查询语句，是这类方案常用的退化机制。因为从库的延迟时间不可控，不能无限等待，所以如果等待超时，就应该放弃，然后到主库去查。
 
@@ -1274,7 +1310,7 @@ MySQL 中同样提供了一个类似的命令：
 
 2.  选定一个从库执行查询语句；
 
-3.  在从库上执行 select wait_for_executed_gtid_set(gtid1, 1)；
+3.  在从库上执行 `select wait_for_executed_gtid_set(gtid1, 1)`；
 
 4.  如果返回值是 0，则在这个从库执行查询语句；
 
@@ -1289,9 +1325,9 @@ MySQL 中同样提供了一个类似的命令：
 
 在上面的第一步中，trx1 事务更新完成后，从返回包直接获取这个事务的 GTID。问题是，怎么能够让 MySQL 在执行事务后，返回包中带上 GTID 呢？
 
-你只需要将参数 session_track_gtids 设置为 OWN_GTID，然后通过 API 接口 mysql_session_track_get_first 从返回包解析出 GTID 的值即可。
+你只需要将参数 `session_track_gtids` 设置为 `OWN_GTID`，然后通过 API 接口 `mysql_session_track_get_first` 从返回包解析出 GTID 的值即可。
 
-在专栏的[第一篇文章](https://time.geekbang.org/column/article/68319)中，我介绍 mysql_reset_connection 的时候，评论区有同学留言问这类接口应该怎么使用。
+在专栏的[第一篇文章](https://time.geekbang.org/column/article/68319)中，我介绍 `mysql_reset_connection` 的时候，评论区有同学留言问这类接口应该怎么使用。
 
 这里我再回答一下。其实，MySQL 并没有提供这类接口的 SQL 用法，是提供给程序的 API([https://dev.mysql.com/doc/refman/5.7/en/c-api-functions.html](https://dev.mysql.com/doc/refman/5.7/en/c-api-functions.html))。
 
@@ -1305,7 +1341,7 @@ MySQL 中同样提供了一个类似的命令：
 
 图 9 显示更新事务的 GTID-- 效果
 
-当然了，这只是一个例子。你要使用这个方案的时候，还是应该在你的客户端代码中调用 mysql_session_track_get_first 这个函数。
+当然了，这只是一个例子。你要使用这个方案的时候，还是应该在你的客户端代码中调用 `mysql_session_track_get_first` 这个函数。
 
 # 小结
 
@@ -1334,29 +1370,35 @@ MySQL 中同样提供了一个类似的命令：
 实际上，select 1 成功返回，只能说明这个库的进程还在，并不能说明主库没问题。现在，我们来看一下这个场景。
 
 ```
-set global innodb_thread_concurrency=3; CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB;  insert into t values(1,1)
+set global innodb_thread_concurrency=3; 
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;  
+insert into t values(1,1)
 ```
 
 
 图 1 查询 blocked
 
-我们设置 innodb_thread_concurrency 参数的目的是，控制 InnoDB 的并发线程上限。也就是说，一旦并发线程数达到这个值，InnoDB 在接收到新请求的时候，就会进入等待状态，直到有线程退出。
+我们设置 `innodb_thread_concurrency` 参数的目的是，控制 InnoDB 的并发线程上限。也就是说，一旦并发线程数达到这个值，InnoDB 在接收到新请求的时候，就会进入等待状态，直到有线程退出。
 
-这里，我把 innodb_thread_concurrency 设置成 3，表示 InnoDB 只允许 3 个线程并行执行。而在我们的例子中，前三个 session 中的 sleep(100)，使得这三个语句都处于“执行”状态，以此来模拟大查询。
+这里，我把 `innodb_thread_concurrency` 设置成 3，表示 InnoDB 只允许 3 个线程并行执行。而在我们的例子中，前三个 session 中的 sleep(100)，使得这三个语句都处于“执行”状态，以此来模拟大查询。
 
 你看到了， session D 里面，select 1 是能执行成功的，但是查询表 t 的语句会被堵住。也就是说，如果这时候我们用 select 1 来检测实例是否正常的话，是检测不出问题的。
 
-在 InnoDB 中，innodb_thread_concurrency 这个参数的默认值是 0，表示不限制并发线程数量。但是，不限制并发线程数肯定是不行的。因为，一个机器的 CPU 核数有限，线程全冲进来，上下文切换的成本就会太高。
+在 InnoDB 中，`innodb_thread_concurrency` 这个参数的默认值是 0，表示不限制并发线程数量。但是，不限制并发线程数肯定是不行的。因为，一个机器的 CPU 核数有限，线程全冲进来，上下文切换的成本就会太高。
 
-所以，通常情况下，我们建议把 innodb_thread_concurrency 设置为 64~128 之间的值。这时，你一定会有疑问，并发线程上限数设置为 128 够干啥，线上的并发连接数动不动就上千了。
+所以，通常情况下，我们建议把 `innodb_thread_concurrency` 设置为 64~128 之间的值。这时，你一定会有疑问，并发线程上限数设置为 128 够干啥，线上的并发连接数动不动就上千了。
 
 产生这个疑问的原因，是搞混了**并发连接和并发查询。**
 
 并发连接和并发查询，并不是同一个概念。你在 show processlist 的结果里，看到的几千个连接，指的就是并发连接。而“当前正在执行”的语句，才是我们所说的并发查询。
 
-并发连接数达到几千个影响并不大，就是多占一些内存而已。我们应该关注的是并发查询，因为并发查询太高才是 CPU 杀手。这也是为什么我们需要设置 innodb_thread_concurrency 参数的原因。
+并发连接数达到几千个影响并不大，就是多占一些内存而已。我们应该关注的是并发查询，因为并发查询太高才是 CPU 杀手。这也是为什么我们需要设置 `innodb_thread_concurrency` 参数的原因。
 
-然后，你可能还会想起我们在[第 7 篇文章](https://time.geekbang.org/column/article/70215)中讲到的热点更新和死锁检测的时候，如果把 innodb_thread_concurrency 设置为 128 的话，那么出现同一行热点更新的问题时，是不是很快就把 128 消耗完了，这样整个系统是不是就挂了呢？
+然后，你可能还会想起我们在[第 7 篇文章](https://time.geekbang.org/column/article/70215)中讲到的热点更新和死锁检测的时候，如果把 `innodb_thread_concurrency` 设置为 128 的话，那么出现同一行热点更新的问题时，是不是很快就把 128 消耗完了，这样整个系统是不是就挂了呢？
 
 实际上，**在线程进入锁等待以后，并发线程的计数会减一**，也就是说等行锁（也包括间隙锁）的线程是不算在 128 里面的。
 
@@ -1364,9 +1406,9 @@ MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已�
 
 为什么呢？假设处于锁等待的线程也占并发线程的计数，你可以设想一下这个场景：
 
-1.  线程 1 执行 begin; update t set c=c+1 where id=1, 启动了事务 trx1， 然后保持这个状态。这时候，线程处于空闲状态，不算在并发线程里面。
+1.  线程 1 执行 `begin; update t set c=c+1 where id=1`, 启动了事务 trx1， 然后保持这个状态。这时候，线程处于空闲状态，不算在并发线程里面。
 
-2.  线程 2 到线程 129 都执行 update t set c=c+1 where id=1; 由于等行锁，进入等待状态。这样就有 128 个线程处于等待状态；
+2.  线程 2 到线程 129 都执行 `update t set c=c+1 where id=1;` 由于等行锁，进入等待状态。这样就有 128 个线程处于等待状态；
 
 3.  如果处于锁等待状态的线程计数不减一，InnoDB 就会认为线程数用满了，会阻止其他语句进入引擎执行，这样线程 1 不能提交事务。而另外的 128 个线程又处于锁等待状态，整个系统就堵住了。
 
@@ -1379,7 +1421,7 @@ MySQL 这样设计是非常有意义的。因为，进入锁等待的线程已�
 
 虽然说等锁的线程不算在并发线程计数里，但如果它在真正地执行查询，就比如我们上面例子中前三个事务中的 select sleep(100) from t，还是要算进并发线程的计数的。
 
-在这个例子中，同时在执行的语句超过了设置的 innodb_thread_concurrency 的值，这时候系统其实已经不行了，但是通过 select 1 来检测系统，会认为系统还是正常的。
+在这个例子中，同时在执行的语句超过了设置的 `innodb_thread_concurrency` 的值，这时候系统其实已经不行了，但是通过 select 1 来检测系统，会认为系统还是正常的。
 
 因此，我们使用 select 1 的判断逻辑要修改一下。
 
@@ -1413,10 +1455,15 @@ mysql> update mysql.health_check set t_modified=now();
 
 但是，如果主库 A 和备库 B 都用相同的更新命令，就可能出现行冲突，也就是可能会导致主备同步停止。所以，现在看来 mysql.health_check 这个表就不能只有一行数据了。
 
-为了让主备之间的更新不产生冲突，我们可以在 mysql.health_check 表上存入多行数据，并用 A、B 的 server_id 做主键。
+为了让主备之间的更新不产生冲突，我们可以在 `mysql.health_check` 表上存入多行数据，并用 A、B 的 `server_id` 做主键。
 
 ```
-mysql> CREATE TABLE `health_check` (  `id` int(11) NOT NULL,  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  PRIMARY KEY (`id`)) ENGINE=InnoDB; /* 检测命令 */insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on duplicate key update t_modified=now();
+mysql> CREATE TABLE `health_check` (
+  `id` int(11) NOT NULL,  
+  `t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; /* 检测命令 */
+insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on duplicate key update t_modified=now();
 ```
 
 由于 MySQL 规定了主库和备库的 server_id 必须不同（否则创建主备关系的时候就会报错），这样就可以保证主、备库各自的检测命令不会发生冲突。
@@ -1447,9 +1494,9 @@ mysql> CREATE TABLE `health_check` (  `id` int(11) NOT NULL,  `t_modified` times
 
 针对磁盘利用率这个问题，如果 MySQL 可以告诉我们，内部每一次 IO 请求的时间，那我们判断数据库是否出问题的方法就可靠得多了。
 
-其实，MySQL 5.6 版本以后提供的 performance_schema 库，就在 file_summary_by_event_name 表里统计了每次 IO 请求的时间。
+其实，MySQL 5.6 版本以后提供的 `performance_schema` 库，就在 `file_summary_by_event_name` 表里统计了每次 IO 请求的时间。
 
-file_summary_by_event_name 表里有很多行数据，我们先来看看 event_name='wait/io/file/innodb/innodb_log_file’这一行。
+`file_summary_by_event_name` 表里有很多行数据，我们先来看看 `event_name='wait/io/file/innodb/innodb_log_file`’这一行。
 
 
 图 3 performance_schema.file_summary_by_event_name 的一行
@@ -1460,13 +1507,13 @@ file_summary_by_event_name 表里有很多行数据，我们先来看看 event_n
 
 第一组五列，是所有 IO 类型的统计。其中，COUNT_STAR 是所有 IO 的总次数，接下来四列是具体的统计项， 单位是皮秒；前缀 SUM、MIN、AVG、MAX，顾名思义指的就是总和、最小值、平均值和最大值。
 
-第二组六列，是读操作的统计。最后一列 SUM_NUMBER_OF_BYTES_READ 统计的是，总共从 redo log 里读了多少个字节。
+第二组六列，是读操作的统计。最后一列 `SUM_NUMBER_OF_BYTES_READ` 统计的是，总共从 redo log 里读了多少个字节。
 
 第三组六列，统计的是写操作。
 
 最后的第四组数据，是对其他类型数据的统计。在 redo log 里，你可以认为它们就是对 fsync 的统计。
 
-在 performance_schema 库的 file_summary_by_event_name 表里，binlog 对应的是 event_name = "wait/io/file/sql/binlog"这一行。各个字段的统计逻辑，与 redo log 的各个字段完全相同。这里，我就不再赘述了。
+在 `performance_schema` 库的 `file_summary_by_event_name` 表里，binlog 对应的是 `event_name = "wait/io/file/sql/binlog"`这一行。各个字段的统计逻辑，与 redo log 的各个字段完全相同。这里，我就不再赘述了。
 
 因为我们每一次操作数据库，performance_schema 都需要额外地统计这些信息，所以我们打开这个统计功能是有性能损耗的。
 

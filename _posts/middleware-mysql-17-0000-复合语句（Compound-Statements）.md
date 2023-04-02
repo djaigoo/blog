@@ -7,7 +7,7 @@ date: 2023-03-29 19:52:45
 tags:
 ---
 # BEGIN END
-BEGIN ... END 语法用于编写复合语句，这些语句可以出现在存储程序（存储过程和函数、触发器和事件）中。复合语句可以包含多个语句，由 BEGIN 和 END 关键字括起来。 statement_list 表示一个或多个语句的列表，每个语句以分号 (;) 语句定界符终止。 statement_list 本身是可选的，所以空复合语句（BEGIN END）是合法的。
+BEGIN ... END 语法用于编写复合语句，这些语句可以出现在存储程序（存储过程和函数、触发器和事件）中。复合语句可以包含多个语句，由 BEGIN 和 END 关键字括起来。 `statement_list` 表示一个或多个语句的列表，每个语句以分号 (;) 语句定界符终止。 `statement_list` 本身是可选的，所以空复合语句（BEGIN END）是合法的。
 BEGIN ... END 语句允许嵌套执行。
 
 语法如下：
@@ -31,9 +31,9 @@ END WHILE [end_label]
 ```
 
 BEGIN ... END 块以及 LOOP、REPEAT 和 WHILE 语句允许使用标签。这些语句的标签使用遵循以下规则：
-* begin_label 后面必须跟一个冒号。
-* begin_label 可以在没有 end_label 的情况下给出。如果存在 end_label，则它必须与 begin_label 相同。
-* end_label 不能在没有 begin_label 的情况下给出。
+* `begin_label` 后面必须跟一个冒号。
+* `begin_label` 可以在没有 `end_label` 的情况下给出。如果存在 `end_label`，则它必须与 `begin_label` 相同。
+* `end_label` 不能在没有 `begin_label` 的情况下给出。
 * 同一嵌套级别的标签必须不同。
 * 标签最长可达 16 个字符。
 

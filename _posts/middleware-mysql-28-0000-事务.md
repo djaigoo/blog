@@ -30,7 +30,8 @@ tags:
 其中“读提交”和“可重复读”比较难理解，所以我用一个例子说明这几种隔离级别。假设数据表 T 中只有一列，其中一行的值为 1，下面是按照时间顺序执行两个事务的行为。
 
 ```
-mysql> create table T(c int) engine=InnoDB;insert into T(c) values(1);
+mysql> create table T(c int) engine=InnoDB;
+insert into T(c) values(1);
 ```
 
 
@@ -48,7 +49,12 @@ mysql> create table T(c int) engine=InnoDB;insert into T(c) values(1);
 配置的方式是，将启动参数 transaction-isolation 的值设置成 READ-COMMITTED。你可以用 show variables 来查看当前的值。
 
 ```
-mysql> show variables like 'transaction_isolation'; +-----------------------+----------------+ | Variable_name | Value | +-----------------------+----------------+ | transaction_isolation | READ-COMMITTED | +-----------------------+----------------+
+mysql> show variables like 'transaction_isolation'; 
++-----------------------+----------------+ 
+| Variable_name         | Value          | 
++-----------------------+----------------+ 
+| transaction_isolation | READ-COMMITTED | 
++-----------------------+----------------+
 ```
 
 总结来说，存在即合理，哪个隔离级别都有它自己的使用场景，你要根据自己的业务情况来定。我想**你可能会问那什么时候需要“可重复读”的场景呢**？我们来看一个数据校对逻辑的案例。
@@ -97,7 +103,7 @@ mysql> show variables like 'transaction_isolation'; +-----------------------+---
 
 在 autocommit 为 1 的情况下，用 begin 显式启动的事务，如果执行 commit 则提交事务。如果执行 commit work and chain，则是提交事务并自动启动下一个事务，这样也省去了再次执行 begin 语句的开销。同时带来的好处是从程序开发的角度明确地知道每个语句是否处于事务中。
 
-你可以在 information_schema 库的 innodb_trx 这个表中查询长事务，比如下面这个语句，用于查找持续时间超过 60s 的事务。
+你可以在 `information_schema` 库的 `innodb_trx` 这个表中查询长事务，比如下面这个语句，用于查找持续时间超过 60s 的事务。
 
 ```
 select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx_started))>60
@@ -110,7 +116,12 @@ select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx
 我给你举一个例子吧。下面是一个只有两行的表的初始化语句。
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) NOT NULL,  `k` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB;insert into t(id, k) values(1,1),(2,2);
+mysql> CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `k` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+insert into t(id, k) values(1,1),(2,2);
 ```
 
 

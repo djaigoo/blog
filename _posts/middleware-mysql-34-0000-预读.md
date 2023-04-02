@@ -74,5 +74,5 @@ mysql> show global status like '%read_ahead%';
 3 rows in set (0.01 sec)
 ```
 
-* Innodb_buffer_pool_read_ahead：通过预读(后台线程)读入innodb buffer pool中数据页数
-* Innodb_buffer_pool_read_ahead_evicted：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
+* `Innodb_buffer_pool_read_ahead`：通过预读(后台线程)读入innodb buffer pool中数据页数
+* `Innodb_buffer_pool_read_ahead_evicted`：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数

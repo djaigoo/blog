@@ -104,10 +104,14 @@ InnoDB 的策略是尽量使用内存，因此对于一个长时间运行的库�
 
 InnoDB 会根据这两个因素先单独算出两个数字。
 
-参数 innodb_max_dirty_pages_pct 是脏页比例上限，默认值是 75%。InnoDB 会根据当前的脏页比例（假设为 M），算出一个范围在 0 到 100 之间的数字，计算这个数字的伪代码类似这样：
+参数 `innodb_max_dirty_pages_pct` 是脏页比例上限，默认值是 75%。InnoDB 会根据当前的脏页比例（假设为 M），算出一个范围在 0 到 100 之间的数字，计算这个数字的伪代码类似这样：
 
 ```
-F1(M){  if M>=innodb_max_dirty_pages_pct then      return 100;  return 100*M/innodb_max_dirty_pages_pct;}
+F1(M){
+  if M>=innodb_max_dirty_pages_pct then      
+    return 100;
+  return 100*M/innodb_max_dirty_pages_pct;
+}
 ```
 
 InnoDB 每次写入的日志都有一个序号，当前写入的序号跟 checkpoint 对应的序号之间的差值，我们假设为 N。InnoDB 会根据这个 N 算出一个范围在 0 到 100 之间的数字，这个计算公式可以记为 F2(N)。F2(N) 算法比较复杂，你只要知道 N 越大，算出来的值越大就好了。
@@ -126,20 +130,22 @@ InnoDB 每次写入的日志都有一个序号，当前写入的序号跟 checkp
 其中，脏页比例是通过 Innodb_buffer_pool_pages_dirty/Innodb_buffer_pool_pages_total 得到的，具体的命令参考下面的代码：
 
 ```
-mysql> select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty';select VARIABLE_VALUE into @b from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_total';select @a/@b;
+mysql> select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_dirty';
+select VARIABLE_VALUE into @b from global_status where VARIABLE_NAME = 'Innodb_buffer_pool_pages_total';
+select @a/@b;
 ```
 
 接下来，我们再看一个有趣的策略。
 
 一旦一个查询请求需要在执行过程中先 flush 掉一个脏页时，这个查询就可能要比平时慢了。而 MySQL 中的一个机制，可能让你的查询会更慢：在准备刷一个脏页的时候，如果这个数据页旁边的数据页刚好是脏页，就会把这个“邻居”也带着一起刷掉；而且这个把“邻居”拖下水的逻辑还可以继续蔓延，也就是对于每个邻居数据页，如果跟它相邻的数据页也还是脏页的话，也会被放到一起刷。
 
-在 InnoDB 中，innodb_flush_neighbors 参数就是用来控制这个行为的，值为 1 的时候会有上述的“连坐”机制，值为 0 时表示不找邻居，自己刷自己的。
+在 InnoDB 中，`innodb_flush_neighbors` 参数就是用来控制这个行为的，值为 1 的时候会有上述的“连坐”机制，值为 0 时表示不找邻居，自己刷自己的。
 
 找“邻居”这个优化在机械硬盘时代是很有意义的，可以减少很多随机 IO。机械硬盘的随机 IOPS 一般只有几百，相同的逻辑操作减少随机 IO 就意味着系统性能的大幅度提升。
 
-而如果使用的是 SSD 这类 IOPS 比较高的设备的话，我就建议你把 innodb_flush_neighbors 的值设置成 0。因为这时候 IOPS 往往不是瓶颈，而“只刷自己”，就能更快地执行完必要的刷脏页操作，减少 SQL 语句响应时间。
+而如果使用的是 SSD 这类 IOPS 比较高的设备的话，我就建议你把 `innodb_flush_neighbors` 的值设置成 0。因为这时候 IOPS 往往不是瓶颈，而“只刷自己”，就能更快地执行完必要的刷脏页操作，减少 SQL 语句响应时间。
 
-在 MySQL 8.0 中，innodb_flush_neighbors 参数的默认值已经是 0 了。
+在 MySQL 8.0 中，`innodb_flush_neighbors` 参数的默认值已经是 0 了。
 
 # 小结
 
@@ -158,7 +164,15 @@ mysql> select VARIABLE_VALUE into @a from global_status where VARIABLE_NAME = 'I
 假设你现在维护了一个交易系统，其中交易记录表 tradelog 包含交易流水号（tradeid）、交易员 id（operator）、交易时间（t_modified）等字段。为了便于描述，我们先忽略其他字段。这个表的建表语句如下：
 
 ```
-mysql> CREATE TABLE `tradelog` (  `id` int(11) NOT NULL,  `tradeid` varchar(32) DEFAULT NULL,  `operator` int(11) DEFAULT NULL,  `t_modified` datetime DEFAULT NULL,  PRIMARY KEY (`id`),  KEY `tradeid` (`tradeid`),  KEY `t_modified` (`t_modified`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+mysql> CREATE TABLE `tradelog` (
+  `id` int(11) NOT NULL,  
+  `tradeid` varchar(32) DEFAULT NULL,  
+  `operator` int(11) DEFAULT NULL,  
+  `t_modified` datetime DEFAULT NULL,  
+  PRIMARY KEY (`id`),  
+  KEY `tradeid` (`tradeid`),  
+  KEY `t_modified` (`t_modified`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 假设，现在已经记录了从 2016 年初到 2018 年底的所有数据，运营部门有一个需求是，要统计发生在所有年份中 7 月份的交易记录总数。这个逻辑看上去并不复杂，你的 SQL 语句可能会这么写：
@@ -171,36 +185,39 @@ mysql> select count(*) from tradelog where month(t_modified)=7;
 
 如果你问 DBA 同事为什么会出现这样的情况，他大概会告诉你：如果对字段做了函数计算，就用不上索引了，这是 MySQL 的规定。
 
-现在你已经学过了 InnoDB 的索引结构了，可以再追问一句为什么？为什么条件是 where t_modified='2018-7-1’的时候可以用上索引，而改成 where month(t_modified)=7 的时候就不行了？
+现在你已经学过了 InnoDB 的索引结构了，可以再追问一句为什么？为什么条件是 where `t_modified='2018-7-1’`的时候可以用上索引，而改成 `where month(t_modified)=7` 的时候就不行了？
 
 下面是这个 t_modified 索引的示意图。方框上面的数字就是 month() 函数对应的值。
 
 
 图 1 t_modified 索引示意图
 
-如果你的 SQL 语句条件用的是 where t_modified='2018-7-1’的话，引擎就会按照上面绿色箭头的路线，快速定位到 t_modified='2018-7-1’需要的结果。
+如果你的 SQL 语句条件用的是 `where t_modified='2018-7-1’`的话，引擎就会按照上面绿色箭头的路线，快速定位到 `t_modified='2018-7-1’`需要的结果。
 
 实际上，B+ 树提供的这个快速定位能力，来源于同一层兄弟节点的有序性。
 
-但是，如果计算 month() 函数的话，你会看到传入 7 的时候，在树的第一层就不知道该怎么办了。
+但是，如果计算 `month()` 函数的话，你会看到传入 7 的时候，在树的第一层就不知道该怎么办了。
 
 也就是说，**对索引字段做函数操作，可能会破坏索引值的有序性，因此优化器就决定放弃走树搜索功能。**
 
 需要注意的是，优化器并不是要放弃使用这个索引。
 
-在这个例子里，放弃了树搜索功能，优化器可以选择遍历主键索引，也可以选择遍历索引 t_modified，优化器对比索引大小后发现，索引 t_modified 更小，遍历这个索引比遍历主键索引来得更快。因此最终还是会选择索引 t_modified。
+在这个例子里，放弃了树搜索功能，优化器可以选择遍历主键索引，也可以选择遍历索引 `t_modified`，优化器对比索引大小后发现，索引 t_modified 更小，遍历这个索引比遍历主键索引来得更快。因此最终还是会选择索引 t_modified。
 
 接下来，我们使用 explain 命令，查看一下这条 SQL 语句的执行结果。
 
 
 图 2 explain 结果
 
-key="t_modified"表示的是，使用了 t_modified 这个索引；我在测试表数据中插入了 10 万行数据，rows=100335，说明这条语句扫描了整个索引的所有值；Extra 字段的 Using index，表示的是使用了覆盖索引。
+`key="t_modified"`表示的是，使用了 `t_modified` 这个索引；我在测试表数据中插入了 10 万行数据，rows=100335，说明这条语句扫描了整个索引的所有值；Extra 字段的 Using index，表示的是使用了覆盖索引。
 
-也就是说，由于在 t_modified 字段加了 month() 函数操作，导致了全索引扫描。为了能够用上索引的快速定位能力，我们就要把 SQL 语句改成基于字段本身的范围查询。按照下面这个写法，优化器就能按照我们预期的，用上 t_modified 索引的快速定位能力了。
+也就是说，由于在 `t_modified` 字段加了 month() 函数操作，导致了全索引扫描。为了能够用上索引的快速定位能力，我们就要把 SQL 语句改成基于字段本身的范围查询。按照下面这个写法，优化器就能按照我们预期的，用上 `t_modified` 索引的快速定位能力了。
 
-```
-mysql> select count(*) from tradelog where    -> (t_modified >= '2016-7-1' and t_modified<'2016-8-1') or    -> (t_modified >= '2017-7-1' and t_modified<'2017-8-1') or     -> (t_modified >= '2018-7-1' and t_modified<'2018-8-1');
+```sql
+mysql> select count(*) from tradelog where    
+-> (t_modified >= '2016-7-1' and t_modified<'2016-8-1') or    
+-> (t_modified >= '2017-7-1' and t_modified<'2017-8-1') or     
+-> (t_modified >= '2018-7-1' and t_modified<'2018-8-1');
 ```
 
 当然，如果你的系统上线时间更早，或者后面又插入了之后年份的数据的话，你就需要再把其他年份补齐。
@@ -271,7 +288,28 @@ select * from tradelog where id="83126";
 假设系统里还有另外一个表 trade_detail，用于记录交易的操作细节。为了便于量化分析和复现，我往交易日志表 tradelog 和交易详情表 trade_detail 这两个表里插入一些数据。
 
 ```
-mysql> CREATE TABLE `trade_detail` (  `id` int(11) NOT NULL,  `tradeid` varchar(32) DEFAULT NULL,  `trade_step` int(11) DEFAULT NULL, /* 操作步骤 */  `step_info` varchar(32) DEFAULT NULL, /* 步骤信息 */  PRIMARY KEY (`id`),  KEY `tradeid` (`tradeid`)) ENGINE=InnoDB DEFAULT CHARSET=utf8; insert into tradelog values(1, 'aaaaaaaa', 1000, now());insert into tradelog values(2, 'aaaaaaab', 1000, now());insert into tradelog values(3, 'aaaaaaac', 1000, now()); insert into trade_detail values(1, 'aaaaaaaa', 1, 'add');insert into trade_detail values(2, 'aaaaaaaa', 2, 'update');insert into trade_detail values(3, 'aaaaaaaa', 3, 'commit');insert into trade_detail values(4, 'aaaaaaab', 1, 'add');insert into trade_detail values(5, 'aaaaaaab', 2, 'update');insert into trade_detail values(6, 'aaaaaaab', 3, 'update again');insert into trade_detail values(7, 'aaaaaaab', 4, 'commit');insert into trade_detail values(8, 'aaaaaaac', 1, 'add');insert into trade_detail values(9, 'aaaaaaac', 2, 'update');insert into trade_detail values(10, 'aaaaaaac', 3, 'update again');insert into trade_detail values(11, 'aaaaaaac', 4, 'commit');
+mysql> CREATE TABLE `trade_detail` (
+  `id` int(11) NOT NULL,  
+  `tradeid` varchar(32) DEFAULT NULL,  
+  `trade_step` int(11) DEFAULT NULL, /* 操作步骤 */  
+  `step_info` varchar(32) DEFAULT NULL, /* 步骤信息 */  
+  PRIMARY KEY (`id`),  
+  KEY `tradeid` (`tradeid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8; 
+insert into tradelog values(1, 'aaaaaaaa', 1000, now());
+insert into tradelog values(2, 'aaaaaaab', 1000, now());
+insert into tradelog values(3, 'aaaaaaac', 1000, now()); 
+insert into trade_detail values(1, 'aaaaaaaa', 1, 'add');
+insert into trade_detail values(2, 'aaaaaaaa', 2, 'update');
+insert into trade_detail values(3, 'aaaaaaaa', 3, 'commit');
+insert into trade_detail values(4, 'aaaaaaab', 1, 'add');
+insert into trade_detail values(5, 'aaaaaaab', 2, 'update');
+insert into trade_detail values(6, 'aaaaaaab', 3, 'update again');
+insert into trade_detail values(7, 'aaaaaaab', 4, 'commit');
+insert into trade_detail values(8, 'aaaaaaac', 1, 'add');
+insert into trade_detail values(9, 'aaaaaaac', 2, 'update');
+insert into trade_detail values(10, 'aaaaaaac', 3, 'update again');
+insert into trade_detail values(11, 'aaaaaaac', 4, 'commit');
 ```
 
 这时候，如果要查询 id=2 的交易的所有操作步骤信息，SQL 语句可以这么写：
@@ -289,7 +327,7 @@ mysql> select d.* from tradelog l, trade_detail d where d.tradeid=l.tradeid and 
 
 2.  第二行 key=NULL，表示没有用上交易详情表 trade_detail 上的 tradeid 索引，进行了全表扫描。
 
-在这个执行计划里，是从 tradelog 表中取 tradeid 字段，再去 trade_detail 表里查询匹配字段。因此，我们把 tradelog 称为驱动表，把 trade_detail 称为被驱动表，把 tradeid 称为关联字段。
+在这个执行计划里，是从 tradelog 表中取 tradeid 字段，再去 `trade_detail` 表里查询匹配字段。因此，我们把 tradelog 称为驱动表，把 `trade_detail` 称为被驱动表，把 tradeid 称为关联字段。
 
 接下来，我们看下这个 explain 结果表示的执行流程：
 
@@ -405,7 +443,24 @@ MySQL 的优化器确实有“偷懒”的嫌疑，即使简单地把 where id+1
 为了便于描述，我还是构造一个表，基于这个表来说明今天的问题。这个表有两个字段 id 和 c，并且我在里面插入了 10 万行记录。
 
 ```
-mysql> CREATE TABLE `t` (  `id` int(11) NOT NULL,  `c` int(11) DEFAULT NULL,  PRIMARY KEY (`id`)) ENGINE=InnoDB; delimiter ;;create procedure idata()begin  declare i int;  set i=1;  while(i<=100000)do    insert into t values(i,i);    set i=i+1;  end while;end;;delimiter ; call idata();
+mysql> CREATE TABLE `t` (
+  `id` int(11) NOT NULL,  
+  `c` int(11) DEFAULT NULL,  
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB; 
+delimiter ;;
+create procedure idata()
+begin  
+  declare i int;  
+  set i=1;  
+  while(i<=100000)
+  do   
+    insert into t values(i,i);    
+    set i=i+1;  
+  end while;
+end;;
+delimiter ; 
+call idata();
 ```
 
 接下来，我会用几个不同的场景来举例，有些是前面的文章中我们已经介绍过的知识点，你看看能不能一眼看穿，来检验一下吧。
@@ -446,9 +501,9 @@ session A 通过 lock table 命令持有表 t 的 MDL 写锁，而 session B 的
 
 这类问题的处理方式，就是找到谁持有 MDL 写锁，然后把它 kill 掉。
 
-但是，由于在 show processlist 的结果里面，session A 的 Command 列是“Sleep”，导致查找起来很不方便。不过有了 performance_schema 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 performance_schema=on，相比于设置为 off 会有 10% 左右的性能损失)
+但是，由于在 show processlist 的结果里面，session A 的 Command 列是“Sleep”，导致查找起来很不方便。不过有了 `performance_schema` 和 sys 系统库以后，就方便多了。（MySQL 启动时需要设置 `performance_schema=on`，相比于设置为 off 会有 10% 左右的性能损失)
 
-通过查询 sys.schema_table_lock_waits 这张表，我们就可以直接找出造成阻塞的 process id，把这个连接用 kill 命令断开即可。
+通过查询 `sys.schema_table_lock_waits` 这张表，我们就可以直接找出造成阻塞的 process id，把这个连接用 kill 命令断开即可。
 
 
 图 4 查获加表锁的线程 id
@@ -515,7 +570,7 @@ mysql> select * from t where id=1 lock in share mode;
 
 显然，session A 启动了事务，占有写锁，还不提交，是导致 session B 被堵住的原因。
 
-这个问题并不难分析，但问题是怎么查出是谁占着这个写锁。如果你用的是 MySQL 5.7 版本，可以通过 sys.innodb_lock_waits 表查到。
+这个问题并不难分析，但问题是怎么查出是谁占着这个写锁。如果你用的是 MySQL 5.7 版本，可以通过 `sys.innodb_lock_waits` 表查到。
 
 查询方法是：
 
@@ -622,13 +677,13 @@ session B 更新完 100 万次，生成了 100 万个回滚日志 (undo log)。
 
 在机器负载比较高的时候，处理现有请求的时间变长，每个连接保持的时间也更长。这时，再有新建连接的话，就可能会超过 max_connections 的限制。
 
-碰到这种情况时，一个比较自然的想法，就是调高 max_connections 的值。但这样做是有风险的。因为设计 max_connections 这个参数的目的是想保护 MySQL，如果我们把它改得太大，让更多的连接都可以进来，那么系统的负载可能会进一步加大，大量的资源耗费在权限验证等逻辑上，结果可能是适得其反，已经连接的线程拿不到 CPU 资源去执行业务的 SQL 请求。
+碰到这种情况时，一个比较自然的想法，就是调高 `max_connections` 的值。但这样做是有风险的。因为设计 max_connections 这个参数的目的是想保护 MySQL，如果我们把它改得太大，让更多的连接都可以进来，那么系统的负载可能会进一步加大，大量的资源耗费在权限验证等逻辑上，结果可能是适得其反，已经连接的线程拿不到 CPU 资源去执行业务的 SQL 请求。
 
 那么这种情况下，你还有没有别的建议呢？我这里还有两种方法，但要注意，这些方法都是有损的。
 
 **第一种方法：先处理掉那些占着连接但是不工作的线程。**
 
-max_connections 的计算，不是看谁在 running，是只要连着就占用一个计数位置。对于那些不需要保持的连接，我们可以通过 kill connection 主动踢掉。这个行为跟事先设置 wait_timeout 的效果是一样的。设置 wait_timeout 参数表示的是，一个线程空闲 wait_timeout 这么多秒之后，就会被 MySQL 直接断开连接。
+`max_connections` 的计算，不是看谁在 running，是只要连着就占用一个计数位置。对于那些不需要保持的连接，我们可以通过 kill connection 主动踢掉。这个行为跟事先设置 `wait_timeout` 的效果是一样的。设置 `wait_timeout` 参数表示的是，一个线程空闲 `wait_timeout` 这么多秒之后，就会被 MySQL 直接断开连接。
 
 但是需要注意，在 show processlist 的结果里，踢掉显示为 sleep 的线程，可能是有损的。我们来看下面这个例子。
 
@@ -642,12 +697,12 @@ max_connections 的计算，不是看谁在 running，是只要连着就占用�
 
 图 2 sleep 线程的两种状态，show processlist 结果
 
-图中 id=4 和 id=5 的两个会话都是 Sleep 状态。而要看事务具体状态的话，你可以查 information_schema 库的 innodb_trx 表。
+图中 id=4 和 id=5 的两个会话都是 Sleep 状态。而要看事务具体状态的话，你可以查 `information_schema` 库的 innodb_trx 表。
 
 
 图 3 从 information_schema.innodb_trx 查询事务状态
 
-这个结果里，trx_mysql_thread_id=4，表示 id=4 的线程还处在事务中。
+这个结果里，`trx_mysql_thread_id=4`，表示 id=4 的线程还处在事务中。
 
 因此，如果是连接数过多，你可以优先断开事务外空闲太久的连接；如果这样还不够，再考虑断开事务内空闲太久的连接。
 
@@ -706,10 +761,11 @@ max_connections 的计算，不是看谁在 running，是只要连着就占用�
 比如，语句被错误地写成了 select * from t where id + 1 = 10000，你可以通过下面的方式，增加一个语句改写规则。
 
 ```
-mysql> insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) values ("select * from t where id + 1 = ?", "select * from t where id = ? - 1", "db1"); call query_rewrite.flush_rewrite_rules();
+mysql> insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_database) values ("select * from t where id + 1 = ?", "select * from t where id = ? - 1", "db1"); 
+call query_rewrite.flush_rewrite_rules();
 ```
 
-这里，call query_rewrite.flush_rewrite_rules() 这个存储过程，是让插入的新规则生效，也就是我们说的“查询重写”。你可以用图 4 中的方法来确认改写规则是否生效。
+这里，`call query_rewrite.flush_rewrite_rules()` 这个存储过程，是让插入的新规则生效，也就是我们说的“查询重写”。你可以用图 4 中的方法来确认改写规则是否生效。
 
 
 图 4 查询重写效果
@@ -722,11 +778,11 @@ mysql> insert into query_rewrite.rewrite_rules(pattern, replacement, pattern_dat
 
 上面我和你讨论的由慢查询导致性能问题的三种可能情况，实际上出现最多的是前两种，即：索引没设计好和语句没写好。而这两种情况，恰恰是完全可以避免的。比如，通过下面这个过程，我们就可以预先发现问题。
 
-1.  上线前，在测试环境，把慢查询日志（slow log）打开，并且把 long_query_time 设置成 0，确保每个语句都会被记录入慢查询日志；
+1.  上线前，在测试环境，把慢查询日志（slow log）打开，并且把 `long_query_time` 设置成 0，确保每个语句都会被记录入慢查询日志；
 
 2.  在测试表里插入模拟线上的数据，做一遍回归测试；
 
-3.  观察慢查询日志里每类语句的输出，特别留意 Rows_examined 字段是否与预期一致。（我们在前面文章中已经多次用到过 Rows_examined 方法了，相信你已经动手尝试过了。如果还有不明白的，欢迎给我留言，我们一起讨论）。
+3.  观察慢查询日志里每类语句的输出，特别留意 Rows_examined 字段是否与预期一致。（我们在前面文章中已经多次用到过 `Rows_examined` 方法了，相信你已经动手尝试过了。如果还有不明白的，欢迎给我留言，我们一起讨论）。
 
 不要吝啬这段花在上线前的“额外”时间，因为这会帮你省下很多故障复盘的时间。
 

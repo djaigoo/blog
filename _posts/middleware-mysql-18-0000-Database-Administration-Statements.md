@@ -7,7 +7,7 @@ date: 2023-03-29 19:52:46
 tags:
 ---
 # Account Management Statements
-## grant
+## GRANT
 ```sql
 GRANT
     priv_type [(column_list)]
@@ -62,7 +62,77 @@ resource_option: {
   | MAX_USER_CONNECTIONS count
 }
 ```
-## revoke
+
+GRANT 语句将权限授予 MySQL 用户帐户。 GRANT 语句有几个方面：
+* GRANT General Overview，要使用 GRANT 授予权限，您必须具有 GRANT OPTION 权限，并且必须具有您要授予的权限。 （或者，如果您对 mysql 系统数据库中的授权表具有 UPDATE 权限，则可以授予任何帐户任何权限。）启用 read_only 系统变量时，GRANT 还需要 SUPER 权限。
+* Object Quoting Guidelines，在对象引用时需加上引号
+  * 引用数据库、表、列和存储过程名称作为标识符。
+  * 引用用户名和主机名作为标识符或字符串。
+  * 将密码作为字符串引用。
+* Global Privileges，全局权限是管理性的或适用于给定服务器上的所有数据库。要分配全局权限，请使用 `ON *.*` 语法。CREATE TABLESPACE、CREATE USER、FILE、PROCESS、RELOAD、REPLICATION CLIENT、REPLICATION SLAVE、SHOW DATABASES、SHUTDOWN 和 SUPER 权限是管理权限，只能全局授予。
+* Database Privileges，数据库权限适用于给定数据库中的所有对象。要分配数据库级权限，请使用 `ON db_name.*` 语法。如果您使用 `ON *` 语法（而不是 `ON *.*`），则在数据库级别为默认数据库分配权限。如果没有默认数据库，则会发生错误。
+* Table Privileges，表权限适用于给定表中的所有列。要分配表级权限，请使用 `ON db_name.tbl_name` 语法。如果您指定 `tbl_name` 而不是 `db_name.tbl_name`，则该语句适用于默认数据库中的 `tbl_name`。如果没有默认数据库，则会发生错误。
+* Column Privileges，列特权适用于给定表中的单个列。在列级别授予的每个权限必须后跟列，并用括号括起来。
+* Stored Routine Privileges
+* Proxy User Privileges，PROXY 权限使一个用户可以成为另一个用户的代理。代理用户冒充或冒用被代理用户的身份；也就是说，它承担了被代理用户的特权。
+* Implicit Account Creation，如果 GRANT 语句中指定的帐户不存在，则采取的操作取决于 NO_AUTO_CREATE_USER SQL 模式：
+  * 如果未启用 NO_AUTO_CREATE_USER，GRANT 将创建该帐户。这是非常不安全的，除非您使用 IDENTIFIED BY 指定非空密码。
+  * 如果启用了 NO_AUTO_CREATE_USER，GRANT 将失败并且不会创建帐户，除非您使用 IDENTIFIED BY 指定非空密码或使用 IDENTIFIED WITH 命名身份验证插件。
+
+如果该帐户已经存在，则 IDENTIFIED WITH 被禁止，因为它仅用于创建新帐户时使用。
+* MySQL and Standard SQL Versions of GRANT，GRANT 的 MySQL 和标准 SQL 版本之间的最大区别是：
+  * MySQL 将权限与主机名和用户名的组合相关联，而不仅仅是与用户名相关联。
+  * 标准 SQL 没有全局或数据库级别的权限，也不支持 MySQL 支持的所有权限类型。
+  * MySQL 不支持标准的 SQL UNDER 权限。
+  * 标准 SQL 权限以分层方式构建。如果您删除一个用户，则该用户被授予的所有权限都将被撤销。如果您使用 DROP USER，这在 MySQL 中也是如此。请参阅第 13.7.1.3 节，“DROP USER 语句”。
+  * 在标准 SQL 中，当您删除一个表时，该表的所有权限都将被撤销。在标准 SQL 中，当您撤销特权时，所有基于该特权授予的特权也将被撤销。在 MySQL 中，可以使用 DROP USER 或 REVOKE 语句删除权限。
+  * 在 MySQL 中，可以只对表中的某些列具有 INSERT 权限。在这种情况下，您仍然可以在表上执行 INSERT 语句，前提是您仅为那些您具有 INSERT 权限的列插入值。如果未启用严格 SQL 模式，则省略的列将设置为其隐式默认值。在严格模式下，如果任何省略的列没有默认值，则该语句将被拒绝。 （标准 SQL 要求您对所有列都具有 INSERT 权限。）有关严​​格 SQL 模式和隐式默认值的信息，请参阅第 5.1.10 节“服务器 SQL 模式”和第 11.6 节“数据类型默认值”。
+
+
+
+## REVOKE
+
+## 权限语句
+
+GRANT 和 REVOKE 支持操作的权限
+| Privilege | Meaning and Grantable Levels |
+| --- | --- |
+| [`ALL [PRIVILEGES]`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_all) | Grant all privileges at specified access level except [`GRANT OPTION`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_grant-option) and [`PROXY`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_proxy). |
+| [`ALTER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_alter) | Enable use of [`ALTER TABLE`](https://dev.mysql.com/doc/refman/5.7/en/alter-table.html "13.1.8 ALTER TABLE Statement"). Levels: Global, database, table. |
+| [`ALTER ROUTINE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_alter-routine) | Enable stored routines to be altered or dropped. Levels: Global, database, routine. |
+| [`CREATE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create) | Enable database and table creation. Levels: Global, database, table. |
+| [`CREATE ROUTINE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-routine) | Enable stored routine creation. Levels: Global, database. |
+| [`CREATE TABLESPACE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-tablespace) | Enable tablespaces and log file groups to be created, altered, or dropped. Level: Global. |
+| [`CREATE TEMPORARY TABLES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-temporary-tables) | Enable use of [`CREATE TEMPORARY TABLE`](https://dev.mysql.com/doc/refman/5.7/en/create-table.html "13.1.18 CREATE TABLE Statement"). Levels: Global, database. |
+| [`CREATE USER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-user) | Enable use of [`CREATE USER`](https://dev.mysql.com/doc/refman/5.7/en/create-user.html "13.7.1.2 CREATE USER Statement"), [`DROP USER`](https://dev.mysql.com/doc/refman/5.7/en/drop-user.html "13.7.1.3 DROP USER Statement"), [`RENAME USER`](https://dev.mysql.com/doc/refman/5.7/en/rename-user.html "13.7.1.5 RENAME USER Statement"), and [`REVOKE ALL PRIVILEGES`](https://dev.mysql.com/doc/refman/5.7/en/revoke.html "13.7.1.6 REVOKE Statement"). Level: Global. |
+| [`CREATE VIEW`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-view) | Enable views to be created or altered. Levels: Global, database, table. |
+| [`DELETE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_delete) | Enable use of [`DELETE`](https://dev.mysql.com/doc/refman/5.7/en/delete.html "13.2.2 DELETE Statement"). Level: Global, database, table. |
+| [`DROP`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_drop) | Enable databases, tables, and views to be dropped. Levels: Global, database, table. |
+| [`EVENT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_event) | Enable use of events for the Event Scheduler. Levels: Global, database. |
+| [`EXECUTE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_execute) | Enable the user to execute stored routines. Levels: Global, database, routine. |
+| [`FILE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_file) | Enable the user to cause the server to read or write files. Level: Global. |
+| [`GRANT OPTION`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_grant-option) | Enable privileges to be granted to or removed from other accounts. Levels: Global, database, table, routine, proxy. |
+| [`INDEX`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_index) | Enable indexes to be created or dropped. Levels: Global, database, table. |
+| [`INSERT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_insert) | Enable use of [`INSERT`](https://dev.mysql.com/doc/refman/5.7/en/insert.html "13.2.5 INSERT Statement"). Levels: Global, database, table, column. |
+| [`LOCK TABLES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_lock-tables) | Enable use of [`LOCK TABLES`](https://dev.mysql.com/doc/refman/5.7/en/lock-tables.html "13.3.5 LOCK TABLES and UNLOCK TABLES Statements") on tables for which you have the [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") privilege. Levels: Global, database. |
+| [`PROCESS`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_process) | Enable the user to see all processes with [`SHOW PROCESSLIST`](https://dev.mysql.com/doc/refman/5.7/en/show-processlist.html "13.7.5.29 SHOW PROCESSLIST Statement"). Level: Global. |
+| [`PROXY`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_proxy) | Enable user proxying. Level: From user to user. |
+| [`REFERENCES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_references) | Enable foreign key creation. Levels: Global, database, table, column. |
+| [`RELOAD`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_reload) | Enable use of [`FLUSH`](https://dev.mysql.com/doc/refman/5.7/en/flush.html "13.7.6.3 FLUSH Statement") operations. Level: Global. |
+| [`REPLICATION CLIENT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_replication-client) | Enable the user to ask where source or replica servers are. Level: Global. |
+| [`REPLICATION SLAVE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_replication-slave) | Enable replicas to read binary log events from the source. Level: Global. |
+| [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_select) | Enable use of [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement"). Levels: Global, database, table, column. |
+| [`SHOW DATABASES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_show-databases) | Enable [`SHOW DATABASES`](https://dev.mysql.com/doc/refman/5.7/en/show-databases.html "13.7.5.14 SHOW DATABASES Statement") to show all databases. Level: Global. |
+| [`SHOW VIEW`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_show-view) | Enable use of [`SHOW CREATE VIEW`](https://dev.mysql.com/doc/refman/5.7/en/show-create-view.html "13.7.5.13 SHOW CREATE VIEW Statement"). Levels: Global, database, table. |
+| [`SHUTDOWN`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_shutdown) | Enable use of [**mysqladmin shutdown**](https://dev.mysql.com/doc/refman/5.7/en/mysqladmin.html "4.5.2 mysqladmin — A MySQL Server Administration Program"). Level: Global. |
+| [`SUPER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_super) | Enable use of other administrative operations such as [`CHANGE MASTER TO`](https://dev.mysql.com/doc/refman/5.7/en/change-master-to.html "13.4.2.1 CHANGE MASTER TO Statement"), [`KILL`](https://dev.mysql.com/doc/refman/5.7/en/kill.html "13.7.6.4 KILL Statement"), [`PURGE BINARY LOGS`](https://dev.mysql.com/doc/refman/5.7/en/purge-binary-logs.html "13.4.1.1 PURGE BINARY LOGS Statement"), [`SET GLOBAL`](https://dev.mysql.com/doc/refman/5.7/en/set-variable.html "13.7.4.1 SET Syntax for Variable Assignment"), and [**mysqladmin debug**](https://dev.mysql.com/doc/refman/5.7/en/mysqladmin.html "4.5.2 mysqladmin — A MySQL Server Administration Program") command. Level: Global. |
+| [`TRIGGER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_trigger) | Enable trigger operations. Levels: Global, database, table. |
+| [`UPDATE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_update) | Enable use of [`UPDATE`](https://dev.mysql.com/doc/refman/5.7/en/update.html "13.2.11 UPDATE Statement"). Levels: Global, database, table, column. |
+| [`USAGE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_usage) | Synonym for “no privileges” |
+
+| Privilege | Meaning and Grantable Levels |
+| --- | --- |
+
 # Table Maintenance Statements
 ## ANALYZE TABLE
 ```sql

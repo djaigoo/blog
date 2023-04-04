@@ -6,6 +6,201 @@ categories:
 date: 2023-03-29 19:50:23
 tags:
 ---
+
+查看buffer
+```sql
+mysql> show variables like '%buffer%';
++-------------------------------------------+----------------+
+| Variable_name                             | Value          |
++-------------------------------------------+----------------+
+| bulk_insert_buffer_size                   | 8388608        |
+| innodb_buffer_pool_chunk_size             | 134217728      |
+| innodb_buffer_pool_dump_at_shutdown       | ON             |
+| innodb_buffer_pool_dump_now               | OFF            |
+| innodb_buffer_pool_dump_pct               | 25             |
+| innodb_buffer_pool_filename               | ib_buffer_pool |
+| innodb_buffer_pool_in_core_file           | OFF            |
+| innodb_buffer_pool_instances              | 2              |
+| innodb_buffer_pool_load_abort             | OFF            |
+| innodb_buffer_pool_load_at_startup        | ON             |
+| innodb_buffer_pool_load_now               | OFF            |
+| innodb_buffer_pool_recover_abort          | OFF            |
+| innodb_buffer_pool_recover_after_transmit | OFF            |
+| innodb_buffer_pool_recover_now            | OFF            |
+| innodb_buffer_pool_recover_pct            | 60             |
+| innodb_buffer_pool_size                   | 3221225472     |
+| innodb_buffer_pool_snapshot_interval      | 0              |
+| innodb_buffer_pool_snapshot_now           | OFF            |
+| innodb_buffer_pool_snapshot_pct           | 60             |
+| innodb_buffer_pool_snapshot_threshold     | 0              |
+| innodb_buffer_pool_transmit_enabled       | OFF            |
+| innodb_buffer_pool_transmit_interval      | 10             |
+| innodb_change_buffer_max_size             | 25             |
+| innodb_change_buffering                   | all            |
+| innodb_log_buffer_size                    | 67108864       |
+| innodb_sort_buffer_size                   | 1048576        |
+| join_buffer_size                          | 262144         |
+| key_buffer_size                           | 16777216       |
+| myisam_sort_buffer_size                   | 8388608        |
+| net_buffer_length                         | 8192           |
+| preload_buffer_size                       | 32768          |
+| read_buffer_size                          | 262144         |
+| read_rnd_buffer_size                      | 524288         |
+| sort_buffer_size                          | 524288         |
+| sql_buffer_result                         | OFF            |
++-------------------------------------------+----------------+
+```
+
+# innodb buffer pool
+## **2.1 Buffer Pool Instance**
+
+Buffer Pool实例，大小等于innodb_buffer_pool_size/innodb_buffer_pool_instances，每个Buffer Pool Instance都有自己的锁，信号量，物理块(Buffer chunks)以及逻辑链表(List)。即各个instance之间没有竞争关系，可以并发读取与写入。所有instance的物理块(Buffer chunks)在数据库启动的时候被分配，直到数据库关闭内存才予以释放。每个Buffer Pool Instance有一个page hash链表，通过它，使用space_id和page_no就能快速找到已经被读入内存的数据页，而不用线性遍历LRU List去查找。注意这个hash表不是InnoDB的自适应哈希，自适应哈希是为了减少Btree的扫描，而page hash是为了避免扫描LRU List。
+
+> 当innodb_buffer_pool_size小于1GB时候，innodb_buffer_pool_instances被重置为1，主要是防止有太多小的instance从而导致性能问题。
+
+## **2.2 数据页**
+
+InnoDB中，数据管理的最小单位为页，默认是16KB，页中除了存储用户数据，还可以存储控制信息的数据。InnoDB IO子系统的读写最小单位也是页。
+
+## **2.3 Buffer Chunks**
+
+包括两部分：数据页和数据页对应的控制体，控制体中有指针指向数据页。Buffer Chunks是最低层的物理块，在启动阶段从操作系统申请，直到数据库关闭才释放。通过遍历chunks可以访问几乎所有的数据页，有两种状态的数据页除外：没有被解压的压缩页(BUF_BLOCK_ZIP_PAGE)以及被修改过且解压页已经被驱逐的压缩页(BUF_BLOCK_ZIP_DIRTY)。此外数据页里面不一定都存的是用户数据，开始是控制信息，比如行锁，自适应哈希等。
+
+## **2.4 逻辑链表**
+
+链表节点是数据页的控制体(控制体中有指针指向真正的数据页)，链表中的所有节点都有同一的属性，引入其的目的是方便管理。Innodb Buffer Pool 相关的链表有:
+
+### **2.4.1 Free List**
+
+其上的节点都是未被使用的节点，如果需要从数据库中分配新的数据页，直接从上获取即可。InnoDB需要保证Free List有足够的节点，提供给用户线程用，否则需要从FLU List或者LRU List淘汰一定的节点。InnoDB初始化后，Buffer Chunks中的所有数据页都被加入到Free List，表示所有节点都可用。
+
+### **2.4.2 LRU List**
+
+近期最少使用链表(Least Recently Used)，这个是InnoDB中最重要的链表。所有新读取进来的数据页都被放在上面。链表按照最近最少使用算法排序，最近最少使用的节点被放在链表末尾，如果Free List里面没有节点了，就会从中淘汰末尾的节点。LRU List还包含没有被解压的压缩页，这些压缩页刚从磁盘读取出来，还没来得及被解压。LRU List被分为两部分，默认前5/8为young list，存储经常被使用的热点page，后3/8为old list。新读入的page默认被加在old list头，只有满足一定条件后，才被移到young list上，主要是为了预读的数据页和全表扫描污染buffer pool。
+
+### **2.4.3 FLU List**
+
+这个链表中的所有节点都是脏页，也就是说这些数据页都被修改过，但是还没来得及被刷新到磁盘上。在FLU List上的页面一定在LRU List上，但是反之则不成立。一个数据页可能会在不同的时刻被修改多次，在数据页上记录了最老(也就是第一次)的一次修改的lsn，即oldest_modification。不同数据页有不同的oldest_modification，FLU List中的节点按照oldest_modification排序，链表尾是最小的，也就是最早被修改的数据页，当需要从FLU List中淘汰页面时候，从链表尾部开始淘汰。加入FLU List，需要使用flush_list_mutex保护，所以能保证FLU List中节点的顺序。
+
+### **2.4.4 Unzip LRU List**
+
+这个链表中存储的数据页都是解压页，也就是说，这个数据页是从一个压缩页通过解压而来的。
+
+### **2.4.5 Zip Clean List**
+
+这个链表只在Debug模式下有，主要是存储没有被解压的压缩页。这些压缩页刚刚从磁盘读取出来，还没来的及被解压，一旦被解压后，就从此链表中删除，然后加入到Unzip LRU List中。
+
+### **2.4.6 Zip Free**
+
+压缩页有不同的大小，比如8K，4K，InnoDB使用了类似内存管理的伙伴系统来管理压缩页。Zip Free可以理解为由5个链表构成的一个二维数组，每个链表分别存储了对应大小的内存碎片，例如8K的链表里存储的都是8K的碎片，如果新读入一个8K的页面，首先从这个链表中查找，如果有则直接返回，如果没有则从16K的链表中分裂出两个8K的块，一个被使用，另外一个放入8K链表中。
+
+## **2.6 Frame**
+
+帧，16K的虚拟地址空间， 在缓冲池的管理上，整个缓冲区是是以大小为16k的frame(可以理解为数据块)为单位来进行的，frame是innodb中页的大小。
+
+## **2.7 Page**
+
+页，16K的物理内存， page上存的是需要保存到磁盘上的数据， 这些数据可能是数据记录信息， 也可以是索引信息或其他的元数据等；
+
+## **2.8 Control Block**
+
+控制块，对于每个frame, 对应一个block， block上的信息是专门用于进行frame控制的管理信息， 但是这些信息不需要记录到磁盘，而是根据读入数据块在内存中的状态动态生成的， 主要包括：
+
+*   1\. 页面管理的普通信息，互斥锁， 页面的状态等
+*   2\. 脏回写(flush)管理信息
+*   3\. lru控制信息
+*   4\. 快速查找的管理信息， 为了便于快速的超找某一个block或frame， 缓冲区里面的block被组织到一些hash表中; 缓冲区中的block数量是一定的， innodb缓冲区对所管理的block用lru(last recently used)策略进行替换。
+
+## **2.9 Buffer Pool分配方式**
+
+MySQL使用mmap分配Buffer Pool，但是都是虚存，在top命令中占用VIRT这一列，而不是RES这一列，只有相应的内存被真正使用到了，才会被统计到RES中，从而提高内存使用率。这就是为什么常常看到MySQL一启动就被分配了很多的VIRT，而RES却是慢慢涨上来的原因。这里大家可能有个疑问，为啥不用malloc。其实查阅malloc文档，可以发现，当请求的内存数量大于MMAP_THRESHOLD(默认为128KB)时候，malloc底层就是调用了mmap。在InnoDB中，默认使用mmap来分配。 分配完了内存，buf_chunk_init函数中，把这片内存划分为两个部分，前一部分是数据页控制体(buf_block_t)，后一部分是真正的数据页，按照UNIV_PAGE_SIZE分隔。假设page大小为16KB，则数据页控制体占的内存:数据页约等于1:38.6，也就是说如果innodb_buffer_pool_size被配置为40G，则需要额外的1G多空间来存数据页的控制体。 划分完空间后，遍历数据页控制体，设置buf_block_t::frame指针，指向真正的数据页，然后把这些数据页加入到Free List中即可。初始化完Buffer Chunks的内存，还需要初始化BUF_BLOCK_POOL_WATCH类型的数据页控制块，page hash的结构体，zip hash的结构体(所有被压缩页的伙伴系统分配走的数据页面会加入到这个哈希表中)。注意这些内存是额外分配的，不包含在Buffer Chunks中。
+
+## **2.10 互斥访问**
+
+缓冲池的整个缓冲区一个数据结构buf_pool进行管理和控制， 一个专门的mutex保护着， 这个mutex是用来保护buf_pool这个控制结构中的数据域的， 并不保护缓冲区中的数据frame以及用于管理的block, 缓冲区里block或者frame中的访问是由专门的读写锁来保护的， 每个block/frame一个。在5.1以前， 每个block是没专门的mutex保护的，如果需要进行互斥保护，直接使用缓冲区的mutex, 结果导致很高的争用； 5.1以后，每个block一个mutex对其进行保护， 从而在很大程度上解缓了对buf_pool的mutex的争用。
+
+## 存储内容
+BUffer Pool中缓存的数据页类型有: 索引页、数据页、undo页、插入缓冲（insert buffer)、自适应哈希索引（adaptive hash index)、InnoDB存储的锁信息（lock info)、数据字典信息（data dictionary)等。
+
+## 预读
+## **Buffer Pool预热**
+
+MySQL在重启后，Buffer Pool里面没有什么数据，这个时候业务上对数据库的数据操作，MySQL就只能从磁盘中读取数据到内存中，这个过程可能需要很久才能是内存中的数据是业务频繁使用的。Buffer Pool中数据从无到业务频繁使用热数据的过程称之为预热。所以在预热这个过程中，MySQL数据库的性能不会特别好，并且Buffer Pool越大，预热过程越长。
+
+为了减短这个预热过程，在MySQL关闭前，把Buffer Pool中的页面信息保存到磁盘，等到MySQL启动时，再根据之前保存的信息把磁盘中的数据加载到Buffer Pool中即可。
+
+### **4.1.1 Buffer Pool Dump**
+
+遍历所有Buffer Pool Instance的LRU List，对于其中的每个数据页，按照space_id和page_no组成一个64位的数字，写到外部文件中
+
+### **4.1.2 Buffer Pool Load**
+
+读取指定的外部文件，把所有的数据读入内存后，使用归并排序对数据排序，以64个数据页为单位进行IO合并，然后发起一次真正的读取操作。排序的作用就是便于IO合并。
+
+## **4.2 预读机制**
+
+InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是一个i/o请求，它会异步地在缓冲池中预先回迁多个页面，预计很快就会需要这些页面，这些请求在一个范围内引入所有页面。InnoDB以64个page为一个extent，那么InnoDB的预读是以page为单位还是以extent？
+
+![](https://pic3.zhimg.com/80/v2-a4c7d4b6d8ef094105aecb50f222a88a_1440w.webp)
+
+数据库请求数据的时候，会将读请求交给文件系统，放入请求队列中；相关进程从请求队列中将读请求取出，根据需求到相关数据区(内存、磁盘)读取数据；取出的数据，放入响应队列中，最后数据库就会从响应队列中将数据取走，完成一次数据读操作过程。
+
+接着进程继续处理请求队列，(如果数据库是全表扫描的话，数据读请求将会占满请求队列)，判断后面几个数据读请求的数据是否相邻，再根据自身系统IO带宽处理量， 进行预读，进行读请求的合并处理 ，一次性读取多块数据放入响应队列中，再被数据库取走。(如此，一次物理读操作，实现多页数据读取，rrqm>0（ # iostat -x ），假设是4个读请求合并，则rrqm参数显示的就是4)
+
+InnoDB使用两种预读算法来提高I/O性能： 线性预读（linear read-ahead）和随机预读（randomread-ahead）
+
+为了区分这两种预读的方式，我们可以把线性预读以extent为单位，而随机预读以extent中的page为单位。线性预读着眼于将下一个extent提前读取到buffer pool中，而随机预读着眼于将当前extent中的剩余的page提前读取到buffer pool中。
+
+## **4.2.1 线性预读（linear read-ahead）**
+
+线性预读方式有一个很重要的变量控制是否将下一个extent预读到buffer pool中，通过使用配置参数 innodb_read_ahead_threshold ，控制触发innodb执行预读操作的时间。
+
+如果一个extent中的被顺序读取的page超过或者等于该参数变量时，Innodb将会异步的将下一个extent读取到buffer pool中，innodb_read_ahead_threshold可以设置为0-64的任何值(因为一个extent中也就只有64页)，默认值为56，值越高，访问模式检查越严格。
+
+```text
+mysql> show variables like 'innodb_read_ahead_threshold';
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_read_ahead_threshold | 56    |
++-----------------------------+-------+
+```
+
+例如 ，如果将值设置为48，则InnoDB只有在顺序访问当前extent中的48个pages时才触发线性预读请求，将下一个extent读到内存中。如果值为8，InnoDB触发异步预读，即使程序段中只有8页被顺序访问。
+
+可以在MySQL配置文件中设置此参数的值，或者使用SET GLOBAL需要该SUPER权限的命令动态更改该参数。
+
+在没有该变量之前，当访问到extent的最后一个page的时候，innodb会决定是否将下一个extent放入到buffer pool中。
+
+## **4.2.2 随机预读（randomread-ahead）**
+
+随机预读方式则是表示当同一个extent中的一些page在buffer pool中发现时，Innodb会将该extent中的剩余page一并读到buffer pool中。
+
+```text
+mysql> show variables like 'innodb_random_read_ahead';
++--------------------------+-------+
+| Variable_name            | Value |
++--------------------------+-------+
+| innodb_random_read_ahead | OFF   |
++--------------------------+-------+
+```
+
+由于随机预读方式给innodb code带来了一些不必要的复杂性，同时在性能也存在不稳定性，在5.5中已经将这种预读方式 废弃，默认是OFF 。若要启用此功能，即将配置变量设置innodb_random_read_ahead为ON。
+
+# sql buffer
+## bulk_insert_buffer
+## join_buffer
+## key_buffer
+## net_buffer
+## read_buffer
+## sort_buffer
+## sql_buffer
+## redo log buffer
+
+# change buffer
+
+
+
 在前面的基础篇文章中，我给你介绍过索引的基本概念，相信你已经了解了唯一索引和普通索引的区别。今天我们就继续来谈谈，在不同的业务场景下，应该选择普通索引，还是唯一索引？
 
 假设你在维护一个市民系统，每个人都有一个唯一的身份证号，而且业务代码已经保证了不会写入两个重复的身份证号。如果市民系统需要按照身份证号查姓名，就会执行类似这样的 SQL 语句：

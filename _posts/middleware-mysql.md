@@ -448,11 +448,13 @@ select @var2;
 全局变量与会话变量的区别就在于，对全局变量的修改会影响到整个服务器，但是对会话变量的修改，只会影响到当前的会话（也就是当前的数据库连接）。
 
 我们可以利用
-
-show session variables;
+```sql
+mysql> show session variables;
+```
 语句将所有的会话变量输出（可以简写为show variables，没有指定是输出全局变量还是会话变量的话，默认就输出会话变量。）如果想输出所有全局变量：
-
-show global variables
+```sql
+mysql> show global variables;
+```
 有些系统变量的值是可以利用语句来动态进行更改的，但是有些系统变量的值却是只读的。
 
 对于那些可以更改的系统变量，我们可以利用set语句进行更改。
@@ -1626,8 +1628,9 @@ RETURN expr
 END WHILE [end_label]
 ```
 ## Database-Administration-Statements
+
 ### Account Management Statements
-#### grant
+#### GRANT
 ```sql
 GRANT
     priv_type [(column_list)]
@@ -1682,7 +1685,77 @@ resource_option: {
   | MAX_USER_CONNECTIONS count
 }
 ```
-#### revoke
+
+GRANT 语句将权限授予 MySQL 用户帐户。 GRANT 语句有几个方面：
+* GRANT General Overview，要使用 GRANT 授予权限，您必须具有 GRANT OPTION 权限，并且必须具有您要授予的权限。 （或者，如果您对 mysql 系统数据库中的授权表具有 UPDATE 权限，则可以授予任何帐户任何权限。）启用 read_only 系统变量时，GRANT 还需要 SUPER 权限。
+* Object Quoting Guidelines，在对象引用时需加上引号
+  * 引用数据库、表、列和存储过程名称作为标识符。
+  * 引用用户名和主机名作为标识符或字符串。
+  * 将密码作为字符串引用。
+* Global Privileges，全局权限是管理性的或适用于给定服务器上的所有数据库。要分配全局权限，请使用 `ON *.*` 语法。CREATE TABLESPACE、CREATE USER、FILE、PROCESS、RELOAD、REPLICATION CLIENT、REPLICATION SLAVE、SHOW DATABASES、SHUTDOWN 和 SUPER 权限是管理权限，只能全局授予。
+* Database Privileges，数据库权限适用于给定数据库中的所有对象。要分配数据库级权限，请使用 `ON db_name.*` 语法。如果您使用 `ON *` 语法（而不是 `ON *.*`），则在数据库级别为默认数据库分配权限。如果没有默认数据库，则会发生错误。
+* Table Privileges，表权限适用于给定表中的所有列。要分配表级权限，请使用 `ON db_name.tbl_name` 语法。如果您指定 `tbl_name` 而不是 `db_name.tbl_name`，则该语句适用于默认数据库中的 `tbl_name`。如果没有默认数据库，则会发生错误。
+* Column Privileges，列特权适用于给定表中的单个列。在列级别授予的每个权限必须后跟列，并用括号括起来。
+* Stored Routine Privileges
+* Proxy User Privileges，PROXY 权限使一个用户可以成为另一个用户的代理。代理用户冒充或冒用被代理用户的身份；也就是说，它承担了被代理用户的特权。
+* Implicit Account Creation，如果 GRANT 语句中指定的帐户不存在，则采取的操作取决于 `NO_AUTO_CREATE_USER SQL `模式：
+  * 如果未启用 `NO_AUTO_CREATE_USER`，GRANT 将创建该帐户。这是非常不安全的，除非您使用 IDENTIFIED BY 指定非空密码。
+  * 如果启用了 `NO_AUTO_CREATE_USER`，GRANT 将失败并且不会创建帐户，除非您使用 IDENTIFIED BY 指定非空密码或使用 IDENTIFIED WITH 命名身份验证插件。
+
+如果该帐户已经存在，则 IDENTIFIED WITH 被禁止，因为它仅用于创建新帐户时使用。
+* MySQL and Standard SQL Versions of GRANT，GRANT 的 MySQL 和标准 SQL 版本之间的最大区别是：
+  * MySQL 将权限与主机名和用户名的组合相关联，而不仅仅是与用户名相关联。
+  * 标准 SQL 没有全局或数据库级别的权限，也不支持 MySQL 支持的所有权限类型。
+  * MySQL 不支持标准的 SQL UNDER 权限。
+  * 标准 SQL 权限以分层方式构建。如果您删除一个用户，则该用户被授予的所有权限都将被撤销。如果您使用 DROP USER，这在 MySQL 中也是如此。
+  * 在标准 SQL 中，当您删除一个表时，该表的所有权限都将被撤销。在标准 SQL 中，当您撤销特权时，所有基于该特权授予的特权也将被撤销。在 MySQL 中，可以使用 DROP USER 或 REVOKE 语句删除权限。
+  * 在 MySQL 中，可以只对表中的某些列具有 INSERT 权限。在这种情况下，您仍然可以在表上执行 INSERT 语句，前提是您仅为那些您具有 INSERT 权限的列插入值。如果未启用严格 SQL 模式，则省略的列将设置为其隐式默认值。在严格模式下，如果任何省略的列没有默认值，则该语句将被拒绝。 
+
+
+
+#### REVOKE
+
+#### 权限分类
+
+GRANT 和 REVOKE 支持操作的权限
+| Privilege | Meaning and Grantable Levels |
+| --- | --- |
+| [`ALL [PRIVILEGES]`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_all) | Grant all privileges at specified access level except [`GRANT OPTION`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_grant-option) and [`PROXY`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_proxy). |
+| [`ALTER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_alter) | Enable use of [`ALTER TABLE`](https://dev.mysql.com/doc/refman/5.7/en/alter-table.html "13.1.8 ALTER TABLE Statement"). Levels: Global, database, table. |
+| [`ALTER ROUTINE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_alter-routine) | Enable stored routines to be altered or dropped. Levels: Global, database, routine. |
+| [`CREATE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create) | Enable database and table creation. Levels: Global, database, table. |
+| [`CREATE ROUTINE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-routine) | Enable stored routine creation. Levels: Global, database. |
+| [`CREATE TABLESPACE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-tablespace) | Enable tablespaces and log file groups to be created, altered, or dropped. Level: Global. |
+| [`CREATE TEMPORARY TABLES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-temporary-tables) | Enable use of [`CREATE TEMPORARY TABLE`](https://dev.mysql.com/doc/refman/5.7/en/create-table.html "13.1.18 CREATE TABLE Statement"). Levels: Global, database. |
+| [`CREATE USER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-user) | Enable use of [`CREATE USER`](https://dev.mysql.com/doc/refman/5.7/en/create-user.html "13.7.1.2 CREATE USER Statement"), [`DROP USER`](https://dev.mysql.com/doc/refman/5.7/en/drop-user.html "13.7.1.3 DROP USER Statement"), [`RENAME USER`](https://dev.mysql.com/doc/refman/5.7/en/rename-user.html "13.7.1.5 RENAME USER Statement"), and [`REVOKE ALL PRIVILEGES`](https://dev.mysql.com/doc/refman/5.7/en/revoke.html "13.7.1.6 REVOKE Statement"). Level: Global. |
+| [`CREATE VIEW`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_create-view) | Enable views to be created or altered. Levels: Global, database, table. |
+| [`DELETE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_delete) | Enable use of [`DELETE`](https://dev.mysql.com/doc/refman/5.7/en/delete.html "13.2.2 DELETE Statement"). Level: Global, database, table. |
+| [`DROP`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_drop) | Enable databases, tables, and views to be dropped. Levels: Global, database, table. |
+| [`EVENT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_event) | Enable use of events for the Event Scheduler. Levels: Global, database. |
+| [`EXECUTE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_execute) | Enable the user to execute stored routines. Levels: Global, database, routine. |
+| [`FILE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_file) | Enable the user to cause the server to read or write files. Level: Global. |
+| [`GRANT OPTION`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_grant-option) | Enable privileges to be granted to or removed from other accounts. Levels: Global, database, table, routine, proxy. |
+| [`INDEX`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_index) | Enable indexes to be created or dropped. Levels: Global, database, table. |
+| [`INSERT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_insert) | Enable use of [`INSERT`](https://dev.mysql.com/doc/refman/5.7/en/insert.html "13.2.5 INSERT Statement"). Levels: Global, database, table, column. |
+| [`LOCK TABLES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_lock-tables) | Enable use of [`LOCK TABLES`](https://dev.mysql.com/doc/refman/5.7/en/lock-tables.html "13.3.5 LOCK TABLES and UNLOCK TABLES Statements") on tables for which you have the [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement") privilege. Levels: Global, database. |
+| [`PROCESS`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_process) | Enable the user to see all processes with [`SHOW PROCESSLIST`](https://dev.mysql.com/doc/refman/5.7/en/show-processlist.html "13.7.5.29 SHOW PROCESSLIST Statement"). Level: Global. |
+| [`PROXY`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_proxy) | Enable user proxying. Level: From user to user. |
+| [`REFERENCES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_references) | Enable foreign key creation. Levels: Global, database, table, column. |
+| [`RELOAD`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_reload) | Enable use of [`FLUSH`](https://dev.mysql.com/doc/refman/5.7/en/flush.html "13.7.6.3 FLUSH Statement") operations. Level: Global. |
+| [`REPLICATION CLIENT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_replication-client) | Enable the user to ask where source or replica servers are. Level: Global. |
+| [`REPLICATION SLAVE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_replication-slave) | Enable replicas to read binary log events from the source. Level: Global. |
+| [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_select) | Enable use of [`SELECT`](https://dev.mysql.com/doc/refman/5.7/en/select.html "13.2.9 SELECT Statement"). Levels: Global, database, table, column. |
+| [`SHOW DATABASES`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_show-databases) | Enable [`SHOW DATABASES`](https://dev.mysql.com/doc/refman/5.7/en/show-databases.html "13.7.5.14 SHOW DATABASES Statement") to show all databases. Level: Global. |
+| [`SHOW VIEW`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_show-view) | Enable use of [`SHOW CREATE VIEW`](https://dev.mysql.com/doc/refman/5.7/en/show-create-view.html "13.7.5.13 SHOW CREATE VIEW Statement"). Levels: Global, database, table. |
+| [`SHUTDOWN`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_shutdown) | Enable use of [**mysqladmin shutdown**](https://dev.mysql.com/doc/refman/5.7/en/mysqladmin.html "4.5.2 mysqladmin — A MySQL Server Administration Program"). Level: Global. |
+| [`SUPER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_super) | Enable use of other administrative operations such as [`CHANGE MASTER TO`](https://dev.mysql.com/doc/refman/5.7/en/change-master-to.html "13.4.2.1 CHANGE MASTER TO Statement"), [`KILL`](https://dev.mysql.com/doc/refman/5.7/en/kill.html "13.7.6.4 KILL Statement"), [`PURGE BINARY LOGS`](https://dev.mysql.com/doc/refman/5.7/en/purge-binary-logs.html "13.4.1.1 PURGE BINARY LOGS Statement"), [`SET GLOBAL`](https://dev.mysql.com/doc/refman/5.7/en/set-variable.html "13.7.4.1 SET Syntax for Variable Assignment"), and [**mysqladmin debug**](https://dev.mysql.com/doc/refman/5.7/en/mysqladmin.html "4.5.2 mysqladmin — A MySQL Server Administration Program") command. Level: Global. |
+| [`TRIGGER`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_trigger) | Enable trigger operations. Levels: Global, database, table. |
+| [`UPDATE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_update) | Enable use of [`UPDATE`](https://dev.mysql.com/doc/refman/5.7/en/update.html "13.2.11 UPDATE Statement"). Levels: Global, database, table, column. |
+| [`USAGE`](https://dev.mysql.com/doc/refman/5.7/en/privileges-provided.html#priv_usage) | Synonym for “no privileges” |
+
+| Privilege | Meaning and Grantable Levels |
+| --- | --- |
+
 ### Table Maintenance Statements
 #### ANALYZE TABLE
 ```sql
@@ -1897,7 +1970,7 @@ mysql -h$ip -P$port -u$user -p
 
 1.  定期断开长连接。使用一段时间，或者程序里面判断执行过一个占用内存的大查询后，断开连接，之后要查询再重连。
 
-2.  如果你用的是 MySQL 5.7 或更新版本，可以在每次执行一个比较大的操作后，通过执行 mysql_reset_connection 来重新初始化连接资源。这个过程不需要重连和重新做权限验证，但是会将连接恢复到刚刚创建完时的状态。
+2.  如果你用的是 MySQL 5.7 或更新版本，可以在每次执行一个比较大的操作后，通过执行 `mysql_reset_connection` 来重新初始化连接资源。这个过程不需要重连和重新做权限验证，但是会将连接恢复到刚刚创建完时的状态。
 
 ### 查询缓存
 
@@ -1984,6 +2057,176 @@ ERROR 1142 (42000): SELECT command denied to user 'b'@'localhost' for table 'T'
 
 在有些场景下，执行器调用一次，在引擎内部则扫描了多行，因此**引擎扫描行数跟 rows_examined 并不是完全相同的。**我们后面会专门有一篇文章来讲存储引擎的内部机制，里面会有详细的说明。
 ## 日志
+
+Mysql 日志分为服务层日志和引擎层日志。
+
+下面简单介绍 MySQL 中 4 种服务层日志文件的作用。
+*   错误日志：该日志文件会记录 MySQL 服务器的启动、关闭和运行错误等信息。
+*   通用查询日志：该日志记录 MySQL 服务器的启动和关闭信息、客户端的连接信息、更新、查询数据记录的 SQL 语句等。
+*   慢查询日志：记录执行事件超过指定时间的操作，通过工具分析慢查询日志可以定位 MySQL 服务器性能瓶颈所在。
+*   二进制日志：该日志文件会以二进制的形式记录数据库的各种操作，但不记录查询语句。
+
+
+使用日志有优点也有缺点。启动日志后，虽然可以对 MySQL 服务器性能进行维护，但是会降低 MySQL 的执行速度。例如，一个查询操作比较频繁的 MySQL 中，记录通用查询日志和慢查询日志要花费很多的时间。
+
+日志文件还会占用大量的硬盘空间。对于用户量非常大、操作非常频繁的数据库，日志文件需要的存储空间甚至比数据库文件需要的存储空间还要大。因此，是否启动日志，启动什么类型的日志要根据具体的应用来决定。
+
+
+### 错误日志：Error Log
+错误日志是 MySQL 中最常用的一种日志，主要记录 MySQL 服务器启动和停止过程中的信息、服务器在运行过程中发生的故障和异常情况等。
+
+查看错误日志信息
+```sql
+mysql> show variables like 'log_error%';
+```
+
+### 通用查询日志：General Query Log
+通用查询日志用来记录用户的所有操作，包括启动和关闭 MySQL 服务、更新语句和查询语句等。
+
+查看通用查询日志信息
+```sql
+mysql> show variables like 'general_log%';
+```
+
+### 慢查询日志：Slow Query Log
+```sql
+mysql> show variables like 'slow_query%';
+mysql> show variables like 'long_query_time';
+```
+
+### 二进制日志：Binary Log
+可以使用如下命令查看 MySQL 中有哪些二进制日志文件：
+```sql
+mysql> SHOW binary logs;
+```
+
+获取binlog相关参数信息：
+```sql
+mysql> show variables like '%binlog%';
+```
+
+#### binlog 使用场景
+
+在实际应用中， `binlog `的主要使用场景有两个，分别是 **主从复制** 和 **数据恢复** 。
+
+1.  **主从复制** ：在 `Master `端开启 `binlog `，然后将 `binlog `发送到各个 `Slave `端， `Slave `端重放 `binlog `从而达到主从数据一致。
+2.  **数据恢复** ：通过使用 `mysqlbinlog `工具来恢复数据。
+
+#### binlog 刷盘时机
+对于 `InnoDB `存储引擎而言，只有在事务提交时才会记录 `biglog `，此时记录还在内存中，那么 `biglog`
+是什么时候刷到磁盘中的呢？ `mysql `通过 `sync_binlog `参数控制 `biglog `的刷盘时机，取值范围是 `0-N`
+：
+
+*   0：不去强制要求，由系统自行判断何时写入磁盘；
+*   1：每次 `commit `的时候都要将 `binlog `写入磁盘；
+*   N：每N个事务，才会将 `binlog `写入磁盘。
+
+#### binlog 日志格式
+binlog 有三种格式：
+
+*   Statement(Statement-Based Replication,SBR)：每一条会修改数据的 SQL 都会记录在 binlog 中。
+*   Row(Row-Based Replication,RBR)：不记录 SQL 语句上下文信息，仅保存哪条记录被修改。
+*   Mixed(Mixed-Based Replication,MBR)：Statement 和 Row 的混合体。
+
+##### Statement
+
+Statement 模式只记录执行的 SQL，不需要记录每一行数据的变化，因此极大的减少了 binlog 的日志量，避免了大量的 IO 操作，提升了系统的性能。
+
+但是，正是由于 Statement 模式只记录 SQL，而如果一些 SQL 中包含了函数，那么可能会出现执行结果不一致的情况。比如说 uuid() 函数，每次执行的时候都会生成一个随机字符串，在 master 中记录了 uuid，当同步到 slave 之后，再次执行，就获取到另外一个结果了。
+
+所以使用 Statement 格式会出现一些数据一致性问题。
+
+##### Row
+
+从 MySQL5.1.5 版本开始，binlog 引入了 Row 格式，Row 格式不记录 SQL 语句上下文相关信息，仅仅只需要记录某一条记录被修改成什么样子了。
+
+Row 格式的日志内容会非常清楚的记录下每一行数据修改的细节，这样就不会出现 Statement 中存在的那种数据无法被正常复制的情况。
+
+不过 Row 格式也有一个很大的问题，那就是日志量太大了，特别是批量 update、整表 delete、alter 表等操作，由于要记录每一行数据的变化，此时会产生大量的日志，大量的日志也会带来 IO 性能问题。
+
+##### Mixed
+
+从 MySQL5.1.8 版开始，MySQL 又推出了 Mixed 格式，这种格式实际上就是 Statement 与 Row 的结合。
+
+在 Mixed 模式下，系统会自动判断该用 Statement 还是 Row：一般的语句修改使用 Statement 格式保存 binlog;对于一些 Statement 无法准确完成主从复制的操作，则采用 Row 格式保存 binlog。
+
+Mixed 模式中，MySQL 会根据执行的每一条具体的 SQL 语句来区别对待记录的日志格式，也就是在 Statement 和 Row 之间选择一种。
+
+
+### 重做日志：Redo Log
+
+`redo log`包括两部分：一个是内存中的日志缓冲( `redo log buffer`)，另一个是磁盘上的日志文件( `redo log file`)。 `mysql`每执行一条 `DML`语句，先将记录写入 `redo log buffer`
+，后续某个时间点再一次性将多个操作记录写到 `redo log file`。这种 **先写日志，再写磁盘** 的技术就是 `MySQL`里经常说到的 `WAL(Write-Ahead Logging)`技术。
+
+`mysql`支持三种将 `redo log buffer`写入 `redo log file`的时机，可以通过 `innodb_flush_log_at_trx_commit` 参数配置，各参数值含义如下：
+
+| 参数值 | 含义 |
+| --- | --- |
+| 0（延迟写） | 事务提交时不会将 `redo log buffer `中日志写入到 `os buffer `，而是每秒写入 `os buffer `并调用 `fsync() `写入到 `redo log file `中。也就是说设置为0时是(大约)每秒刷新写入到磁盘中的，当系统崩溃，会丢失1秒钟的数据。 |
+| 1（实时写，实时刷） | 事务每次提交都会将 `redo log buffer `中的日志写入 `os buffer `并调用 `fsync() `刷到 `redo log file `中。这种方式即使系统崩溃也不会丢失任何数据，但是因为每次提交都写入磁盘，IO的性能较差。 |
+| 2（实时写，延迟刷） | 每次提交都仅写入到 `os buffer `，然后是每秒调用 `fsync() `将 `os buffer `中的日志写入到 `redo log file `。 |
+
+#### 存储机制
+`redo log `实际上记录数据页的变更，而这种变更记录是没必要全部保存，因此 `redo log`
+实现上采用了大小固定，循环写入的方式，当写到结尾时，会回到开头循环写日志。
+
+同时我们很容易得知， 在innodb中，既有`redo log`需要刷盘，还有 `数据页 `也需要刷盘， `redo log `存在的意义主要就是降低对 `数据页 `刷盘的要求 **。在上图中， `write pos `表示 `redo log `当前记录的 `LSN` (逻辑序列号)位置， `check point `表示 **数据页更改记录** 刷盘后对应 `redo log `所处的 `LSN `(逻辑序列号)位置。 `write pos `到 `check point `之间的部分是 `redo log `空着的部分，用于记录新的记录；` check point `到 `write pos `之间是 `redo log `待落盘的数据页更改记录。当 `write pos `追上 `check point `时，会先推动 `check point `向前移动，空出位置再记录新的日志。
+
+启动 `innodb`的时候，不管上次是正常关闭还是异常关闭，总是会进行恢复操作。因为 `redo log`记录的是数据页的物理变化，因此恢复的时候速度比逻辑日志(如 `binlog`)要快很多。 重启 `innodb`时，首先会检查磁盘中数据页的 `LSN`，如果数据页的 `LSN`小于日志中的 `LSN`，则会从 `checkpoint`开始恢复。 还有一种情况，在宕机前正处于`checkpoint`的刷盘过程，且数据页的刷盘进度超过了日志页的刷盘进度，此时会出现数据页中记录的 `LSN`大于日志中的 `LSN`，这时超出日志进度的部分将不会重做，因为这本身就表示已经做过的事情，无需再重做。
+
+### 回滚日志：Undo Log
+undo log是mysql中比较重要的事务日志之一，顾名思义，undo log是一种用于撤销回退的日志，在事务没提交之前，MySQL会先记录更新前的数据到 undo log日志文件里面，当事务回滚时或者数据库崩溃时，可以利用 undo log来进行回退。
+
+#### 作用
+在MySQL中，undo log日志的作用主要有两个：
+* 提供回滚操作**undo log实现事务的原子性**，我们在进行数据更新操作的时候，不仅会记录redo log，还会记录undo log，如果因为某些原因导致事务回滚，那么这个时候MySQL就要执行回滚（rollback）操作，利用undo log将数据恢复到事务开始之前的状态，记录反执行语句实现回滚操作。
+* 提供多版本控制（MVCC，Multi-Version Concurrency Control）**undo log实现多版本并发控制（MVCC）**，MVCC，即多版本控制。在MySQL数据库InnoDB存储引擎中，用undo Log来实现多版本并发控制(MVCC)。当读取的某一行被其他事务锁定时，它可以从undo log中分析出该行记录以前的数据版本是怎样的，从而让用户能够读取到当前事务操作之前的数据**快照读**。
+
+下面解释一下什么是快照读，与之对应的还有一个是---当前读。
+* 快照读：SQL读取的数据是快照版本【可见版本】，也就是历史版本，不用加锁，普通的SELECT就是快照读。
+* 当前读：SQL读取的数据是最新版本。通过锁机制来保证读取的数据无法通过其他事务进行修改UPDATE、DELETE、INSERT、SELECT … LOCK IN SHARE MODE、SELECT … FOR UPDATE都是当前读。
+
+#### 存储机制
+undo log的存储由InnoDB存储引擎实现，数据保存在InnoDB的数据文件中。在InnoDB存储引擎中，undo log是采用分段(segment)的方式进行存储的。rollback segment称为回滚段，每个回滚段中有1024个undo log segment。在MySQL5.5之前，只支持1个rollback segment，也就是只能记录1024个undo操作。在MySQL5.5之后，可以支持128个rollback segment，分别从resg slot0 - resg slot127，每一个resg slot，也就是每一个回滚段，内部由1024个undo segment 组成，即总共可以记录128 * 1024个undo操作。
+
+![](https://img-blog.csdnimg.cn/20210613084841967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L1dlaXhpYW9odWFp,size_16,color_FFFFFF,t_70)
+
+如上图，可以看到，undo log日志里面不仅存放着数据更新前的记录，还记录着RowID、事务ID、回滚指针。其中事务ID每次递增，回滚指针第一次如果是insert语句的话，回滚指针为NULL，第二次update之后的undo log的回滚指针就会指向刚刚那一条undo log日志，依次类推，就会形成一条undo log的回滚链，方便找到该条记录的历史版本。
+
+
+
+#### 工作原理
+在更新数据之前，MySQL会提前生成undo log日志，当事务提交的时候，并不会立即删除undo log，因为后面可能需要进行回滚操作，要执行回滚（rollback）操作时，从缓存中读取数据。undo log日志的删除是通过通过后台purge线程进行回收处理的。
+
+![](https://img-blog.csdnimg.cn/20210613084909540.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L1dlaXhpYW9odWFp,size_16,color_FFFFFF,t_70)
+
+* 事务A执行update操作，此时事务还没提交，会将数据进行备份到对应的undo buffer，然后由undo buffer持久化到磁盘中的undo log文件中，此时undo log保存了未提交之前的操作日志，接着将操作的数据，也就是Teacher表的数据持久保存到InnoDB的数据文件IBD。
+* 此时事务B进行查询操作，直接从undo buffer缓存中进行读取，这时事务A还没提交事务，如果要回滚（rollback）事务，是不读磁盘的，先直接从undo buffer缓存读取。
+
+用undo log实现原子性和持久化的事务的简化过程：
+
+假设有A、B两个数据，值分别为1,2。
+
+1. 事务开始
+2. 记录A=1到undo log中
+3. 修改A=3
+4. 记录B=2到undo log中
+5. 修改B=4
+6. 将undo log写到磁盘 -------undo log持久化
+7. 将数据写到磁盘 -------数据持久化
+8. 事务提交 -------提交事务
+
+之所以能同时保证原子性和持久化，是因为以下特点：
+
+* 更新数据前记录undo log。
+* 为了保证持久性，必须将数据在事务提交前写到磁盘，只要事务成功提交，数据必然已经持久化到磁盘。
+* undo log必须先于数据持久化到磁盘。如果在G,H之间发生系统崩溃，undo log是完整的，可以用来回滚。
+* 如果在A - F之间发生系统崩溃，因为数据没有持久化到磁盘，所以磁盘上的数据还是保持在事务开始前的状态。
+
+缺陷：每个事务提交前将数据和undo log写入磁盘，这样会导致大量的磁盘IO，因此性能较差。 如果能够将数据缓存一段时间，就能减少IO提高性能，但是这样就会失去事务的持久性。
+
+> undo日志属于逻辑日志，redo是物理日志，所谓逻辑日志是undo log是记录一个操作过程，不会物理删除undo log，sql执行delete或者update操作都会记录一条undo日志。
+
 ### 重要的日志模块：redo log
 
 不知道你还记不记得《孔乙己》这篇文章，酒店掌柜有一个粉板，专门用来记录客人的赊账记录。如果赊账的人不多，那么他可以把顾客名和账目写在板上。但如果赊账的人多了，粉板总会有记不下的时候，这个时候掌柜一定还有一个专门记录赊账的账本。
@@ -2590,6 +2833,364 @@ mysql> update t set a=2 where id=1;
 2.  MySQL 调用了 InnoDB 引擎提供的“修改为 (1,2)”这个接口，但是引擎发现值与原来相同，不更新，直接返回；
 
 3.  InnoDB 认真执行了“把这个值修改成 (1,2)"这个操作，该加锁的加锁，该更新的更新。## 缓存
+
+查看buffer
+```sql
+mysql> show variables like '%buffer%';
++-------------------------------------------+----------------+
+| Variable_name                             | Value          |
++-------------------------------------------+----------------+
+| bulk_insert_buffer_size                   | 8388608        |
+| innodb_buffer_pool_chunk_size             | 134217728      |
+| innodb_buffer_pool_dump_at_shutdown       | ON             |
+| innodb_buffer_pool_dump_now               | OFF            |
+| innodb_buffer_pool_dump_pct               | 25             |
+| innodb_buffer_pool_filename               | ib_buffer_pool |
+| innodb_buffer_pool_in_core_file           | OFF            |
+| innodb_buffer_pool_instances              | 2              |
+| innodb_buffer_pool_load_abort             | OFF            |
+| innodb_buffer_pool_load_at_startup        | ON             |
+| innodb_buffer_pool_load_now               | OFF            |
+| innodb_buffer_pool_recover_abort          | OFF            |
+| innodb_buffer_pool_recover_after_transmit | OFF            |
+| innodb_buffer_pool_recover_now            | OFF            |
+| innodb_buffer_pool_recover_pct            | 60             |
+| innodb_buffer_pool_size                   | 3221225472     |
+| innodb_buffer_pool_snapshot_interval      | 0              |
+| innodb_buffer_pool_snapshot_now           | OFF            |
+| innodb_buffer_pool_snapshot_pct           | 60             |
+| innodb_buffer_pool_snapshot_threshold     | 0              |
+| innodb_buffer_pool_transmit_enabled       | OFF            |
+| innodb_buffer_pool_transmit_interval      | 10             |
+| innodb_change_buffer_max_size             | 25             |
+| innodb_change_buffering                   | all            |
+| innodb_log_buffer_size                    | 67108864       |
+| innodb_sort_buffer_size                   | 1048576        |
+| join_buffer_size                          | 262144         |
+| key_buffer_size                           | 16777216       |
+| myisam_sort_buffer_size                   | 8388608        |
+| net_buffer_length                         | 8192           |
+| preload_buffer_size                       | 32768          |
+| read_buffer_size                          | 262144         |
+| read_rnd_buffer_size                      | 524288         |
+| sort_buffer_size                          | 524288         |
+| sql_buffer_result                         | OFF            |
++-------------------------------------------+----------------+
+```
+
+
+### sql buffer
+#### join_buffer
+当我们的join是ALL,index,rang或者Index_merge的时候使用的buffer。
+
+实际上这种join被称为FULL JOIN。
+
+实际上参与join的每一个表都需要一个join buffer。
+
+所以在join出现的时候，至少是2个。
+
+join buffer的这只在mysql5.1.23版本之前最大为4G，但是从5.1.23版本开始，再出了windows之外的64为平台上可以超出4GB的限制。
+
+#### read_buffer
+read_buffer_size是MySQL读入缓冲区的大小，将对表进行顺序扫描的请求将分配一个读入缓冲区，MySQL会为它分配一段内存缓冲区，read_buffer_size变量控制这一缓冲区的大小。如果对表的顺序扫描非常频繁，并你认为频繁扫描进行的太慢，可以通过增加该变量值以及内存缓冲区大小提高其性能，read_buffer_size变量控制这一提高表的顺序扫描的效率。
+#### read_rnd_buffer
+read_rnd_buffer_size是MySQL的随机读缓冲区大小，当按任意顺序读取行时将分配一个随机读取缓冲区，进行排序查询时，MySQL会首先扫描一遍该缓冲，以避免磁盘搜索，提高查询速度，如果需要大量数据可适当的调整该值，但MySQL会为每个客户连接分配该缓冲区所以尽量适当设置该值，以免内存开销过大。表的随机的顺序缓冲 提高读取的效率。
+#### sort_buffer
+sort buffer是系统中对数据进行排序的时候用到的Buffer。
+
+sort buffer同样是针对单个线程的，所以当多个线程同时进行排序的时候，系统中就会出现多个sort buffer。
+
+我们一般可以通过增大sort buffer的大小来提高order by或者group by的处理性能。
+
+系统默认大小时2MB，最大限制和join buffer一样。
+#### sql_buffer
+
+#### redo log buffer
+
+#### log buffer
+日志缓冲区是存储要写入磁盘上日志文件的数据的内存区域。日志缓冲区大小由 innodb_log_buffer_size 变量定义。默认大小为 16MB。日志缓冲区的内容会定期刷新到磁盘。大型日志缓冲区使大型事务无需在事务提交之前将重做日志数据写入磁盘即可运行。因此，如果您有更新、插入或删除许多行的事务，增加日志缓冲区的大小可以节省磁盘 I/O。
+innodb_flush_log_at_trx_commit 变量控制日志缓冲区的内容如何写入和刷新到磁盘。 innodb_flush_log_at_timeout 变量控制日志刷新频率。
+
+
+
+### innodb buffer pool
+[doc](https://dev.mysql.com/doc/refman/5.7/en/innodb-buffer-pool.html)
+
+缓冲池是主内存中的一个区域，InnoDB 在访问时缓存表和索引数据。缓冲池允许直接从内存访问频繁使用的数据，从而加快处理速度。在专用服务器上，通常会将高达 80% 的物理内存分配给缓冲池。
+为了提高大容量读取操作的效率，缓冲池被分成可能包含多行的页面。为了缓存管理的效率，缓冲池被实现为页面链表；很少使用的数据使用最近最少使用 (LRU) 算法的变体从缓存中老化。
+
+知道如何利用缓冲池将频繁访问的数据保存在内存中是 MySQL 调优的一个重要方面。
+
+缓冲池使用 LRU 算法的变体作为列表进行管理。当需要空间将新页面添加到缓冲池时，最近最少使用的页面将被逐出，并将新页面添加到列表的中间。这种中点插入策略将列表视为两个子列表：
+
+* 在头部，最近访问的新（“年轻”）页面的子列表
+* 在尾部，最近较少访问的旧页面的子列表
+
+该算法将经常使用的页面保留在新的子列表中。旧的子列表包含不常用的页面；这些页面是驱逐的候选者。
+
+默认情况下，算法运行如下：
+
+* 缓冲池的 3/8 专门用于旧子列表。
+* 列表的中点是新子列表的尾部与旧子列表的头部相交的边界。
+* 当 InnoDB 将一个页面读入缓冲池时，它最初将其插入到中点（旧子列表的头部）。可以读取页面，因为它是用户启动的操作（例如 SQL 查询）所必需的，或者作为 InnoDB 自动执行的预读操作的一部分。
+* 访问旧子列表中的页面使其“年轻”，将其移动到新子列表的头部。如果页面是因为用户启动的操作需要它而被读取的，则第一次访问会立即发生并且该页面成为新页面。如果页面是由于预读操作而被读取的，则第一次访问不会立即发生，并且在页面被逐出之前可能根本不会发生。
+* 随着数据库的运行，缓冲池中未访问的页面通过向列表的尾部移动而“老化”。随着其他页面的更新，新旧子列表中的页面都会老化。随着在中点插入页面，旧子列表中的页面也会老化。最终，未使用的页面到达旧子列表的尾部并被逐出。
+
+默认情况下，查询读取的页面会立即移动到新的子列表中，这意味着它们在缓冲池中停留的时间更长。例如，为 mysqldump 操作或不带 WHERE 子句的 SELECT 语句执行的表扫描可以将大量数据带入缓冲池并驱逐等量的旧数据，即使新数据不再使用也是如此.同样，由预读后台线程加载且仅访问一次的页面将移至新列表的头部。这些情况可以将经常使用的页面推送到旧的子列表，在那里它们会被驱逐。
+InnoDB Standard Monitor 输出包含 BUFFER POOL AND MEMORY 部分中关于缓冲池 LRU 算法操作的几个字段。
+
+#### 预读
+[doc](https://dev.mysql.com/doc/refman/5.7/en/innodb-performance-read_ahead.html)
+
+#### **2.1 Buffer Pool Instance**
+
+Buffer Pool实例，大小等于`innodb_buffer_pool_size/innodb_buffer_pool_instances`，每个Buffer Pool Instance都有自己的锁，信号量，物理块(Buffer chunks)以及逻辑链表(List)。即各个instance之间没有竞争关系，可以并发读取与写入。所有instance的物理块(Buffer chunks)在数据库启动的时候被分配，直到数据库关闭内存才予以释放。每个Buffer Pool Instance有一个page hash链表，通过它，使用`space_id`和`page_no`就能快速找到已经被读入内存的数据页，而不用线性遍历LRU List去查找。注意这个hash表不是InnoDB的自适应哈希，自适应哈希是为了减少Btree的扫描，而page hash是为了避免扫描LRU List。
+
+> 当innodb_buffer_pool_size小于1GB时候，innodb_buffer_pool_instances被重置为1，主要是防止有太多小的instance从而导致性能问题。
+
+#### **2.2 数据页**
+
+InnoDB中，数据管理的最小单位为页，默认是16KB，页中除了存储用户数据，还可以存储控制信息的数据。InnoDB IO子系统的读写最小单位也是页。
+
+#### **2.3 Buffer Chunks**
+
+包括两部分：数据页和数据页对应的控制体，控制体中有指针指向数据页。Buffer Chunks是最低层的物理块，在启动阶段从操作系统申请，直到数据库关闭才释放。通过遍历chunks可以访问几乎所有的数据页，有两种状态的数据页除外：没有被解压的压缩页(BUF_BLOCK_ZIP_PAGE)以及被修改过且解压页已经被驱逐的压缩页(BUF_BLOCK_ZIP_DIRTY)。此外数据页里面不一定都存的是用户数据，开始是控制信息，比如行锁，自适应哈希等。
+
+#### **2.4 逻辑链表**
+
+链表节点是数据页的控制体(控制体中有指针指向真正的数据页)，链表中的所有节点都有同一的属性，引入其的目的是方便管理。Innodb Buffer Pool 相关的链表有:
+
+* **2.4.1 Free List**
+
+其上的节点都是未被使用的节点，如果需要从数据库中分配新的数据页，直接从上获取即可。InnoDB需要保证Free List有足够的节点，提供给用户线程用，否则需要从FLU List或者LRU List淘汰一定的节点。InnoDB初始化后，Buffer Chunks中的所有数据页都被加入到Free List，表示所有节点都可用。
+
+* **2.4.2 LRU List**
+
+近期最少使用链表(Least Recently Used)，这个是InnoDB中最重要的链表。所有新读取进来的数据页都被放在上面。链表按照最近最少使用算法排序，最近最少使用的节点被放在链表末尾，如果Free List里面没有节点了，就会从中淘汰末尾的节点。LRU List还包含没有被解压的压缩页，这些压缩页刚从磁盘读取出来，还没来得及被解压。LRU List被分为两部分，默认前5/8为young list，存储经常被使用的热点page，后3/8为old list。新读入的page默认被加在old list头，只有满足一定条件后，才被移到young list上，主要是为了预读的数据页和全表扫描污染buffer pool。
+
+* **2.4.3 FLU List**
+
+这个链表中的所有节点都是脏页，也就是说这些数据页都被修改过，但是还没来得及被刷新到磁盘上。在FLU List上的页面一定在LRU List上，但是反之则不成立。一个数据页可能会在不同的时刻被修改多次，在数据页上记录了最老(也就是第一次)的一次修改的lsn，即oldest_modification。不同数据页有不同的oldest_modification，FLU List中的节点按照oldest_modification排序，链表尾是最小的，也就是最早被修改的数据页，当需要从FLU List中淘汰页面时候，从链表尾部开始淘汰。加入FLU List，需要使用flush_list_mutex保护，所以能保证FLU List中节点的顺序。
+
+* **2.4.4 Unzip LRU List**
+
+这个链表中存储的数据页都是解压页，也就是说，这个数据页是从一个压缩页通过解压而来的。
+
+* **2.4.5 Zip Clean List**
+
+这个链表只在Debug模式下有，主要是存储没有被解压的压缩页。这些压缩页刚刚从磁盘读取出来，还没来的及被解压，一旦被解压后，就从此链表中删除，然后加入到Unzip LRU List中。
+
+* **2.4.6 Zip Free**
+
+压缩页有不同的大小，比如8K，4K，InnoDB使用了类似内存管理的伙伴系统来管理压缩页。Zip Free可以理解为由5个链表构成的一个二维数组，每个链表分别存储了对应大小的内存碎片，例如8K的链表里存储的都是8K的碎片，如果新读入一个8K的页面，首先从这个链表中查找，如果有则直接返回，如果没有则从16K的链表中分裂出两个8K的块，一个被使用，另外一个放入8K链表中。
+
+#### **2.6 Frame**
+
+帧，16K的虚拟地址空间， 在缓冲池的管理上，整个缓冲区是是以大小为16k的frame(可以理解为数据块)为单位来进行的，frame是innodb中页的大小。
+
+#### **2.7 Page**
+
+页，16K的物理内存， page上存的是需要保存到磁盘上的数据， 这些数据可能是数据记录信息， 也可以是索引信息或其他的元数据等；
+
+#### **2.8 Control Block**
+
+控制块，对于每个frame, 对应一个block， block上的信息是专门用于进行frame控制的管理信息， 但是这些信息不需要记录到磁盘，而是根据读入数据块在内存中的状态动态生成的， 主要包括：
+
+*   1\. 页面管理的普通信息，互斥锁， 页面的状态等
+*   2\. 脏回写(flush)管理信息
+*   3\. lru控制信息
+*   4\. 快速查找的管理信息， 为了便于快速的超找某一个block或frame， 缓冲区里面的block被组织到一些hash表中; 缓冲区中的block数量是一定的， innodb缓冲区对所管理的block用lru(last recently used)策略进行替换。
+
+#### **2.9 Buffer Pool分配方式**
+
+MySQL使用mmap分配Buffer Pool，但是都是虚存，在top命令中占用VIRT这一列，而不是RES这一列，只有相应的内存被真正使用到了，才会被统计到RES中，从而提高内存使用率。这就是为什么常常看到MySQL一启动就被分配了很多的VIRT，而RES却是慢慢涨上来的原因。这里大家可能有个疑问，为啥不用malloc。其实查阅malloc文档，可以发现，当请求的内存数量大于`MMAP_THRESHOLD`(默认为128KB)时候，malloc底层就是调用了mmap。在InnoDB中，默认使用mmap来分配。 分配完了内存，`buf_chunk_init`函数中，把这片内存划分为两个部分，前一部分是数据页控制体(`buf_block_t`)，后一部分是真正的数据页，按照`UNIV_PAGE_SIZE`分隔。假设page大小为16KB，则数据页控制体占的内存:数据页约等于1:38.6，也就是说如果`innodb_buffer_pool_size`被配置为40G，则需要额外的1G多空间来存数据页的控制体。 划分完空间后，遍历数据页控制体，设置`buf_block_t::frame`指针，指向真正的数据页，然后把这些数据页加入到Free List中即可。初始化完Buffer Chunks的内存，还需要初始化`BUF_BLOCK_POOL_WATCH`类型的数据页控制块，page hash的结构体，zip hash的结构体(所有被压缩页的伙伴系统分配走的数据页面会加入到这个哈希表中)。注意这些内存是额外分配的，不包含在Buffer Chunks中。
+
+#### **2.10 互斥访问**
+
+缓冲池的整个缓冲区一个数据结构`buf_pool`进行管理和控制， 一个专门的mutex保护着， 这个mutex是用来保护`buf_pool`这个控制结构中的数据域的， 并不保护缓冲区中的数据frame以及用于管理的block, 缓冲区里block或者frame中的访问是由专门的读写锁来保护的， 每个`block/frame`一个。在5.1以前， 每个block是没专门的mutex保护的，如果需要进行互斥保护，直接使用缓冲区的mutex, 结果导致很高的争用； 5.1以后，每个block一个mutex对其进行保护， 从而在很大程度上解缓了对buf_pool的mutex的争用。
+
+#### 存储内容
+BUffer Pool中缓存的数据页类型有: 索引页、数据页、undo页、插入缓冲（insert buffer)、自适应哈希索引（adaptive hash index)、InnoDB存储的锁信息（lock info)、数据字典信息（data dictionary)等。
+
+#### 预读
+
+
+InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是一个i/o请求，它会异步地在缓冲池中预先回迁多个页面，预计很快就会需要这些页面，这些请求在一个范围内引入所有页面。InnoDB以64个page为一个extent，那么InnoDB的预读是以page为单位还是以extent？
+数据库请求数据的时候，会将读请求交给文件系统，放入请求队列中；相关进程从请求队列中将读请求取出，根据需求到相关数据区(内存、磁盘)读取数据；取出的数据，放入响应队列中，最后数据库就会从响应队列中将数据取走，完成一次数据读操作过程。
+接着进程继续处理请求队列，(如果数据库是全表扫描的话，数据读请求将会占满请求队列)，判断后面几个数据读请求的数据是否相邻，再根据自身系统IO带宽处理量，进行预读，进行读请求的合并处理，一次性读取多块数据放入响应队列中，再被数据库取走。(如此，一次物理读操作，实现多页数据读取，rrqm>0（# iostat -x），假设是4个读请求合并，则rrqm参数显示的就是4)
+
+InnoDB使用两种预读算法来提高I/O性能：线性预读（`linear read-ahead`）和随机预读（`randomread-ahead`）
+为了区分这两种预读的方式，我们可以把线性预读放到以extent为单位，而随机预读放到以extent中的page为单位。线性预读着眼于将下一个extent提前读取到buffer pool中，而随机预读着眼于将当前extent中的剩余的page提前读取到buffer pool中。
+
+##### 线性预读（linear read-ahead）
+线性预读方式有一个很重要的变量控制是否将下一个extent预读到buffer pool中，通过使用配置参数`innodb_read_ahead_threshold`，控制触发innodb执行预读操作的时间。
+
+如果一个extent中的被顺序读取的page超过或者等于该参数变量时，Innodb将会异步的将下一个extent读取到buffer pool中，`innodb_read_ahead_threshold`可以设置为0-64的任何值(因为一个extent中也就只有64页)，默认值为56，值越高，访问模式检查越严格。
+
+```sql
+mysql> show variables like 'innodb_read_ahead_threshold';
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_read_ahead_threshold | 56    |
++-----------------------------+-------+
+```
+
+例如，如果将值设置为48，则InnoDB只有在顺序访问当前extent中的48个pages时才触发线性预读请求，将下一个extent读到内存中。如果值为8，InnoDB触发异步预读，即使程序段中只有8页被顺序访问。
+可以在MySQL配置文件中设置此参数的值，或者使用SET GLOBAL需要该SUPER权限的命令动态更改该参数。
+在没有该变量之前，当访问到extent的最后一个page的时候，innodb会决定是否将下一个extent放入到buffer pool中。
+
+##### 随机预读（randomread-ahead）
+随机预读方式则是表示当同一个extent中的一些page在buffer pool中发现时，Innodb会将该extent中的剩余page一并读到buffer pool中。
+```sql
+mysql> show variables like 'innodb_random_read_ahead';
++--------------------------+-------+
+| Variable_name            | Value |
++--------------------------+-------+
+| innodb_random_read_ahead | OFF   |
++--------------------------+-------+
+```
+
+由于随机预读方式给`innodb code`带来了一些不必要的复杂性，同时在性能也存在不稳定性，在5.5中已经将这种预读方式废弃，默认是OFF。若要启用此功能，即将配置变量设置`innodb_random_read_ahead`为ON。
+
+##### 查看预读信息
+可以通过`show engine innodb status\G`显示统计信息
+```sql
+mysql> show engine innodb status\G
+----------------------
+BUFFER POOL AND MEMORY
+----------------------
+……
+Pages read ahead 0.00/s, evicted without access 0.00/s, Random read ahead 0.00/s
+……
+```
+
+* Pages read ahead：表示每秒读入的pages；
+* evicted without access：表示每秒读出的pages；
+* 一般随机预读都是关闭的，也就是0。
+
+通过两个状态值，评估预读算法的有效性
+```sql
+mysql> show global status like '%read_ahead%';
++---------------------------------------+-------+
+| Variable_name                         | Value |
++---------------------------------------+-------+
+| Innodb_buffer_pool_read_ahead_rnd     | 0     |
+| Innodb_buffer_pool_read_ahead         | 2303  |
+| Innodb_buffer_pool_read_ahead_evicted | 0     |
++---------------------------------------+-------+
+3 rows in set (0.01 sec)
+```
+
+* `Innodb_buffer_pool_read_ahead`：通过预读(后台线程)读入innodb buffer pool中数据页数
+* `Innodb_buffer_pool_read_ahead_evicted`：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
+
+#### **Buffer Pool预热**
+
+MySQL在重启后，Buffer Pool里面没有什么数据，这个时候业务上对数据库的数据操作，MySQL就只能从磁盘中读取数据到内存中，这个过程可能需要很久才能是内存中的数据是业务频繁使用的。Buffer Pool中数据从无到业务频繁使用热数据的过程称之为预热。所以在预热这个过程中，MySQL数据库的性能不会特别好，并且Buffer Pool越大，预热过程越长。
+
+为了减短这个预热过程，在MySQL关闭前，把Buffer Pool中的页面信息保存到磁盘，等到MySQL启动时，再根据之前保存的信息把磁盘中的数据加载到Buffer Pool中即可。
+
+##### **4.1.1 Buffer Pool Dump**
+
+遍历所有Buffer Pool Instance的LRU List，对于其中的每个数据页，按照`space_id`和`page_no`组成一个64位的数字，写到外部文件中
+
+##### **4.1.2 Buffer Pool Load**
+
+读取指定的外部文件，把所有的数据读入内存后，使用归并排序对数据排序，以64个数据页为单位进行IO合并，然后发起一次真正的读取操作。排序的作用就是便于IO合并。
+
+#### **4.2 预读机制**
+
+InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是一个i/o请求，它会异步地在缓冲池中预先回迁多个页面，预计很快就会需要这些页面，这些请求在一个范围内引入所有页面。InnoDB以64个page为一个extent，那么InnoDB的预读是以page为单位还是以extent？
+
+![](https://pic3.zhimg.com/80/v2-a4c7d4b6d8ef094105aecb50f222a88a_1440w.webp)
+
+数据库请求数据的时候，会将读请求交给文件系统，放入请求队列中；相关进程从请求队列中将读请求取出，根据需求到相关数据区(内存、磁盘)读取数据；取出的数据，放入响应队列中，最后数据库就会从响应队列中将数据取走，完成一次数据读操作过程。
+
+接着进程继续处理请求队列，(如果数据库是全表扫描的话，数据读请求将会占满请求队列)，判断后面几个数据读请求的数据是否相邻，再根据自身系统IO带宽处理量， 进行预读，进行读请求的合并处理 ，一次性读取多块数据放入响应队列中，再被数据库取走。(如此，一次物理读操作，实现多页数据读取，rrqm>0（ # iostat -x ），假设是4个读请求合并，则rrqm参数显示的就是4)
+
+InnoDB使用两种预读算法来提高I/O性能： 线性预读（linear read-ahead）和随机预读（randomread-ahead）
+
+为了区分这两种预读的方式，我们可以把线性预读以extent为单位，而随机预读以extent中的page为单位。线性预读着眼于将下一个extent提前读取到buffer pool中，而随机预读着眼于将当前extent中的剩余的page提前读取到buffer pool中。
+
+#### **4.2.1 线性预读（linear read-ahead）**
+
+线性预读方式有一个很重要的变量控制是否将下一个extent预读到buffer pool中，通过使用配置参数 innodb_read_ahead_threshold ，控制触发innodb执行预读操作的时间。
+
+如果一个extent中的被顺序读取的page超过或者等于该参数变量时，Innodb将会异步的将下一个extent读取到buffer pool中，innodb_read_ahead_threshold可以设置为0-64的任何值(因为一个extent中也就只有64页)，默认值为56，值越高，访问模式检查越严格。
+
+```text
+mysql> show variables like 'innodb_read_ahead_threshold';
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_read_ahead_threshold | 56    |
++-----------------------------+-------+
+```
+
+例如 ，如果将值设置为48，则InnoDB只有在顺序访问当前extent中的48个pages时才触发线性预读请求，将下一个extent读到内存中。如果值为8，InnoDB触发异步预读，即使程序段中只有8页被顺序访问。
+
+可以在MySQL配置文件中设置此参数的值，或者使用SET GLOBAL需要该SUPER权限的命令动态更改该参数。
+
+在没有该变量之前，当访问到extent的最后一个page的时候，innodb会决定是否将下一个extent放入到buffer pool中。
+
+#### **4.2.2 随机预读（randomread-ahead）**
+
+随机预读方式则是表示当同一个extent中的一些page在buffer pool中发现时，Innodb会将该extent中的剩余page一并读到buffer pool中。
+
+```text
+mysql> show variables like 'innodb_random_read_ahead';
++--------------------------+-------+
+| Variable_name            | Value |
++--------------------------+-------+
+| innodb_random_read_ahead | OFF   |
++--------------------------+-------+
+```
+
+由于随机预读方式给innodb code带来了一些不必要的复杂性，同时在性能也存在不稳定性，在5.5中已经将这种预读方式 废弃，默认是OFF 。若要启用此功能，即将配置变量设置innodb_random_read_ahead为ON。
+
+
+### change buffer
+[doc](https://dev.mysql.com/doc/refman/5.7/en/innodb-change-buffer.html)
+![](https://dev.mysql.com/doc/refman/5.7/en/images/innodb-change-buffer.png)
+
+其实说白了其实insert buffer也好，还是change buffer也好，它们其实就是MySQL在我们对非唯一的二级索引进行DML（删除行、写入行、修改行）操作时作出的优化逻辑。目的就是让MySQL的性能更好。
+比如还是我们这个例子：表里面有3列。id、name、age。然后id是主键、name是非唯一的二级索引。
+
+一条update sql：`update xx set name = "赐我白日梦" where name = “白日梦”`打过来之后，执行流程大概就像下面这样：
+
+1、检查需要被update的数据是否在buffer pool中。
+
+2、如果在buffer pool中直接将其update。
+
+3、如果不在buffer pool中，进行磁盘的IO操作，将其读取内存中，再把它update。
+
+change buffer的本质上其实也是一块内存。
+
+比如你的：insert、delete、update等DML操作需要用到的二级索引页（注意是二级索引页，具体就比如说为name列这个二级索引创建的B+Tree的叶子节点，而不是Buffer pool中的普通数据页）
+
+就是当这些二级索引页不在内存中时，你对它们的操作会被缓存在change buffer中（目的是省去这次随机的磁盘IO）。等之后MySQL空闲了、或者是MySQL关闭前、或者是有读取操作时再将这部分缓存操作merge到B+Tree中。
+
+ [](https://img2020.cnblogs.com/blog/1496926/202104/1496926-20210421001356725-437607513.png)
+
+#### change buffer 的限制
+1、首先得要求是二级索引。如果不是二级索引到话，那前面change buffer存在意义又是什么呢？没有啥可优化的地方。那不如不要这个change buffer
+
+2、要求二级索引不能唯一。这个很好理解。如果name列是唯一的。那我每次insert 之前是不是都必须去看下内存、Disk上到底有没有已经存在的相同值的索引。这也就意味着这个insert 操作其实是不能被缓存的！必须立即知道到底能否insert 成功。对吧！不这样的话，你打算返回给客户端什么结果呢？
+
+
+#### change buffer 参数
+参数：`innodb_change_buffer_max_size`
+作用：控制change buffer能占用buffer pool总内存的比例
+范围：默认25（表示change buffer最大能占用其25%的内存），最大50。
+参数：`innodb_change_buffering`
+作用：控制change buffer对哪些dml起作用
+可选参数：all（insert、delete、update）、none（不缓存任何操纵）、inserts、deletes、purges
+
+
+
+
+
 在前面的基础篇文章中，我给你介绍过索引的基本概念，相信你已经了解了唯一索引和普通索引的区别。今天我们就继续来谈谈，在不同的业务场景下，应该选择普通索引，还是唯一索引？
 
 假设你在维护一个市民系统，每个人都有一个唯一的身份证号，而且业务代码已经保证了不会写入两个重复的身份证号。如果市民系统需要按照身份证号查姓名，就会执行类似这样的 SQL 语句：
@@ -4531,6 +5132,15 @@ select SQL_BIG_RESULT id%100 as m, count(*) as c from t1 group by m;
 
 4.  如果数据量实在太大，使用 `SQL_BIG_RESULT` 这个提示，来告诉优化器直接使用排序算法得到 group by 的结果。
 ## 索引
+
+### B+ Tree
+
+### 索引分类
+
+普通索引
+聚簇索引
+覆盖索引
+
 
 提到数据库索引，我想你并不陌生，在日常工作中会经常接触到。比如某一个 SQL 查询比较慢，分析完原因之后，你可能就会说“给某个字段加个索引吧”之类的解决方案。但到底什么是索引，索引又是如何工作的呢？今天就让我们一起来聊聊这个话题吧。
 
@@ -6916,75 +7526,6 @@ MySQL5.6和MySQL5.7默认的sql_mode模式参数是不一样的,5.6的mode是`NO
 
 ## 预读
 
-InnoDB在I/O的优化上有个比较重要的特性为预读，预读请求是一个i/o请求，它会异步地在缓冲池中预先回迁多个页面，预计很快就会需要这些页面，这些请求在一个范围内引入所有页面。InnoDB以64个page为一个extent，那么InnoDB的预读是以page为单位还是以extent？
-数据库请求数据的时候，会将读请求交给文件系统，放入请求队列中；相关进程从请求队列中将读请求取出，根据需求到相关数据区(内存、磁盘)读取数据；取出的数据，放入响应队列中，最后数据库就会从响应队列中将数据取走，完成一次数据读操作过程。
-接着进程继续处理请求队列，(如果数据库是全表扫描的话，数据读请求将会占满请求队列)，判断后面几个数据读请求的数据是否相邻，再根据自身系统IO带宽处理量，进行预读，进行读请求的合并处理，一次性读取多块数据放入响应队列中，再被数据库取走。(如此，一次物理读操作，实现多页数据读取，rrqm>0（# iostat -x），假设是4个读请求合并，则rrqm参数显示的就是4)
-
-InnoDB使用两种预读算法来提高I/O性能：线性预读（`linear read-ahead`）和随机预读（`randomread-ahead`）
-为了区分这两种预读的方式，我们可以把线性预读放到以extent为单位，而随机预读放到以extent中的page为单位。线性预读着眼于将下一个extent提前读取到buffer pool中，而随机预读着眼于将当前extent中的剩余的page提前读取到buffer pool中。
-
-##### 线性预读（linear read-ahead）
-线性预读方式有一个很重要的变量控制是否将下一个extent预读到buffer pool中，通过使用配置参数`innodb_read_ahead_threshold`，控制触发innodb执行预读操作的时间。
-
-如果一个extent中的被顺序读取的page超过或者等于该参数变量时，Innodb将会异步的将下一个extent读取到buffer pool中，`innodb_read_ahead_threshold`可以设置为0-64的任何值(因为一个extent中也就只有64页)，默认值为56，值越高，访问模式检查越严格。
-
-```sql
-mysql> show variables like 'innodb_read_ahead_threshold';
-+-----------------------------+-------+
-| Variable_name               | Value |
-+-----------------------------+-------+
-| innodb_read_ahead_threshold | 56    |
-+-----------------------------+-------+
-```
-
-例如，如果将值设置为48，则InnoDB只有在顺序访问当前extent中的48个pages时才触发线性预读请求，将下一个extent读到内存中。如果值为8，InnoDB触发异步预读，即使程序段中只有8页被顺序访问。
-可以在MySQL配置文件中设置此参数的值，或者使用SET GLOBAL需要该SUPER权限的命令动态更改该参数。
-在没有该变量之前，当访问到extent的最后一个page的时候，innodb会决定是否将下一个extent放入到buffer pool中。
-
-##### 随机预读（randomread-ahead）
-随机预读方式则是表示当同一个extent中的一些page在buffer pool中发现时，Innodb会将该extent中的剩余page一并读到buffer pool中。
-```sql
-mysql> show variables like 'innodb_random_read_ahead';
-+--------------------------+-------+
-| Variable_name            | Value |
-+--------------------------+-------+
-| innodb_random_read_ahead | OFF   |
-+--------------------------+-------+
-```
-
-由于随机预读方式给`innodb code`带来了一些不必要的复杂性，同时在性能也存在不稳定性，在5.5中已经将这种预读方式废弃，默认是OFF。若要启用此功能，即将配置变量设置`innodb_random_read_ahead`为ON。
-
-##### 查看预读信息
-可以通过`show engine innodb status\G`显示统计信息
-```sql
-mysql> show engine innodb status\G
-----------------------
-BUFFER POOL AND MEMORY
-----------------------
-……
-Pages read ahead 0.00/s, evicted without access 0.00/s, Random read ahead 0.00/s
-……
-```
-
-* Pages read ahead：表示每秒读入的pages；
-* evicted without access：表示每秒读出的pages；
-* 一般随机预读都是关闭的，也就是0。
-
-通过两个状态值，评估预读算法的有效性
-```sql
-mysql> show global status like '%read_ahead%';
-+---------------------------------------+-------+
-| Variable_name                         | Value |
-+---------------------------------------+-------+
-| Innodb_buffer_pool_read_ahead_rnd     | 0     |
-| Innodb_buffer_pool_read_ahead         | 2303  |
-| Innodb_buffer_pool_read_ahead_evicted | 0     |
-+---------------------------------------+-------+
-3 rows in set (0.01 sec)
-```
-
-* `Innodb_buffer_pool_read_ahead`：通过预读(后台线程)读入innodb buffer pool中数据页数
-* `Innodb_buffer_pool_read_ahead_evicted`：通过预读来的数据页没有被查询访问就被清理的pages，无效预读页数
 ## 自增ID
 
 在[第 4 篇文章](https://time.geekbang.org/column/article/69236)中，我们提到过自增主键，由于自增主键可以让主键索引尽量地保持递增顺序插入，避免了页分裂，因此索引更紧凑。

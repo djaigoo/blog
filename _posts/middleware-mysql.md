@@ -3,6 +3,8 @@
 ## MySQL
 ## 其他数据库
 ## Benchmark
+## WorkBench
+---
 ## InnoDB
 
 InnoDB 是一个兼顾高可靠性和高性能的通用存储引擎。在 MySQL 5.7 中，InnoDB 是默认的 MySQL 存储引擎。除非您配置了不同的默认存​​储引擎，否则发出不带 ENGINE 子句的 CREATE TABLE 语句会创建一个 InnoDB 表。
@@ -70,9 +72,9 @@ MyISAM 还支持以下功能：
 * 表中 VARCHAR 和 CHAR 列的长度总和可能高达 64KB。
 
 * 任意长度的 UNIQUE 约束。
+# 基础篇-数据
 ## Memory
 
-# 基础篇-数据
 ## 数据类型
 ## 常用函数
 
@@ -1989,8 +1991,8 @@ InnoDB 使用页面分配方法存储数据，并且不会像传统存储引擎�
 #### SHOW CREATE
 
 
-## TCL
 # 进阶篇
+## TCL
 ## 执行流程
 大体来说，MySQL 可以分为 Server 层和存储引擎层两部分。
 

@@ -3,7 +3,7 @@ if [ "$cmd" == "" ];then
   cmd=merge
 fi
 
-git add middleware-mysql*
+git add .
 git commit -m 'update'
 
 base_file=middleware/mysql/mysql讲义.md

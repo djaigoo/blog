@@ -4,10 +4,9 @@ mysql
 # 简介篇
 ## MySQL
 ## 其他数据库
-## Benchmark
+## WorkBench
 ## InnoDB
 ## MyISAM
-## Memory
 
 # 基础篇-数据
 ## 数据类型
@@ -41,12 +40,6 @@ Data Definition Statements 定义相关结构，包括：数据库（DATABASE）
 
 ## Database Administration Statements
 
-## TCL
-### begin end
-### start transaction
-### savepoint
-### commit
-### rollback
 
 # 进阶篇
 ## 执行流程
@@ -76,7 +69,6 @@ Data Definition Statements 定义相关结构，包括：数据库（DATABASE）
 
 ### mvcc
 ### 死锁
-## 内存引擎
 ## 临时表
 ## 索引
 ## 事务
@@ -85,7 +77,6 @@ Data Definition Statements 定义相关结构，包括：数据库（DATABASE）
 ## count
 ## join
 ## sql mode
-## 预读
 ## 自增ID
 # 应用篇
 ## 主从

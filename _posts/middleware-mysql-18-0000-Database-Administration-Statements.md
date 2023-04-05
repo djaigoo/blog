@@ -6,6 +6,7 @@ categories:
 date: 2023-03-29 19:52:46
 tags:
 ---
+
 # Account Management Statements
 ## GRANT
 ```sql
@@ -75,24 +76,24 @@ GRANT 语句将权限授予 MySQL 用户帐户。 GRANT 语句有几个方面：
 * Column Privileges，列特权适用于给定表中的单个列。在列级别授予的每个权限必须后跟列，并用括号括起来。
 * Stored Routine Privileges
 * Proxy User Privileges，PROXY 权限使一个用户可以成为另一个用户的代理。代理用户冒充或冒用被代理用户的身份；也就是说，它承担了被代理用户的特权。
-* Implicit Account Creation，如果 GRANT 语句中指定的帐户不存在，则采取的操作取决于 NO_AUTO_CREATE_USER SQL 模式：
-  * 如果未启用 NO_AUTO_CREATE_USER，GRANT 将创建该帐户。这是非常不安全的，除非您使用 IDENTIFIED BY 指定非空密码。
-  * 如果启用了 NO_AUTO_CREATE_USER，GRANT 将失败并且不会创建帐户，除非您使用 IDENTIFIED BY 指定非空密码或使用 IDENTIFIED WITH 命名身份验证插件。
+* Implicit Account Creation，如果 GRANT 语句中指定的帐户不存在，则采取的操作取决于 `NO_AUTO_CREATE_USER SQL `模式：
+  * 如果未启用 `NO_AUTO_CREATE_USER`，GRANT 将创建该帐户。这是非常不安全的，除非您使用 IDENTIFIED BY 指定非空密码。
+  * 如果启用了 `NO_AUTO_CREATE_USER`，GRANT 将失败并且不会创建帐户，除非您使用 IDENTIFIED BY 指定非空密码或使用 IDENTIFIED WITH 命名身份验证插件。
 
 如果该帐户已经存在，则 IDENTIFIED WITH 被禁止，因为它仅用于创建新帐户时使用。
 * MySQL and Standard SQL Versions of GRANT，GRANT 的 MySQL 和标准 SQL 版本之间的最大区别是：
   * MySQL 将权限与主机名和用户名的组合相关联，而不仅仅是与用户名相关联。
   * 标准 SQL 没有全局或数据库级别的权限，也不支持 MySQL 支持的所有权限类型。
   * MySQL 不支持标准的 SQL UNDER 权限。
-  * 标准 SQL 权限以分层方式构建。如果您删除一个用户，则该用户被授予的所有权限都将被撤销。如果您使用 DROP USER，这在 MySQL 中也是如此。请参阅第 13.7.1.3 节，“DROP USER 语句”。
+  * 标准 SQL 权限以分层方式构建。如果您删除一个用户，则该用户被授予的所有权限都将被撤销。如果您使用 DROP USER，这在 MySQL 中也是如此。
   * 在标准 SQL 中，当您删除一个表时，该表的所有权限都将被撤销。在标准 SQL 中，当您撤销特权时，所有基于该特权授予的特权也将被撤销。在 MySQL 中，可以使用 DROP USER 或 REVOKE 语句删除权限。
-  * 在 MySQL 中，可以只对表中的某些列具有 INSERT 权限。在这种情况下，您仍然可以在表上执行 INSERT 语句，前提是您仅为那些您具有 INSERT 权限的列插入值。如果未启用严格 SQL 模式，则省略的列将设置为其隐式默认值。在严格模式下，如果任何省略的列没有默认值，则该语句将被拒绝。 （标准 SQL 要求您对所有列都具有 INSERT 权限。）有关严​​格 SQL 模式和隐式默认值的信息，请参阅第 5.1.10 节“服务器 SQL 模式”和第 11.6 节“数据类型默认值”。
+  * 在 MySQL 中，可以只对表中的某些列具有 INSERT 权限。在这种情况下，您仍然可以在表上执行 INSERT 语句，前提是您仅为那些您具有 INSERT 权限的列插入值。如果未启用严格 SQL 模式，则省略的列将设置为其隐式默认值。在严格模式下，如果任何省略的列没有默认值，则该语句将被拒绝。 
 
 
 
 ## REVOKE
 
-## 权限语句
+## 权限分类
 
 GRANT 和 REVOKE 支持操作的权限
 | Privilege | Meaning and Grantable Levels |

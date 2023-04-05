@@ -178,11 +178,13 @@ select @var2;
 全局变量与会话变量的区别就在于，对全局变量的修改会影响到整个服务器，但是对会话变量的修改，只会影响到当前的会话（也就是当前的数据库连接）。
 
 我们可以利用
-
-show session variables;
+```sql
+mysql> show session variables;
+```
 语句将所有的会话变量输出（可以简写为show variables，没有指定是输出全局变量还是会话变量的话，默认就输出会话变量。）如果想输出所有全局变量：
-
-show global variables
+```sql
+mysql> show global variables;
+```
 有些系统变量的值是可以利用语句来动态进行更改的，但是有些系统变量的值却是只读的。
 
 对于那些可以更改的系统变量，我们可以利用set语句进行更改。

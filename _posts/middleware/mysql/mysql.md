@@ -105,7 +105,48 @@ MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别
 
 
 ### 日期
+表示时间值的日期和时间数据类型有 DATE、TIME、DATETIME、TIMESTAMP 和 YEAR。每个时间类型都有一系列有效值，以及一个“零”值，当您指定 MySQL 无法表示的无效值时可能会使用该值。 TIMESTAMP 和 DATETIME 类型具有特殊的自动更新行为。
 
+使用日期和时间类型时，请记住以下一般注意事项：
+
+MySQL 以标准输出格式检索给定日期或时间类型的值，但它会尝试为您提供的输入值解释各种格式（例如，当您指定要分配给日期或与日期或时间类型）。有关日期和时间类型的允许格式的说明，请参阅第 9.1.3 节“日期和时间文字”。期望您提供有效值。如果您使用其他格式的值，可能会出现不可预测的结果。
+
+尽管 MySQL 尝试以多种格式解释值，但日期部分必须始终以年-月-日的顺序给出（例如，'98-09-04'），而不是月-日-年或日-月-别处常用的年份订单（例如，“09-04-98”、“04-09-98”）。要将其他顺序的字符串转换为年-月-日顺序，STR_TO_DATE() 函数可能会有用。
+
+包含两位数年份值的日期是不明确的，因为世纪是未知的。 MySQL 使用以下规则解释 2 位数年份值：
+
+70-99 范围内的年份值变为 1970-1999。
+
+00-69 范围内的年份值变为 2000-2069。
+
+另见第 11.2.9 节，“日期中的两位数年份”。
+
+根据第 11.2.8 节“日期和时间类型之间的转换”中的规则，将值从一种时间类型转换为另一种时间类型。
+
+如果值用于数字上下文，MySQL 会自动将日期或时间值转换为数字，反之亦然。
+
+默认情况下，当 MySQL 遇到日期或时间类型的值超出范围或对该类型无效时，它将将该值转换为该类型的“零”值。例外情况是超出范围的 TIME 值被裁剪到 TIME 范围的适当端点。
+
+通过将 SQL 模式设置为适当的值，您可以更准确地指定您希望 MySQL 支持的日期类型。 （请参阅第 5.1.10 节，“服务器 SQL 模式”。）您可以通过启用 ALLOW_INVALID_DATES SQL 模式让 MySQL 接受某些日期，例如“2009-11-31”。当您想要在数据库中存储用户指定的“可能错误”值（例如，在 Web 表单中）以供将来处理时，这很有用。在这种模式下，MySQL只校验月份在1~12范围内，日在1~31范围内。
+
+MySQL 允许您在 DATE 或 DATETIME 列中存储日或月日为零的日期。这对于需要存储您可能不知道确切日期的生日的应用程序很有用。在这种情况下，您只需将日期存储为“2009-00-00”或“2009-01-00”。但是，对于诸如此类的日期，您不应期望获得需要完整日期的 DATE_SUB() 或 DATE_ADD() 等函数的正确结果。要禁止日期中的零月或日部分，请启用 NO_ZERO_IN_DATE 模式。
+
+MySQL 允许您将“0000-00-00”的“零”值存储为“虚拟日期”。在某些情况下，这比使用 NULL 值更方便，并且使用更少的数据和索引空间。要禁止 '0000-00-00'，请启用 NO_ZERO_DATE 模式。
+
+通过连接器/ODBC 使用的“零”日期或时间值会自动转换为 NULL，因为 ODBC 无法处理此类值。
+
+下表显示了每种类型的“零”值的格式。 “零”值很特殊，但您可以使用表中显示的值显式存储或引用它们。您也可以使用更易于编写的值“0”或 0 来执行此操作。对于包含日期部分（DATE、DATETIME 和 TIMESTAMP）的时间类型，使用这些值可能会产生警告或错误。精确的行为取决于启用了严格和 NO_ZERO_DATE SQL 模式中的哪一个（如果有的话）；参见第 5.1.10 节，“服务器 SQL 模式”。
+
+
+时间日期字段零值
+
+|Data Type| “Zero” Value|
+|---|---|
+|DATE |'0000-00-00'|
+|TIME |'00:00:00'|
+|DATETIME |'0000-00-00 00:00:00'|
+|TIMESTAMP  |'0000-00-00 00:00:00'|
+|YEAR |0000|
 
 |类型名称    |日期格式    | 日期范围                                                      |存储需求|
 |-|-|-|-|
@@ -116,6 +157,56 @@ MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别
 |TIMESTAMP  |YYYY-MM-DD | HH:MM:SS 1970-01-01 00:00:01 UTC ~ 2038-01-19 03:14:07 UTC   |4 个字节|
 
 ### 字符串
+字符串数据类型为 CHAR、VARCHAR、BINARY、VARBINARY、BLOB、TEXT、ENUM 和 SET。
+
+对于字符串列（CHAR、VARCHAR 和 TEXT 类型）的定义，MySQL 以字符单位解释长度规范。对于二进制字符串列（BINARY、VARBINARY 和 BLOB 类型）的定义，MySQL 以字节为单位解释长度规范。
+字符列比较和排序基于分配给该列的排序规则。对于 CHAR、VARCHAR、TEXT、ENUM 和 SET 数据类型，您可以声明具有二进制 (bin) 归类或 BINARY 属性的列，以使用基础字符代码值而不是词法排序进行比较和排序。
+
+* [NATIONAL] CHAR[(M)] [CHARACTER SET charset_name] [COLLATE collation_name]
+一个固定长度的字符串，在存储时总是用空格向右填充到指定的长度。 M 表示以字符为单位的列长度。 M的取值范围为0～255，省略M则长度为1。CHAR 是 CHARACTER 的简写。 NATIONAL CHAR（或其等效的缩写形式 NCHAR）是定义 CHAR 列应使用某些预定义字符集的标准 SQL 方法。MySQL 允许您创建类型为 CHAR(0) 的列。这主要在您必须与依赖于列的存在但实际上不使用其值的旧应用程序兼容时有用。当您需要一个只能取两个值的列时，CHAR(0) 也非常好：定义为 CHAR(0) NULL 的列只占用一位并且只能取值 NULL 和 ''（空字符串） .
+
+* [NATIONAL] VARCHAR(M) [CHARACTER SET charset_name] [COLLATE collation_name]
+可变长度字符串。 M 表示以字符为单位的最大列长度。 M 的范围是 0 到 65,535。 VARCHAR 的有效最大长度取决于最大行大小（65,535 字节，由所有列共享）和使用的字符集。例如，utf8 字符可能需要每个字符最多三个字节，因此使用 utf8 字符集的 VARCHAR 列可以声明为最多 21,844 个字符。MySQL 将 VARCHAR 值存储为 1 字节或 2 字节长度的前缀加上数据。长度前缀指示值中的字节数。如果值需要不超过 255 个字节，则 VARCHAR 列使用一个长度字节，如果值可能需要超过 255 个字节，则使用两个长度字节。VARCHAR 是 CHARACTER VARYING 的简写。 NATIONAL VARCHAR 是定义 VARCHAR 列应使用某些预定义字符集的标准 SQL 方法。 MySQL 使用 utf8 作为这个预定义的字符集。 NVARCHAR 是 NATIONAL VARCHAR 的简写。
+
+* BINARY[(M)]
+BINARY 类型类似于 CHAR 类型，但存储二进制字节字符串而不是非二进制字符串。可选长度 M 表示以字节为单位的列长度。如果省略，M 默认为 1。
+
+* VARBINARY(M)
+VARBINARY 类型类似于 VARCHAR 类型，但存储二进制字节字符串而不是非二进制字符串。 M 表示以字节为单位的最大列长度。
+
+* TINYBLOB
+最大长度为 255 ($2^8 − 1$) 字节的 BLOB 列。每个 TINYBLOB 值都使用 1 字节长度的前缀存储，该前缀指示值中的字节数。
+
+* TINYTEXT [CHARACTER SET charset_name] [COLLATE collation_name]
+最大长度为 255 ($2^8 − 1$) 个字符的 TEXT 列。如果值包含多字节字符，则有效最大长度会更短。每个 TINYTEXT 值都使用 1 字节长度的前缀存储，该前缀指示值中的字节数。
+
+* BLOB[(M)]
+最大长度为 65,535 ($2^{16} − 1$) 字节的 BLOB 列。每个 BLOB 值都使用 2 字节长度的前缀存储，该前缀指示值中的字节数。
+可以为这种类型给出一个可选的长度 M。如果这样做，MySQL 将创建该列作为最小的 BLOB 类型，其大小足以容纳 M 字节长的值。
+
+* TEXT[(M)] [CHARACTER SET charset_name] [COLLATE collation_name]
+最大长度为 65,535 ($2^{16} − 1$) 个字符的 TEXT 列。如果值包含多字节字符，则有效最大长度会更短。每个 TEXT 值都使用 2 字节长度的前缀存储，该前缀指示值中的字节数。可以为这种类型给出一个可选的长度 M。如果这样做了，MySQL 将创建该列作为最小的 TEXT 类型，其大小足以容纳 M 个字符长的值。
+
+* MEDIUMBLOB
+最大长度为 16,777,215 ($2^{24} − 1$) 字节的 BLOB 列。每个 MEDIUMBLOB 值都使用 3 字节长度的前缀存储，该前缀指示值中的字节数。
+
+* MEDIUMTEXT [CHARACTER SET charset_name] [COLLATE collation_name]
+最大长度为 16,777,215 ($2^{24} − 1$) 个字符的 TEXT 列。如果值包含多字节字符，则有效最大长度会更短。每个 MEDIUMTEXT 值都使用 3 字节长度的前缀存储，该前缀指示值中的字节数。
+
+* LONGBLOB
+最大长度为 4,294,967,295 或 4GB ($2^{32} − 1$) 字节的 BLOB 列。 LONGBLOB 列的有效最大长度取决于客户端/服务器协议中配置的最大数据包大小和可用内存。每个 LONGBLOB 值都使用 4 字节长度前缀存储，该前缀指示值中的字节数。
+
+* LONGTEXT [CHARACTER SET charset_name] [COLLATE collation_name]
+最大长度为 4,294,967,295 或 4GB ($2^{32} − 1$) 个字符的 TEXT 列。如果值包含多字节字符，则有效最大长度会更短。 LONGTEXT 列的有效最大长度还取决于客户端/服务器协议中配置的最大数据包大小和可用内存。每个 LONGTEXT 值都使用 4 字节长度前缀存储，该前缀指示值中的字节数。
+
+* ENUM('value1','value2',...) [CHARACTER SET charset_name] [COLLATE collation_name]
+一个只能有一个值的字符串对象，从值列表“value1”、“value2”、...、NULL 或特殊的“”错误值中选择。 ENUM 值在内部表示为整数。一个 ENUM 列最多可以有 65,535 个不同的元素。 （实际限制小于 3000。）一个表在其被视为一个组的 ENUM 和 SET 列中可以有不超过 255 个唯一元素列表定义。有关这些限制的更多信息，请参阅 .frm 文件结构施加的限制。
+
+* SET('value1','value2',...) [CHARACTER SET charset_name] [COLLATE collation_name]
+一个可以有零个或多个值的字符串对象，每个值都必须从值列表“value1”、“value2”...中选择 SET 值在内部表示为整数。一个 SET 列最多可以有 64 个不同的成员。一个表在其被视为一个组的 ENUM 和 SET 列中可以有不超过 255 个唯一元素列表定义。有关此限制的更多信息，请参阅 .frm 文件结构施加的限制。
+
+
+字符类型
 
 |类型名称     |说明                                     |  存储需求|
 |-|-|-|
@@ -129,7 +220,7 @@ MySQL中可以使用浮点小数和定点小数：浮点类型有两种，分别
 |SET         |一个设置，字符串对象可以有零个或 多个SET成员  |  1、2、3、4或8个字节，取决于集合 成员的数量（最多64个成员）|
 
 
-### 二进制
+ 二进制类型
 
 |类型名称     |说明                                     |  存储需求|
 |-|-|-|
@@ -2770,6 +2861,277 @@ sql_mode='ONLY_FULL_GROUP_BY,NO_AUTO_VALUE_ON_ZERO,STRICT_TRANS_TABLES,NO_ZERO_I
 MySQL5.6和MySQL5.7默认的sql_mode模式参数是不一样的,5.6的mode是`NO_ENGINE_SUBSTITUTION`，其实表示的是一个空值，相当于没有什么模式设置，可以理解为宽松模式。5.7的mode是STRICT_TRANS_TABLES，也就是严格模式。
 如果设置的是宽松模式，那么我们在插入数据的时候，即便是给了一个错误的数据，也可能会被接受，并且不报错，例如：我在创建一个表时，该表中有一个字段为name，给name设置的字段类型时char(10)，如果我在插入数据的时候，其中name这个字段对应的有一条数据的长度超过了10，例如'1234567890abc'，超过了设定的字段长度10，那么不会报错，并且取前十个字符存上，也就是说你这个数据被存为了'1234567890',而'abc'就没有了，但是我们知道，我们给的这条数据是错误的，因为超过了字段长度，但是并没有报错，并且mysql自行处理并接受了，这就是宽松模式的效果，其实在开发、测试、生产等环境中，我们应该采用的是严格模式，出现这种错误，应该报错才对，所以MySQL5.7版本就将sql_mode默认值改为了严格模式，并且我们即便是用的MySQL5.6，也应该自行将其改为严格模式，而你记着，MySQL等等的这些数据库，都是想把关于数据的所有操作都自己包揽下来，包括数据的校验，其实好多时候，我们应该在自己开发的项目程序级别将这些校验给做了，虽然写项目的时候麻烦了一些步骤，但是这样做之后，我们在进行数据库迁移或者在项目的迁移时，就会方便很多，这个看你们自行来衡量。mysql除了数据校验之外，你慢慢的学习过程中会发现，它能够做的事情还有很多很多，将你程序中做的好多事情都包揽了。
 改为严格模式后可能会存在的问题：若设置模式中包含了NO_ZERO_DATE，那么MySQL数据库不允许插入零日期，插入零日期会抛出错误而不是警告。例如表中含字段TIMESTAMP列（如果未声明为NULL或显示DEFAULT子句）将自动分配DEFAULT '0000-00-00 00:00:00'（零时间戳），也或者是本测试的表day列默认允许插入零日期 '0000-00-00' COMMENT '日期'；这些显然是不满足sql_mode中的NO_ZERO_DATE而报错。
+
+### [官方文档](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html)
+MySQL 服务器可以在不同的 SQL 模式下运行，并且可以根据 sql_mode 系统变量的值对不同的客户端应用这些模式。 DBA 可以设置全局 SQL 模式以匹配站点服务器操作要求，每个应用程序可以根据自己的要求设置其会话 SQL 模式。
+模式会影响 MySQL 支持的 SQL 语法及其执行的数据验证检查。这使得在不同环境中使用 MySQL 以及与其他数据库服务器一起使用 MySQL 变得更加容易。
+
+### 设置 SQL 模式
+MySQL 5.7 中默认的 SQL 模式包括这些模式：ONLY_FULL_GROUP_BY、STRICT_TRANS_TABLES、NO_ZERO_IN_DATE、NO_ZERO_DATE、ERROR_FOR_DIVISION_BY_ZERO、NO_AUTO_CREATE_USER 和 NO_ENGINE_SUBSTITUTION。
+
+这些模式被添加到 MySQL 5.7 中的默认 SQL 模式： ONLY_FULL_GROUP_BY 和 STRICT_TRANS_TABLES 模式被添加到 MySQL 5.7.5 中。在 MySQL 5.7.7 中添加了 NO_AUTO_CREATE_USER 模式。 MySQL 5.7.8 中添加了 ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE 模式。有关对默认 SQL 模式值的这些更改的其他讨论，请参阅 MySQL 5.7 中的 SQL 模式更改。
+
+要在运行时更改 SQL 模式，请使用 SET 语句设置全局或会话 sql_mode 系统变量：
+```sql
+SET GLOBAL sql_mode = 'modes';
+SET SESSION sql_mode = 'modes';
+```
+
+设置 GLOBAL 变量需要 SUPER 权限，并影响从那时起连接的所有客户端的操作。设置 SESSION 变量只影响当前客户端。每个客户端都可以随时更改其会话 sql_mode 值。
+
+查看sql_mode
+```sql
+SELECT @@GLOBAL.sql_mode;
+SELECT @@SESSION.sql_mode;
+```
+
+> SQL 模式和用户定义的分区。在创建分区表并将数据插入分区表后更改服务器 SQL 模式可能会导致此类表的行为发生重大变化，并可能导致数据丢失或损坏。强烈建议您在使用用户定义的分区创建表后永远不要更改 SQL 模式。
+复制分区表时，源和副本上的不同 SQL 模式也会导致问题。为获得最佳结果，您应该始终在源和副本上使用相同的服务器 SQL 模式。
+
+
+### 最重要的 SQL 模式
+  - ANSI
+  此模式更改语法和行为以更符合标准 SQL。它是本节末尾列出的特殊组合模式之一。
+
+  - STRICT_TRANS_TABLES
+  如果无法将给定的值插入到事务表中，则中止该语句。对于非事务表，如果值出现在单行语句或多行语句的第一行中，则中止语句。本节稍后将提供更多详细信息。从 MySQL 5.7.5 开始，默认的 SQL 模式包括 STRICT_TRANS_TABLES。
+
+  - TRADITIONAL
+  使 MySQL 表现得像一个“传统的”SQL 数据库系统。这种模式的简单描述是在向列中插入不正确的值时“给出错误而不是警告”。它是本节末尾列出的特殊组合模式之一。
+  > 启用 TRADITIONAL 模式后，一旦发生错误，INSERT 或 UPDATE 就会中止。如果您使用非事务性存储引擎，这可能不是您想要的，因为在错误之前所做的数据更改可能无法回滚，从而导致“部分完成”更新。
+
+
+### SQL 模式的完整列表
+  - ALLOW_INVALID_DATES
+  不要执行完整的日期检查。只检查月份在 1 到 12 的范围内，日期在 1 到 31 的范围内。这可能对 Web 应用程序有用，这些应用程序在三个不同的字段中获取年月日并准确存储用户的内容已插入，没有日期验证。此模式适用于 DATE 和 DATETIME 列。它不适用于始终需要有效日期的 TIMESTAMP 列。
+  禁用 ALLOW_INVALID_DATES 后，服务器要求月份和日期值是合法的，而不仅仅是分别在 1 到 12 和 1 到 31 的范围内。禁用严格模式后，“2004-04-31”等无效日期将转换为“0000-00-00”并生成警告。启用严格模式后，无效日期会产生错误。要允许此类日期，请启用 ALLOW_INVALID_DATES。
+
+  - ANSI_QUOTES
+  将 " 视为标识符引号字符（如 \` 引号字符）而不是字符串引号字符。在启用此模式的情况下，您仍然可以使用 \` 来引用标识符。启用 ANSI_QUOTES 后，您不能使用双引号来引用文字字符串，因为它们被解释为标识符。
+
+  - ERROR_FOR_DIVISION_BY_ZERO
+  ERROR_FOR_DIVISION_BY_ZERO 模式影响除以零的处理，包括 MOD(N,0)。对于数据更改操作（INSERT、UPDATE），其效果还取决于是否启用了严格的 SQL 模式。
+    - 如果未启用此模式，除以零将插入 NULL 并且不会产生警告。
+    - 如果启用此模式，除以零将插入 NULL 并产生警告。
+    - 如果启用此模式和严格模式，除以零会产生错误，除非同时给出 IGNORE。对于 INSERT IGNORE 和 UPDATE IGNORE，除以零插入 NULL 并产生警告。
+  对于 SELECT，除以零返回 NULL。启用 ERROR_FOR_DIVISION_BY_ZERO 也会导致产生警告，无论是否启用严格模式。
+  ERROR_FOR_DIVISION_BY_ZERO 已弃用。 ERROR_FOR_DIVISION_BY_ZERO 不是严格模式的一部分，但应与严格模式结合使用，默认情况下启用。如果启用 ERROR_FOR_DIVISION_BY_ZERO 而未同时启用严格模式，则会出现警告，反之亦然。因为不推荐使用 ERROR_FOR_DIVISION_BY_ZERO；期望在未来的 MySQL 版本中将其作为单独的模式名称删除，其效果包括在严格 SQL 模式的效果中。
+  - HIGH_NOT_PRECEDENCE
+  NOT 运算符的优先级使得诸如 NOT a BETWEEN b AND c 之类的表达式被解析为 NOT (a BETWEEN b AND c)。在一些旧版本的 MySQL 中，表达式被解析为 (NOT a) BETWEEN b AND c。可以通过启用 HIGH_NOT_PRECEDENCE SQL 模式来获得旧的更高优先级行为。
+  - IGNORE_SPACE
+  函数名称和 ( 字符之间允许有空格。这会导致内置函数名称被视为保留字。例如，因为有一个 COUNT() 函数，所以在下面的语句中使用 count 作为表名会导致错误。IGNORE_SPACE SQL 模式适用于内置函数，不适用于可加载函数或存储函数。无论是否启用 IGNORE_SPACE，始终允许在可加载函数或存储函数名称后有空格。
+  - NO_AUTO_CREATE_USER
+  防止 GRANT 语句自动创建新的用户帐户，除非指定了身份验证信息。该语句必须使用 IDENTIFIED BY 指定非空密码或使用 IDENTIFIED WITH 指定身份验证插件。最好使用 CREATE USER 而不是 GRANT 创建 MySQL 帐户。 NO_AUTO_CREATE_USER 已弃用，默认 SQL 模式包括 NO_AUTO_CREATE_USER。更改 NO_AUTO_CREATE_USER 模式状态的 sql_mode 分配会产生警告，但将 sql_mode 设置为 DEFAULT 的分配除外。预计 NO_AUTO_CREATE_USER 将在 MySQL 的未来版本中被删除，并且其效果将始终启用（并且 GRANT 不再创建帐户）。
+  以前，在弃用 NO_AUTO_CREATE_USER 之前，不启用它的原因之一是它不是复制安全的。现在可以启用它并使用 CREATE USER IF NOT EXISTS、DROP USER IF EXISTS 和 ALTER USER IF EXISTS 而不是 GRANT 来执行复制安全的用户管理。当副本可能具有与源上的授权不同的授权时，这些语句可以实现安全复制。
+
+  - NO_AUTO_VALUE_ON_ZERO
+  NO_AUTO_VALUE_ON_ZERO 影响 AUTO_INCREMENT 列的处理。通常，您通过向其中插入 NULL 或 0 来生成列的下一个序列号。 NO_AUTO_VALUE_ON_ZERO 抑制 0 的这种行为，以便只有 NULL 生成下一个序列号。如果 0 已存储在表的 AUTO_INCREMENT 列中，则此模式很有用。 （顺便说一下，不建议存储 0。）例如，如果您使用 mysqldump 转储表然后重新加载它，MySQL 通常会在遇到 0 值时生成新的序列号，从而导致表的内容不同于被丢弃的那个。在重新加载转储文件之前启用 NO_AUTO_VALUE_ON_ZERO 可以解决此问题。为此，mysqldump 在其输出中自动包含一个启用 NO_AUTO_VALUE_ON_ZERO 的语句。
+
+  - NO_BACKSLASH_ESCAPES
+  启用此模式将禁止使用反斜杠字符 (\) 作为字符串和标识符中的转义字符。启用此模式后，反斜杠像其他任何字符一样变成普通字符，并且更改了 LIKE 表达式的默认转义序列，因此不使用转义字符。
+
+  - NO_DIR_IN_CREATE
+  创建表时，忽略所有 INDEX DIRECTORY 和 DATA DIRECTORY 指令。此选项在副本复制服务器上很有用。
+
+  - NO_ENGINE_SUBSTITUTION
+  当诸如 CREATE TABLE 或 ALTER TABLE 之类的语句指定禁用或未编译的存储引擎时，控制默认存储引擎的自动替换。默认情况下，启用 NO_ENGINE_SUBSTITUTION。因为存储引擎可以在运行时插入，所以不可用的引擎以相同的方式处理：在禁用 NO_ENGINE_SUBSTITUTION 的情况下，对于 CREATE TABLE，将使用默认引擎，如果所需引擎不可用，则会出现警告。对于 ALTER TABLE，会出现警告并且不会更改表。启用 NO_ENGINE_SUBSTITUTION 后，如果所需的引擎不可用，则会发生错误并且不会创建或更改表。
+  
+  - NO_UNSIGNED_SUBTRACTION
+  默认情况下，整数值之间的减法，其中一个是 UNSIGNED 类型，会产生一个无符号的结果。如果结果为负，则会产生错误，如果启用了 NO_UNSIGNED_SUBTRACTION SQL 模式，则结果为负。如果此类操作的结果用于更新 UNSIGNED 整数列，则结果将被裁剪为列类型的最大值，或者如果启用 NO_UNSIGNED_SUBTRACTION 则裁剪为 0。在启用严格 SQL 模式的情况下，发生错误并且该列保持不变。
+
+  - ONLY_FULL_GROUP_BY
+  拒绝选择列表、HAVING 条件或 ORDER BY 列表引用非聚合列的查询，这些列既没有在 GROUP BY 子句中命名，也没有在功能上依赖于（唯一确定）GROUP BY 列。从 MySQL 5.7.5 开始，默认的 SQL 模式包括 ONLY_FULL_GROUP_BY。 （5.7.5之前，MySQL不检测函数依赖，默认不开启ONLY_FULL_GROUP_BY。）MySQL 对标准 SQL 的扩展允许在 HAVING 子句中引用选择列表中的别名表达式。在 MySQL 5.7.5 之前，启用 ONLY_FULL_GROUP_BY 会禁用此扩展，因此需要使用无别名表达式编写 HAVING 子句。从 MySQL 5.7.5 开始，此限制被取消，因此无论是否启用 ONLY_FULL_GROUP_BY，HAVING 子句都可以引用别名。
+
+  - PAD_CHAR_TO_FULL_LENGTH
+  默认情况下，检索时会从 CHAR 列值中删除尾随空格。如果启用 PAD_CHAR_TO_FULL_LENGTH，则不会进行修剪，并且检索到的 CHAR 值将填充到它们的全长。此模式不适用于 VARCHAR 列，其尾随空格在检索时保留。
+
+  - PIPES_AS_CONCAT
+  对待||作为字符串连接运算符（与 CONCAT() 相同）而不是作为 OR 的同义词。
+
+  - REAL_AS_FLOAT
+  将 REAL 视为 FLOAT 的同义词。默认情况下，MySQL 将 REAL 视为 DOUBLE 的同义词。
+
+  - STRICT_ALL_TABLES
+  为所有存储引擎启用严格的 SQL 模式。拒绝无效的数据值。有关详细信息，请参阅严格 SQL 模式。
+  从 MySQL 5.7.4 到 5.7.7，STRICT_ALL_TABLES 包括 ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE 模式的影响。有关其他讨论，请参阅 MySQL 5.7 中的 SQL 模式更改。
+
+  - STRICT_TRANS_TABLES
+  为事务存储引擎启用严格的 SQL 模式，并在可能的情况下为非事务存储引擎启用严格的 SQL 模式。有关详细信息，请参阅严格 SQL 模式。
+  从 MySQL 5.7.4 到 5.7.7，STRICT_TRANS_TABLES 包括 ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE 模式的效果。
+
+* 组合 SQL 模式
+  - ANSI
+  相当于 REAL_AS_FLOAT、PIPES_AS_CONCAT、ANSI_QUOTES、IGNORE_SPACE 和（从 MySQL 5.7.5 开始）ONLY_FULL_GROUP_BY。ANSI 模式还会导致服务器为查询返回错误，其中无法在已解析外部引用的外部查询中聚合具有外部引用 S(outer_ref) 的集合函数 S。
+  - TRADITIONAL
+  在 MySQL 5.7.4 之前和 MySQL 5.7.8 及更高版本中，TRADITIONAL 等同于 STRICT_TRANS_TABLES、STRICT_ALL_TABLES、NO_ZERO_IN_DATE、NO_ZERO_DATE、ERROR_FOR_DIVISION_BY_ZERO、NO_AUTO_CREATE_USER 和 NO_ENGINE_SUBSTITUTION。
+  从 MySQL 5.7.4 到 5.7.7，TRADITIONAL 相当于 STRICT_TRANS_TABLES、STRICT_ALL_TABLES、NO_AUTO_CREATE_USER 和 NO_ENGINE_SUBSTITUTION。 NO_ZERO_IN_DATE、NO_ZERO_DATE 和 ERROR_FOR_DIVISION_BY_ZERO 模式未命名，因为在这些版本中，它们的效果包含在严格 SQL 模式（STRICT_ALL_TABLES 或 STRICT_TRANS_TABLES）的效果中。因此，TRADITIONAL 的效果在所有 MySQL 5.7 版本中都是相同的（并且与 MySQL 5.6 中的相同）。
+### 严格 SQL 模式
+严格模式控制 MySQL 如何处理数据更改语句（如 INSERT 或 UPDATE）中的无效或缺失值。一个值可能由于多种原因而无效。例如，列的数据类型可能有误，或者可能超出范围。当要插入的新行不包含在其定义中没有显式 DEFAULT 子句的非 NULL 列的值时，将缺少一个值。 （对于 NULL 列，如果值缺失，则插入 NULL。）严格模式还会影响 DDL 语句，例如 CREATE TABLE。
+如果严格模式未生效，MySQL 会为无效或缺失值插入调整后的值并产生警告。在严格模式下，您可以使用 INSERT IGNORE 或 UPDATE IGNORE 产生此行为。
+对于不更改数据的 SELECT 等语句，无效值会在严格模式下生成警告，而不是错误。
+严格模式会在尝试创建超过最大密钥长度的密钥时产生错误。当未启用严格模式时，这会导致警告并将密钥截断为最大密钥长度。
+严格模式不影响是否检查外键约束。 foreign_key_checks 可用于此目的。 
+
+如果启用了 STRICT_ALL_TABLES 或 STRICT_TRANS_TABLES，则严格 SQL 模式生效，尽管这些模式的效果有所不同：
+
+* 对于事务表，当启用 STRICT_ALL_TABLES 或 STRICT_TRANS_TABLES 时，数据更改语句中的无效值或缺失值会发生错误。该语句被中止并回滚。
+
+* 对于非事务表，如果错误值出现在要插入或更新的第一行中，两种模式的行为都是相同的：语句被中止，表保持不变。如果语句插入或修改多行并且错误值出现在第二行或后面的行中，则结果取决于启用的严格模式：
+
+  - 对于 STRICT_ALL_TABLES，MySQL 返回错误并忽略其余行。但是，因为前面的行已被插入或更新，所以结果是部分更新。为避免这种情况，请使用单行语句，它可以在不更改表的情况下中止。
+
+  - 对于 STRICT_TRANS_TABLES，MySQL 将无效值转换为最接近列的有效值并插入调整后的值。如果缺少值，MySQL 将插入列数据类型的隐式默认值。在任何一种情况下，MySQL 都会生成警告而不是错误并继续处理该语句。隐式默认值在第 11.6 节“数据类型默认值”中进行了描述。
+
+严格模式影响除以零、零日期和日期中的零的处理，如下所示：
+
+* 严格模式影响除以零的处理，包括 MOD(N,0)：
+  对于数据更改操作（INSERT、UPDATE）：
+
+  - 如果未启用严格模式，除以零将插入 NULL 并且不会产生警告。
+
+  - 如果启用了严格模式，除以零会产生错误，除非同时给出 IGNORE。对于 INSERT IGNORE 和 UPDATE IGNORE，除以零插入 NULL 并产生警告。
+
+  对于 SELECT，除以零返回 NULL。启用严格模式也会导致产生警告。
+
+* 严格模式影响服务器是否允许 '0000-00-00' 作为有效日期：
+
+  - 如果未启用严格模式，则允许 '0000-00-00' 并且插入不会产生警告。
+
+  - 如果启用了严格模式，则不允许使用 '0000-00-00' 并且插入会产生错误，除非同时给出 IGNORE。对于 INSERT IGNORE 和 UPDATE IGNORE，允许使用 '0000-00-00' 并且插入会产生警告。
+
+* 严格模式会影响服务器是否允许年部分为非零但月或日部分为 0 的日期（日期如“2010-00-01”或“2010-01-00”）：
+
+  - 如果未启用严格模式，则允许包含零部分的日期并且插入不会产生警告。
+
+  - 如果启用了严格模式，则不允许包含零部分的日期并且插入会产生错误，除非同时给出 IGNORE。对于 INSERT IGNORE 和 UPDATE IGNORE，零部分的日期被插入为“0000-00-00”（这被认为对 IGNORE 有效）并产生警告。
+
+在 MySQL 5.7.4 之前和 MySQL 5.7.8 及更高版本中，严格模式会影响除以零、零日期和日期中的零以及 ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE 模式的处理。从 MySQL 5.7.4 到 5.7.7，ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE 模式在显式命名时什么都不做，它们的效果包含在严格模式的效果中。有关其他讨论，请参阅 MySQL 5.7 中的 SQL 模式更改。
+
+### IGNORE 关键字和严格 SQL 模式的比较
+本节比较了 IGNORE 关键字（将错误降级为警告）和严格 SQL 模式（将警告升级为错误）对语句执行的影响。它描述了它们影响哪些语句，以及它们适用于哪些错误。
+
+下表提供了默认情况下产生错误与警告时语句行为的总结比较。默认情况下会产生错误的示例是将 NULL 插入到 NOT NULL 列中。默认情况下产生警告的一个示例是将错误数据类型的值插入到列中（例如将字符串“abc”插入到整数列中）。
+
+|Operational Mode  |When Statement Default is Error |When Statement Default is Warning|
+|---|---|---|
+|Without IGNORE or strict SQL mode |Error |Warning|
+|With IGNORE |Warning |Warning (same as without IGNORE or strict SQL mode)|
+|With strict SQL mode  |Error (same as without IGNORE or strict SQL mode) |Error|
+|With IGNORE and strict SQL mode |Warning| Warning|
+
+
+从表中得出的一个结论是，当 IGNORE 关键字和严格 SQL 模式同时生效时，IGNORE 优先。这意味着，尽管 IGNORE 和严格的 SQL 模式可以被认为对错误处理有相反的效果，但它们在一起使用时不会取消。
+
+MySQL 中的几个语句支持可选的 IGNORE 关键字。此关键字导致服务器降级某些类型的错误并生成警告。对于多行语句，将错误降级为警告可能会启用要处理的行。否则，IGNORE 会导致语句跳到下一行而不是中止。 （对于不可忽略的错误，无论 IGNORE 关键字如何都会发生错误。）
+示例：如果表 t 的主键列 i 包含唯一值，尝试将 i 的相同值插入多行通常会产生重复键错误：
+```sql
+mysql> CREATE TABLE t (i INT NOT NULL PRIMARY KEY);
+mysql> INSERT INTO t (i) VALUES(1),(1);
+ERROR 1062 (23000): Duplicate entry '1' for key 'PRIMARY'
+```
+
+With IGNORE, the row containing the duplicate key still is not inserted, but a warning occurs instead of an error:
+```sql
+mysql> INSERT IGNORE INTO t (i) VALUES(1),(1);
+Query OK, 1 row affected, 1 warning (0.01 sec)
+Records: 2  Duplicates: 1  Warnings: 1
+
+mysql> SHOW WARNINGS;
++---------+------+---------------------------------------+
+| Level   | Code | Message                               |
++---------+------+---------------------------------------+
+| Warning | 1062 | Duplicate entry '1' for key 'PRIMARY' |
++---------+------+---------------------------------------+
+1 row in set (0.00 sec)
+```
+
+这些语句支持 IGNORE 关键字：
+* CREATE TABLE ... SELECT：IGNORE 不适用于语句的 CREATE TABLE 或 SELECT 部分，但适用于将 SELECT 生成的行插入到表中。与唯一键值上的现有行重复的行将被丢弃。
+* DELETE: IGNORE 使 MySQL 在删除行的过程中忽略错误。
+* INSERT：使用 IGNORE，将丢弃在唯一键值上重复现有行的行。设置为会导致数据转换错误的值的行将改为设置为最接近的有效值。对于未找到与给定值匹配的分区的分区表，IGNORE 会导致插入操作对包含不匹配值的行静默失败。
+* LOAD DATA，LOAD XML：使用 IGNORE，将丢弃在唯一键值上重复现有行的行。
+* UPDATE：使用 IGNORE，不会更新在唯一键值上发生重复键冲突的行。更新为会导致数据转换错误的值的行将更新为最接近的有效值。
+
+IGNORE 关键字适用于以下可忽略的错误：
+
+```sql
+ER_BAD_NULL_ERROR
+ER_DUP_ENTRY
+ER_DUP_ENTRY_WITH_KEY_NAME
+ER_DUP_KEY
+ER_NO_PARTITION_FOR_GIVEN_VALUE
+ER_NO_PARTITION_FOR_GIVEN_VALUE_SILENT
+ER_NO_REFERENCED_ROW_2
+ER_ROW_DOES_NOT_MATCH_GIVEN_PARTITION_SET
+ER_ROW_IS_REFERENCED_2
+ER_SUBQUERY_NO_1_ROW
+ER_VIEW_CHECK_FAILED
+```
+
+MySQL 服务器可以在不同的 SQL 模式下运行，并且可以根据 sql_mode 系统变量的值对不同的客户端应用这些模式。在“严格”SQL 模式下，服务器将某些警告升级为错误。
+
+例如，在非严格 SQL 模式下，将字符串 'abc' 插入整数列会导致值转换为 0 并出现警告：
+```sql
+mysql> SET sql_mode = '';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> INSERT INTO t (i) VALUES('abc');
+Query OK, 1 row affected, 1 warning (0.01 sec)
+
+mysql> SHOW WARNINGS;
++---------+------+--------------------------------------------------------+
+| Level   | Code | Message                                                |
++---------+------+--------------------------------------------------------+
+| Warning | 1366 | Incorrect integer value: 'abc' for column 'i' at row 1 |
++---------+------+--------------------------------------------------------+
+1 row in set (0.00 sec)
+```
+
+严格 SQL 模式适用于以下语句，在某些值可能超出范围或向表中插入或删除无效行的情况下：
+* ALTER TABLE
+* CREATE TABLE
+* CREATE TABLE ... SELECT
+* DELETE (both single table and multiple table)
+* INSERT
+* LOAD DATA
+* LOAD XML
+* SELECT SLEEP()
+* UPDATE (both single table and multiple table)
+
+在存储过程中，如果程序是在严格模式生效时定义的，那么刚刚列出的类型的单个语句将以严格 SQL 模式执行。
+
+严格 SQL 模式适用于以下错误，这些错误表示输入值无效或缺失的一类错误。如果列的数据类型错误或可能超出范围，则值无效。如果要插入的新行不包含在其定义中没有显式 DEFAULT 子句的 NOT NULL 列的值，则值丢失。
+
+```sql
+ER_BAD_NULL_ERROR
+ER_CUT_VALUE_GROUP_CONCAT
+ER_DATA_TOO_LONG
+ER_DATETIME_FUNCTION_OVERFLOW
+ER_DIVISION_BY_ZERO
+ER_INVALID_ARGUMENT_FOR_LOGARITHM
+ER_NO_DEFAULT_FOR_FIELD
+ER_NO_DEFAULT_FOR_VIEW_FIELD
+ER_TOO_LONG_KEY
+ER_TRUNCATED_WRONG_VALUE
+ER_TRUNCATED_WRONG_VALUE_FOR_FIELD
+ER_WARN_DATA_OUT_OF_RANGE
+ER_WARN_NULL_TO_NOTNULL
+ER_WARN_TOO_FEW_RECORDS
+ER_WRONG_ARGUMENTS
+ER_WRONG_VALUE_FOR_TYPE
+WARN_DATA_TRUNCATED
+```
+
+
+### MySQL 5.7 中 SQL 模式的变化
+在 MySQL 5.7.22 中，这些 SQL 模式已弃用并在 MySQL 8.0 中被删除：DB2、MAXDB、MSSQL、MYSQL323、MYSQL40、ORACLE、POSTGRESQL、NO_FIELD_OPTIONS、NO_KEY_OPTIONS、NO_TABLE_OPTIONS。
+在 MySQL 5.7 中，默认启用 ONLY_FULL_GROUP_BY SQL 模式，因为 GROUP BY 处理变得更加复杂，包括检测功能依赖性。但是，如果您发现启用 ONLY_FULL_GROUP_BY 会导致对现有应用程序的查询被拒绝，则这些操作中的任何一个都应该恢复操作：
+如果可以修改有问题的查询，请这样做，或者使非聚合列在功能上依赖于 GROUP BY 列，或者通过使用 ANY_VALUE() 引用非聚合列。
+如果无法修改有问题的查询（例如，如果它是由第三方应用程序生成的），请在服务器启动时将 sql_mode 系统变量设置为不启用 ONLY_FULL_GROUP_BY。
+在 MySQL 5.7 中，不推荐使用 ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE SQL 模式。长期计划是将这三种模式包含在严格的 SQL 模式中，并在未来的 MySQL 版本中将它们作为显式模式删除。为了在 MySQL 5.7 中与 MySQL 5.6 严格模式兼容，并为受影响的应用程序修改提供额外的时间，以下行为适用：
+ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE 不是严格 SQL 模式的一部分，但它们旨在与严格模式一起使用。提醒一下，如果在没有启用严格模式的情况下启用它们，则会出现警告，反之亦然。
+默认情况下启用 ERROR_FOR_DIVISION_BY_ZERO、NO_ZERO_DATE 和 NO_ZERO_IN_DATE。
+通过上述更改，默认情况下仍会启用更严格的数据检查，但可以在当前需要或需要这样做的环境中禁用各个模式。
 
 ## 备份与恢复
 删除数据流程

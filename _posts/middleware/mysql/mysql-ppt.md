@@ -907,7 +907,7 @@ SHOW CREATE VIEW view_name
 ```
 
 ### 事件（EVENT）
-[时间文档](https://dev.mysql.com/doc/refman/5.7/en/event-scheduler.html)
+[事件文档](https://dev.mysql.com/doc/refman/5.7/en/event-scheduler.html)
 事件用于定时触发sql语句
 
 相关操作语法

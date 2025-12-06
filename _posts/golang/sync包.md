@@ -156,6 +156,40 @@ func main() {
 
 上例可以看到Cond的使用并没有channel方便，所以一般还是使用channel进行顺序调用。Cond一般使用场景是唤起一个Wait协程，或者唤起所有Wait协程。
 
+唤起多个wait协程
+```golang
+func main() {
+    var mu sync.Mutex
+    cond := sync.NewCond(&mu)
+    ready := false
+    
+    // 启动多个等待者
+    for i := 0; i < 5; i++ {
+        id := i
+        go func() {
+            mu.Lock()
+            for !ready {
+                fmt.Printf("等待者 %d: 等待中...\n", id)
+                cond.Wait()
+            }
+            fmt.Printf("等待者 %d: 被唤醒了！\n", id)
+            mu.Unlock()
+        }()
+    }
+    
+    time.Sleep(1 * time.Second)
+    
+    // 通知所有等待者
+    mu.Lock()
+    ready = true
+    fmt.Println("主线程: 广播通知所有等待者")
+    cond.Broadcast() // 唤醒所有等待的 goroutine
+    mu.Unlock()
+    
+    time.Sleep(1 * time.Second)
+}
+```
+
 # WaitGroup
 WaitGroup是等待一组进程运行完成。
 提供函数：

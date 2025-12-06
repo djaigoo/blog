@@ -55,7 +55,7 @@ git相关配置
 推送当前commit到远端
 # rebase
 # remote
-{% post_link git-remote命令 [git-remote命令] %}
+[git-remote命令](/git/git-remote命令.html)
 
 # reset
 回退到某次提交
@@ -65,7 +65,7 @@ git相关配置
 # show
 # stash
 缓存本地修改
-{% post_link git-stash命令 [git-stash命令] %}
+[git-stash命令](/git/git-stash命令.html)
 
 # status
 文件状态

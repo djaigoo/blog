@@ -42,6 +42,44 @@ client.Pipelined() {
 }
 ```
 
+```mermaid
+---
+title: go-redis 发起请求流程图
+---
+sequenceDiagram
+    participant User
+    participant Client
+    participant Hooks
+    participant BaseClient
+    participant Conn
+    participant Net
+    participant Cmder
+
+    User->>Client: Pipelined()
+    activate Client
+    Client->>Client: processPipeline()
+    Client->>Hooks: hooks.processPipeline()
+    activate Hooks
+    Hooks->>BaseClient: _generalProcessPipeline()
+    activate BaseClient
+    BaseClient->>BaseClient: withConn()
+    BaseClient->>BaseClient: pipelineProcessCmds()
+    BaseClient->>Conn: WithWriter()
+    activate Conn
+    Conn->>Net: WriteArgs()
+    Net->>Conn: WithReader()
+    Conn->>Cmder: readReply()
+	Cmder->>Conn: return
+    deactivate Conn
+	Conn->>BaseClient: return
+    deactivate BaseClient
+	BaseClient->>Hooks: return
+    deactivate Hooks
+	Hooks->>Client: return
+    deactivate Client
+	Client->>User: return
+```
+
 ## core object
 * 执行单元：`client`，`baseClient`，`pipeline`，`txPipeline`
 * 协议：`Reader`，`Writer`

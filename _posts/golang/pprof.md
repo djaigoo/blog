@@ -27,6 +27,28 @@ tags:
 
 # 集成 pprof
 
+## 集成方式对比
+
+```mermaid
+graph TB
+    A[集成 pprof] --> B{选择集成方式}
+    
+    B -->|标准 HTTP| C1[导入 net/http/pprof<br/>自动注册路由]
+    B -->|自定义框架| C2[手动注册路由<br/>Gin/Echo等]
+    B -->|程序化| C3[使用 runtime/pprof<br/>直接生成文件]
+    
+    C1 --> D[HTTP 接口访问]
+    C2 --> D
+    C3 --> E[本地文件分析]
+    
+    D --> F[go tool pprof<br/>分析]
+    E --> F
+    
+    style C1 fill:#ffcccc
+    style C2 fill:#ccffcc
+    style C3 fill:#ccccff
+```
+
 ## HTTP 服务器集成
 
 最简单的方式是在 HTTP 服务器中导入 `net/http/pprof` 包：
@@ -313,6 +335,21 @@ go tool pprof heap.prof
 ### 内存泄漏检测
 
 通过对比不同时间点的 heap profile 来检测内存泄漏：
+
+```mermaid
+sequenceDiagram
+    participant 程序
+    participant pprof接口
+    participant 分析工具
+    
+    程序->>pprof接口: 第一次采样 heap
+    pprof接口-->>分析工具: heap1.prof
+    Note over 程序: 等待一段时间<br/>观察内存变化
+    程序->>pprof接口: 第二次采样 heap
+    pprof接口-->>分析工具: heap2.prof
+    分析工具->>分析工具: 对比分析<br/>-base heap1.prof heap2.prof
+    分析工具-->>分析工具: 识别内存增长点
+```
 
 ```bash
 # 第一次采样
@@ -674,6 +711,42 @@ func mutexContention() {
 
 ## 性能分析流程
 
+```mermaid
+flowchart TD
+    A[启动程序] --> B[访问 pprof 接口]
+    B --> C{选择分析类型}
+    
+    C -->|CPU| D1[获取 CPU profile]
+    C -->|内存| D2[获取 Heap profile]
+    C -->|Goroutine| D3[获取 Goroutine profile]
+    C -->|阻塞| D4[获取 Block profile]
+    C -->|锁竞争| D5[获取 Mutex profile]
+    
+    D1 --> E[使用 go tool pprof 分析]
+    D2 --> E
+    D3 --> E
+    D4 --> E
+    D5 --> E
+    
+    E --> F{使用分析方式}
+    F -->|命令行| G1[交互式命令<br/>top/list/web]
+    F -->|Web UI| G2[可视化界面<br/>Graph/Flame Graph]
+    
+    G1 --> H[识别性能瓶颈]
+    G2 --> H
+    
+    H --> I[优化代码]
+    I --> J[重新分析验证]
+    J --> K{问题解决?}
+    K -->|否| H
+    K -->|是| L[完成]
+    
+    style A fill:#ffcccc
+    style H fill:#ccffcc
+    style I fill:#ccccff
+    style L fill:#ffffcc
+```
+
 1. **启动程序并访问 pprof 接口**
 
 ```bash
@@ -768,12 +841,13 @@ go tool pprof -http=:8080 cpu.prof
 
 每个节点代表一个函数，节点的信息包括：
 
-```
-┌─────────────────────────────────────┐
-│ 函数名                                │
-│ flat% (cum%)                         │
-│ flat (cum)                           │
-└─────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "节点结构"
+        A["函数名<br/>flat% (cum%)<br/>flat (cum)"]
+    end
+    
+    style A fill:#ffcccc
 ```
 
 - **函数名**: 函数的完整名称
@@ -783,10 +857,12 @@ go tool pprof -http=:8080 cpu.prof
 - **cum**: 函数及其调用的所有子函数累计占用的资源绝对值
 
 **示例：**
-```
-main.cpuIntensiveTask
-20.5% (30.2%)
-2.05s (3.02s)
+
+```mermaid
+graph TB
+    A["main.cpuIntensiveTask<br/>20.5% (30.2%)<br/>2.05s (3.02s)"]
+    
+    style A fill:#ffcccc
 ```
 
 表示：
@@ -797,8 +873,12 @@ main.cpuIntensiveTask
 
 节点之间的箭头表示函数调用关系：
 
-```
-[调用者] ──→ [被调用者]
+```mermaid
+graph LR
+    A[调用者] -->|资源占比| B[被调用者]
+    
+    style A fill:#ccffcc
+    style B fill:#ccccff
 ```
 
 边的标签显示：
@@ -806,8 +886,13 @@ main.cpuIntensiveTask
 - **资源占比**: 该调用路径占用的资源百分比
 
 **示例：**
-```
-main.main ──20.5%──→ main.cpuIntensiveTask
+
+```mermaid
+graph LR
+    A[main.main] -->|20.5%| B[main.cpuIntensiveTask]
+    
+    style A fill:#ccffcc
+    style B fill:#ccccff
 ```
 
 表示 `main.main` 调用 `main.cpuIntensiveTask`，该调用路径占用 20.5% 的资源。
@@ -822,11 +907,16 @@ main.main ──20.5%──→ main.cpuIntensiveTask
 
 #### 2. 理解调用链
 
-```
-main.main
-  └─→ runtime.main
-       └─→ main.cpuIntensiveTask
-            └─→ math.Sqrt
+```mermaid
+graph TD
+    A[main.main] --> B[runtime.main]
+    B --> C[main.cpuIntensiveTask]
+    C --> D[math.Sqrt]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+    style D fill:#ffffcc
 ```
 
 这个调用链表示：
@@ -838,11 +928,16 @@ main.main
 
 **示例场景：**
 
-```
-A (10% flat, 50% cum)
-  ├─→ B (5% flat, 20% cum)
-  │     └─→ C (15% flat, 15% cum)
-  └─→ D (25% flat, 25% cum)
+```mermaid
+graph TD
+    A["A<br/>10% flat, 50% cum"] --> B["B<br/>5% flat, 20% cum"]
+    A --> D["D<br/>25% flat, 25% cum"]
+    B --> C["C<br/>15% flat, 15% cum"]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+    style D fill:#ff9999
 ```
 
 分析：
@@ -903,21 +998,27 @@ go tool pprof -http=:8080 cpu.prof
 
 火焰图是一个水平堆叠的条形图，类似于火焰的形状：
 
+```mermaid
+graph TD
+    A[main.main<br/>顶层: 调用栈底部] --> B[function A]
+    A --> C[function B]
+    B --> D[func A1]
+    B --> E[func A2]
+    C --> F[function C]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+    style D fill:#ffffcc
+    style E fill:#ffccff
+    style F fill:#ccffff
 ```
-                    ┌──────────────┐
-                    │   main.main  │  ← 顶层（调用栈底部）
-                    └──────┬───────┘
-              ┌────────────┴───────────┐
-              │                        │
-        ┌─────▼──────┐          ┌──────▼──────┐
-        │ function A │          │ function B  │
-        └─────┬──────┘          └──────┬──────┘
-    ┌─────────┴──────────┐     ┌───────┴──────┐
-    │                    │     │              │
-┌───▼───┐          ┌─────▼───┐ │   function C │
-│func A1│          │ func A2 │ │              │
-└───────┘          └─────────┘ └──────────────┘
-```
+
+**说明**：
+- **顶层**：调用栈底部（如 `main.main`）
+- **底层**：调用栈顶部（实际执行的函数）
+- **宽度**：表示函数占用的资源比例
+- **颜色**：用于区分不同的函数
 
 #### 关键元素
 
@@ -944,11 +1045,16 @@ go tool pprof -http=:8080 cpu.prof
 
 在火焰图中，从顶部到底部的一条路径就是一个完整的调用栈：
 
-```
-main.main
-  └─→ runtime.main
-       └─→ main.cpuIntensiveTask
-            └─→ math.Sqrt
+```mermaid
+graph TD
+    A[main.main] --> B[runtime.main]
+    B --> C[main.cpuIntensiveTask]
+    C --> D[math.Sqrt]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+    style D fill:#ffffcc
 ```
 
 #### 4. 对比分析
@@ -999,14 +1105,17 @@ go tool pprof -http=:8080 http://localhost:6060/debug/pprof/profile?seconds=30
 
 **示例分析：**
 
+```mermaid
+graph TD
+    A["main.main<br/>(很宽)"] --> B["main.processData<br/>(很宽)"]
+    B --> C["main.expensiveOperation<br/>(很宽)"]
+    
+    style A fill:#ffcccc
+    style B fill:#ff9999
+    style C fill:#ff6666
 ```
-如果看到：
-main.main (很宽)
-  └─→ main.processData (很宽)
-       └─→ main.expensiveOperation (很宽)
 
-说明 processData 和 expensiveOperation 是性能瓶颈
-```
+说明 `processData` 和 `expensiveOperation` 是性能瓶颈
 
 #### 场景 2: 内存分配分析
 
@@ -1065,21 +1174,18 @@ go tool pprof -http=:8080 cpu_after.prof
 
 假设看到如下火焰图：
 
-```
-┌─────────────────────────────────────────┐
-│ main.main (100%)                         │
-└──────────────┬──────────────────────────┘
-       ┌───────┴────────┐
-       │                │
-┌──────▼──────┐  ┌──────▼──────┐
-│ handler (60%)│  │ other (40%) │
-└──────┬──────┘  └─────────────┘
-┌──────▼──────┐
-│ process (50%)│
-└──────┬──────┘
-┌──────▼──────┐
-│ compute (40%)│
-└─────────────┘
+```mermaid
+graph TD
+    A["main.main<br/>100%"] --> B["handler<br/>60%"]
+    A --> C["other<br/>40%"]
+    B --> D["process<br/>50%"]
+    D --> E["compute<br/>40%"]
+    
+    style A fill:#ffcccc
+    style B fill:#ff9999
+    style C fill:#ccffcc
+    style D fill:#ff6666
+    style E fill:#ff3333
 ```
 
 解读：

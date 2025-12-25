@@ -7,7 +7,6 @@ categories:
 tags:
   - mpg
   - infra
-date: 2020-09-29 17:54:01
 ---
 # golang MPG 有限状态机简介
 

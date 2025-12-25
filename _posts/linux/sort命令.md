@@ -7,7 +7,6 @@ categories:
 tags:
   - cmd
   - command
-date: 2019-12-23 17:17:47
 ---
 
 # 简介

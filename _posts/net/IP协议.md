@@ -1,7 +1,6 @@
 ---
 author: djaigo
 title: IP协议
-date: 2019-12-10 16:08:53
 img: https://img-1251474779.cos.ap-beijing.myqcloud.com/net.png
 categories: 
   - net
@@ -9,49 +8,300 @@ tags:
   - IP
   - IPv4
   - IPv6
+  - 网络协议
 mathjax: true
 enable html: true
 ---
 
-# 简介
-IP协议是TCP/IP协议族的动力，它为上层协议提供无状态、无连接、不可靠的服务。
-* 无状态（stateless），是指IP通信双方不同步传输数据的状态信息，因此所有IP数据报的发送、传输和接收都是相互独立的
-* 无连接（connectionless），是指IP通信双方都不长久地维持对方的任何信息，因此每个IP数据报都要带上对方的IP地址
-* 不可靠（unreliable），是指IP协议不能保证IP数据报准确到达接收端，只是尽最大努力
+# IP 协议概述
+
+IP（Internet Protocol，网际协议）是 TCP/IP 协议族的核心协议，位于网络层，为上层协议提供无状态、无连接、不可靠的数据报传输服务。
+
+## IP 协议的特点
+
+```mermaid
+graph TB
+    A[IP协议特点] --> B[无状态<br/>Stateless]
+    A --> C[无连接<br/>Connectionless]
+    A --> D[不可靠<br/>Unreliable]
+    
+    B --> B1[不维护连接状态<br/>每个数据报独立处理]
+    C --> C1[不预先建立连接<br/>每个数据报包含完整地址]
+    D --> D1[不保证数据报到达<br/>不保证顺序<br/>不保证不重复]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+    style D fill:#ffffcc
+```
+
+### 1. 无状态（Stateless）
+
+- **定义**：IP 通信双方不同步传输数据的状态信息
+- **特点**：所有 IP 数据报的发送、传输和接收都是相互独立的
+- **影响**：每个数据报都必须包含完整的路由信息
+
+### 2. 无连接（Connectionless）
+
+- **定义**：IP 通信双方都不长久地维持对方的任何信息
+- **特点**：每个 IP 数据报都要带上对方的 IP 地址
+- **影响**：无法保证数据报的顺序和完整性
+
+### 3. 不可靠（Unreliable）
+
+- **定义**：IP 协议不能保证 IP 数据报准确到达接收端
+- **特点**：
+  - 不保证数据报能成功到达
+  - 不保证数据报按顺序到达
+  - 不保证数据报不重复
+- **影响**：上层协议（如 TCP）需要提供可靠性保证
+
+## IP 协议在协议栈中的位置
+
+```mermaid
+graph TB
+    A[应用层<br/>HTTP/FTP/SMTP] --> B[传输层<br/>TCP/UDP]
+    B --> C[网络层<br/>IP协议]
+    C --> D[数据链路层<br/>Ethernet/PPP]
+    D --> E[物理层<br/>电缆/光纤]
+    
+    style C fill:#ffcccc
+```
+
+## IP 协议的作用
+
+1. **寻址**：通过 IP 地址标识网络中的主机
+2. **路由**：选择数据报从源到目的的最佳路径
+3. **分片**：将大数据报分片以适应不同网络的 MTU
+4. **重组**：在目的主机重组分片的数据报
 
 # IPv4
-## 头部结构
-IPv4头部结构，固定长度为20字节，选项最多可有40字节
-![IPv4 header](https://img-1251474779.cos.ap-beijing.myqcloud.com/IP协议/v4header.png)
-* 4位版本号（version），指定IP协议的版本，IPv4的值是4，其他IPv4的扩展版本（SIP和PIP）拥有不同的版本和不同的头部结构
-* 4位头部长度（header length），标识IP头部有多少个4字节，4位比特最大能表示15，所以IP头部长度最长为$4*15=60$字节
-* 8位服务类型（type of service，TOS）
-  * 3位优先权字段（现已被忽略）
-  * 4位TOS分别表示，最小延迟、最大吞吐量、最高可靠性和最小费用，同时只能一个置1，应用程序根据实际情况来设置
-  * 1位保留字段（必须置0）
-* 16位总长度（total length），是指整个IP数据报的长度，以字节为单位，因此IP数据报的最大长度为$2^{16}-1=65535$，但是由于MTU（最大传输单元）限制，超过MTU的数据报将被分片传输
-* 16位标识（identification）唯一的标识主机发送的每一个数据报，初始值由系统随机生成，每发送一个数据报其值加一，该值在数据报分片时复制到每个分片，因此同一个数据报的所有分片都具有相同的标识值
-* 3位标志字段（flag）
-  * 第一位保留
-  * 第二位（Don't Fragment，DF）表示禁止分片，如果设置了这个值，IP模块将不对数据报进行分片，如果数据报超过MTU，IP模块将丢弃数据报并返回一个ICMP差错报文
-  * 第三位（More Fragment，MF）表示更多分片，除了最后一个分片外其他分片都要把它置1
-* 13位分片偏移（fragmentation offset）是分片相对原始IP数据报开始处（仅指数据部分）偏移，实际的偏移值是左移3位（$*8$）后得到的，因为这个原因，除了最后一个IP分片外，每个IP分片的数据部分的长度必须是8的整数倍（保证每个分片有一个合适偏移值）
-* 8位生存时间（Time To Live，TTL）是数据报到达目的地址之前允许经过路由器的跳数，TTL由发送端设置（常见值64），每经过一个路由，该值就减一，当减为0时，路由器将丢弃数据报，并向发送源发送一个ICMP差错报文，TTL可以防止数据报陷入路由循环
-* 8位协议（protocol）用来区分上层协议，`/etc/protocols`文件定义了所有上层协议对应的protocol字段的数值，也可以通过[IANA](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xml)获取
-* 16位头部校验和（header checksum）由发送端填充，接收端对其使用CRC算法检验**IP数据报头部**在传输过程中是否损坏
-* 32位源IP地址和目的端IP地址用来表示IP数据报的发送端和接收端，一般情况下这两个地址在整个数据报的传递过程中保持不变
-* 选项字段（option）是一个可变长可选信息，这部分最多包含40字节，可选内容有
-  * 记录路由（record route）告诉数据报途经的所有路由器都将自己的IP地址填入IP头部的选项部分，这样可以追踪数据报的传递路径
-  * 时间戳（timestamp）告诉每个路由器都将数据报被转发的时间（或时间与IP地址对）填入IP头部的选项部分，这样可以测量途经路由之间数据报传输的时间
-  * 松散源路由选择（loose source routing）指定一个路由器IP地址列表，数据报发送过程中必须经过其中所有路由器
-  * 严格源路由选择（strict source routing）和松散源路由选择类似，不过数据报只能经过被指定的路由器
 
-## IP分片
-当IP数据报的长度超过帧的MTU时，它将被分片传输。分片可能发生在发送端，也有可能发生在中转路由器中，而且可能在传输的过程中多次分片，但只有再最终的目标机器上，这些分片才会被内核中的IP模块重新组装。
-IP头部中提供数据报标识、标志和片偏移提供了足够的重组信息。一个IP数据报的每个分片都具有相同的标识值，但具有不同的片偏移。除了最后一个分片外，其他分片都将设置MF标志，每个分片的IP数据报总长度会被字段将会被设置为该分片的长度。
-一般以太网帧的MTU是1500字节（可以通过ifconfig和netstat查看），IP数据报头部占用20字节，所以最大传输1480字节，这里利用ICMP可以产生IP数据报分片，ICMP头部信息占8字节，所以数据只用传输1473字节就能使IP数据报分片。
-使用golang模拟这个情况
+## IPv4 头部结构
+
+IPv4 头部结构固定长度为 20 字节，选项最多可有 40 字节，总长度最长为 60 字节。
+
+### 头部字段布局
+
+```mermaid
+graph TB
+    A[IPv4头部 20-60字节] --> B[固定部分 20字节]
+    A --> C[选项部分 0-40字节]
+    
+    B --> B1[版本 4位]
+    B --> B2[头部长度 4位]
+    B --> B3[服务类型 8位]
+    B --> B4[总长度 16位]
+    B --> B5[标识 16位]
+    B --> B6[标志 3位]
+    B --> B7[片偏移 13位]
+    B --> B8[生存时间 8位]
+    B --> B9[协议 8位]
+    B --> B10[头部校验和 16位]
+    B --> B11[源IP地址 32位]
+    B --> B12[目的IP地址 32位]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+```
+
+### 详细字段说明
+
+| 字段 | 位数 | 说明 | 示例值 |
+|------|------|------|--------|
+| **版本（Version）** | 4 | IP 协议版本，IPv4 值为 4 | 4 |
+| **头部长度（IHL）** | 4 | IP 头部长度（以 4 字节为单位） | 5（20字节） |
+| **服务类型（TOS）** | 8 | 服务质量参数 | 0x00 |
+| **总长度（Total Length）** | 16 | 整个 IP 数据报长度（字节） | 1500 |
+| **标识（Identification）** | 16 | 数据报唯一标识符 | 0x1234 |
+| **标志（Flags）** | 3 | DF（禁止分片）、MF（更多分片） | 0x2 |
+| **片偏移（Fragment Offset）** | 13 | 分片相对原始数据报的偏移 | 0 |
+| **生存时间（TTL）** | 8 | 数据报可经过的最大跳数 | 64 |
+| **协议（Protocol）** | 8 | 上层协议类型 | 6（TCP） |
+| **头部校验和（Checksum）** | 16 | IP 头部校验和 | 0xABCD |
+| **源 IP 地址** | 32 | 发送方 IP 地址 | 192.168.1.1 |
+| **目的 IP 地址** | 32 | 接收方 IP 地址 | 192.168.1.2 |
+| **选项（Options）** | 可变 | 可选字段，最多 40 字节 | - |
+
+### 服务类型（TOS）字段
+
+```mermaid
+graph LR
+    A[TOS 8位] --> B[优先权 3位<br/>已废弃]
+    A --> C[TOS 4位]
+    A --> D[保留 1位]
+    
+    C --> C1[最小延迟]
+    C --> C2[最大吞吐量]
+    C --> C3[最高可靠性]
+    C --> C4[最小费用]
+    
+    style A fill:#ffcccc
+    style C fill:#ccffcc
+```
+
+**TOS 位说明**：
+- **最小延迟**：适用于交互式应用（如 Telnet）
+- **最大吞吐量**：适用于文件传输（如 FTP）
+- **最高可靠性**：适用于网络管理（如 SNMP）
+- **最小费用**：适用于批量传输
+
+### 协议字段值
+
+常见协议对应的 protocol 字段值：
+
+| 协议 | Protocol 值 | 说明 |
+|------|-----------|------|
+| ICMP | 1 | Internet 控制消息协议 |
+| IGMP | 2 | Internet 组管理协议 |
+| TCP | 6 | 传输控制协议 |
+| UDP | 17 | 用户数据报协议 |
+| ESP | 50 | 封装安全载荷 |
+| AH | 51 | 认证头 |
+| IPv6 | 41 | IPv6 封装 |
+
+## IP 分片
+
+### 分片的原因
+
+当 IP 数据报的长度超过数据链路层的 MTU（Maximum Transmission Unit，最大传输单元）时，数据报将被分片传输。
+
+```mermaid
+graph TB
+    A[IP数据报 3000字节] --> B{MTU = 1500字节}
+    B -->|超过MTU| C[分片处理]
+    C --> D[分片1 1500字节<br/>MF=1, Offset=0]
+    C --> E[分片2 1500字节<br/>MF=1, Offset=185]
+    C --> F[分片3 60字节<br/>MF=0, Offset=370]
+    
+    D --> G[目的主机]
+    E --> G
+    F --> G
+    G --> H[重组完整数据报]
+    
+    style A fill:#ffcccc
+    style C fill:#ccccff
+    style H fill:#ccffcc
+```
+
+### 分片过程
+
+```mermaid
+sequenceDiagram
+    participant Sender as 发送端
+    participant Router as 路由器
+    participant Receiver as 接收端
+    
+    Sender->>Sender: 创建IP数据报 3000字节
+    Sender->>Sender: 检查MTU 1500字节
+    Sender->>Sender: 数据报超过MTU
+    Sender->>Router: 发送分片1<br/>MF=1, Offset=0
+    Sender->>Router: 发送分片2<br/>MF=1, Offset=185
+    Sender->>Router: 发送分片3<br/>MF=0, Offset=370
+    
+    Router->>Receiver: 转发分片1
+    Router->>Receiver: 转发分片2
+    Router->>Receiver: 转发分片3
+    
+    Receiver->>Receiver: 接收所有分片
+    Receiver->>Receiver: 根据标识和偏移重组
+    Receiver->>Receiver: 得到完整数据报
+```
+
+### 分片字段说明
+
+#### 标识（Identification）
+
+- **作用**：唯一标识主机发送的每一个数据报
+- **特点**：
+  - 初始值由系统随机生成
+  - 每发送一个数据报其值加一
+  - 分片时复制到每个分片
+  - 同一数据报的所有分片具有相同的标识值
+
+#### 标志（Flags）
+
+```mermaid
+graph LR
+    A[Flags 3位] --> B[位0 保留]
+    A --> C[位1 DF<br/>Don't Fragment]
+    A --> D[位2 MF<br/>More Fragment]
+    
+    C --> C1[DF=1: 禁止分片<br/>超过MTU则丢弃]
+    D --> D1[MF=1: 还有更多分片<br/>MF=0: 最后一个分片]
+    
+    style A fill:#ffcccc
+    style C fill:#ccffcc
+    style D fill:#ccccff
+```
+
+#### 片偏移（Fragment Offset）
+
+- **作用**：标识分片在原始数据报中的位置
+- **计算**：实际偏移 = 片偏移值 × 8（字节）
+- **限制**：除了最后一个分片外，每个分片的数据长度必须是 8 的整数倍
+
+### 分片示例
+
+假设有一个 3000 字节的 IP 数据报（头部 20 字节，数据 2980 字节），MTU 为 1500 字节：
+
+```mermaid
+graph TB
+    A[原始数据报<br/>3000字节] --> B[分片1<br/>1500字节]
+    A --> C[分片2<br/>1500字节]
+    A --> D[分片3<br/>60字节]
+    
+    B --> B1[头部20字节<br/>数据1480字节<br/>MF=1, Offset=0]
+    C --> C1[头部20字节<br/>数据1480字节<br/>MF=1, Offset=185<br/>实际偏移1480]
+    D --> D1[头部20字节<br/>数据20字节<br/>MF=0, Offset=370<br/>实际偏移2960]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccffcc
+    style D fill:#ccffcc
+```
+
+### 分片重组
+
+```mermaid
+flowchart TD
+    A[接收分片] --> B[检查标识字段]
+    B --> C{标识已存在?}
+    C -->|否| D[创建新的重组缓冲区]
+    C -->|是| E[添加到现有缓冲区]
+    
+    D --> F[存储分片数据]
+    E --> F
+    
+    F --> G{MF=0?}
+    G -->|否| H[等待更多分片]
+    G -->|是| I[检查所有分片]
+    
+    I --> J{所有分片都收到?}
+    J -->|否| K[等待超时后丢弃]
+    J -->|是| L[按偏移重组数据]
+    L --> M[传递给上层协议]
+    
+    style M fill:#ccffcc
+    style K fill:#ffcccc
+```
+
+### 分片代码示例
+
+使用 Go 语言模拟 IP 分片：
+
 ```go
+package main
+
+import (
+    "bytes"
+    "encoding/binary"
+    "fmt"
+    "net"
+    "time"
+)
+
 type ICMP struct {
     Type        uint8
     Code        uint8
@@ -101,148 +351,634 @@ func main() {
         return
     }
     defer conn.Close()
+    
+    // 创建 1473 字节的数据，加上 ICMP 头部 8 字节 = 1481 字节
+    // 加上 IP 头部 20 字节 = 1501 字节，超过 MTU 1500，会触发分片
     arr := make([]byte, 1473)
     for i := range arr {
         arr[i] = byte(i)
     }
-    // 将最后一个字节设置为0
     arr[1472] = 0
+    
     var buffer bytes.Buffer
     binary.Write(&buffer, binary.BigEndian, icmp)
     binary.Write(&buffer, binary.BigEndian, arr)
+    
     if _, err := conn.Write(buffer.Bytes()); err != nil {
         fmt.Println(err.Error())
         return
     }
+    
     conn.SetReadDeadline(time.Now().Add(time.Second * 5))
     recv := make([]byte, 2048)
     n, err := conn.Read(recv)
     if err != nil {
         fmt.Println(err.Error())
     }
-    fmt.Printf("%#v", recv[:n])
+    fmt.Printf("Received %d bytes\n", n)
 }
 ```
 
-我们可以通过wireshark查看数据报具体信息
+**分片计算**：
+- 以太网 MTU：1500 字节
+- IP 头部：20 字节
+- ICMP 头部：8 字节
+- 可用数据空间：1500 - 20 - 8 = 1472 字节
+- 发送 1473 字节数据 → 总长度 1501 字节 → 触发分片
 
-![第一分片IP数据报头部信息](http://img-1251474779.cos.ap-beijing.myqcloud.com/IP%E5%8D%8F%E8%AE%AE/20191211022407734.png)
+## IP 路由
 
-上图可以看到Flags设置了MF标志
+IP 协议的核心任务是数据报的路由，即决定发送数据报到目标机器的路径。
 
-![第二分片IP数据报头部信息](http://img-1251474779.cos.ap-beijing.myqcloud.com/IP%E5%8D%8F%E8%AE%AE/20191211022558072.png)
+### IP 模块工作流程
 
-上图可以看到设置了数据报偏移量$185*8=1480$
+```mermaid
+flowchart TD
+    A[收到IP数据报] --> B[CRC校验]
+    B --> C{校验通过?}
+    C -->|否| D[丢弃数据报]
+    C -->|是| E{目标IP地址}
+    
+    E -->|本机IP或广播| F[派发给上层协议]
+    E -->|其他主机| G{允许转发?}
+    
+    G -->|否| D
+    G -->|是| H[数据报转发]
+    H --> I[计算下一跳路由]
+    I --> J[查找路由表]
+    J --> K[发送到输出队列]
+    
+    F --> L[TCP/UDP/ICMP等]
+    
+    style A fill:#ffcccc
+    style F fill:#ccffcc
+    style H fill:#ccccff
+    style L fill:#ccffcc
+```
 
-![第一分片IP数据报局部内容](http://img-1251474779.cos.ap-beijing.myqcloud.com/IP%E5%8D%8F%E8%AE%AE/20191211022814706.png)
+### 路由表结构
 
-上图蓝色区域表示IP数据报的数据部分，前8字节表示ICMP头部信息，后面是ICMP数据
+路由表是 IP 路由的核心数据结构，包含以下字段：
 
-![第二分片IP数据报内容](http://img-1251474779.cos.ap-beijing.myqcloud.com/IP%E5%8D%8F%E8%AE%AE/20191211022830044.png)
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| **Destination** | 目标网络或主机 | 192.168.1.0 或 default |
+| **Gateway** | 网关地址 | 192.168.1.1 或 * |
+| **Genmask** | 网络掩码 | 255.255.255.0 |
+| **Flags** | 路由标志 | U（活动）、G（网关）、H（主机） |
+| **Metric** | 路由距离 | 到达目标网络的中转数 |
+| **Ref** | 引用次数 | Linux 未使用 |
+| **Use** | 使用次数 | 该路由项被使用的次数 |
+| **Iface** | 网络接口 | eth0、docker0 等 |
 
-上图说明分片后的IP数据报数据是承接上一个数据报，内核收到这些数据后将其拼装成一个完整IP数据报
+### 路由标志说明
 
-## IP路由
-IP协议一个核心任务是数据报的路由，即决定发送数据报到目标机器的路径。
+```mermaid
+graph TB
+    A[路由标志 Flags] --> B[U Up<br/>路由项是活动的]
+    A --> C[H Host<br/>目标是主机]
+    A --> D[G Gateway<br/>目标是网关]
+    A --> E[D Dynamic<br/>由重定向生成]
+    A --> F[M Modified<br/>被修改过]
+    
+    style A fill:#ffcccc
+```
 
-### 工作流程
-![IP模块基本工作流程](http://img-1251474779.cos.ap-beijing.myqcloud.com/IP%E5%8D%8F%E8%AE%AE/IP%E6%A8%A1%E5%9D%97%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B.png)
+### 路由查找机制
 
-当IP模块收到来自数据链路层的IP数据报时，先对数据报头部做CRC校验，确认无误后就分析其头部的具体信息。
-如果IP数据报头部设置了源站路由选择（松散源路由选择或严格源路由选择），则IP模块调用数据报转发子模块来处理数据报。如果该IP数据报的头部中目标IP地址是本机的某个IP地址或者是广播地址（即该数据报是发给本机的），则IP模块就根据数据报头部中的协议来决定将它派发给那个上层协议处理。如果IP模块发现这个数据报不是发给本机的，则调用数据报转发子模块来处理数据报。
-IP数据报转发子模块首先检查系统是否允许转发，如果不允许，IP模块就将数据报丢弃，如果允许则将会进行数据报转发。
-IP数据报应该发送至哪一个路由（或目标机器），以及用哪张网卡发送，就是IP路由的过程，都是由计算下一跳路由子模块处理。数据报路由的核心结构是路由表，由目标IP进行分类，同一类型的IP数据报将被发往相同的下一跳路由。
-IP输出队列中存放的是所有等待发送的IP数据报，其中除了需要转发的数据报外，还有本机封装的上层协议的IP数据报。
-虚线箭头显示路由表更新过程，这个过程是指通过路由协议或者route命令调整路由表，是指更适应最新的网络拓扑结构，称之为IP路由策略。
+```mermaid
+flowchart TD
+    A[收到数据报] --> B[提取目标IP地址]
+    B --> C[步骤1: 查找完全匹配的主机路由]
+    C --> D{找到?}
+    D -->|是| E[使用该路由项]
+    D -->|否| F[步骤2: 查找网络路由]
+    
+    F --> G{找到匹配的网络?}
+    G -->|是| E
+    G -->|否| H[步骤3: 使用默认路由]
+    
+    H --> I{默认路由存在?}
+    I -->|是| E
+    I -->|否| J[路由失败<br/>发送ICMP错误]
+    
+    E --> K[发送数据报]
+    
+    style E fill:#ccffcc
+    style J fill:#ffcccc
+```
 
-### 路由机制
-IP路由机制的核心就是IP路由表，可以使用route或者netstat查看路由表
-路由表包含每项都有8个字段，字段含义如下：
+### 路由表示例
 
-| 字段      | 含义    | 
-| :-----------: | :-------- |
-| Destination    | 目标网络或主机  |
-| Gateway     | 网关地址，`*`表示和本机在同一个网络 |
-| Genmask     | 网络掩码 |
-| Flags | 路由标志常见的标志有：<br/><ul><li>U，该路由项是活动的</li><li>H，该路由项的目标是一台主机</li><li>G，该路由项的目标是网关</li><li>D，该路由项是有重定向生成的</li><li>M，该路由项被重新修改过</li></ul>|
-|Metric|路由距离，即到达指定网络所需的中转数|
-|Ref|路由项被引用的次数（Linux未使用）|
-|Use|该路由项被使用的次数 |
-|Iface|该路由项对应的输出网卡接口|
-
-我们可以执行route命令获取当前的路由表
-```sh
-# route
+```bash
+# 查看路由表
+$ route -n
 Kernel IP routing table
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
-default         gateway         0.0.0.0         UG    0      0        0 eth0
+0.0.0.0         192.168.1.1     0.0.0.0         UG    0      0        0 eth0
+192.168.1.0     0.0.0.0         255.255.255.0   U     0      0        0 eth0
 172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 docker0
 ```
 
-目标地址表示default，即默认路由，在标志中有`G`表示下一跳是网关，网关地址是`gateway`，如果Gateway是`*`，则不需要中转，直接发送目标机器。
-IP的路由机制分为以下3个步骤：
-* 步骤1，查找路由表中和数据报的目标地址IP地址完全匹配的主机IP地址，如果找到就使用该路由项，如果没有找到则转到步骤2
-* 步骤2，查找路由表中和数据报的目标IP地址具有相同网络ID的网络IP地址，如果找到就使用该路由项，没有找到则转到步骤3
-* 步骤3，选择默认路由项，通常意味着下一跳路由是网关
+**路由表解析**：
 
-有上面的路由表可知，发送到IP地址为`172.17.*.*`（`172.17.0.0/16`）的地址都可以将数据报直接发送到目标机器（路由表第二项），所有访问Internet的请求都将通过默认网关转发。
+1. **默认路由**（0.0.0.0）：
+   - 网关：192.168.1.1
+   - 标志：UG（活动 + 网关）
+   - 用途：所有非本地网络的数据报都通过此网关
+
+2. **本地网络路由**（192.168.1.0/24）：
+   - 网关：0.0.0.0（直接发送）
+   - 标志：U（活动）
+   - 用途：同一网段的数据报直接发送
+
+3. **Docker 网络路由**（172.17.0.0/16）：
+   - 网关：0.0.0.0（直接发送）
+   - 标志：U（活动）
+   - 用途：Docker 容器网络
 
 ### 路由表更新
-路由表必须能够更新，以适应网络连接的变化，这样IP模块才能准确、高效的转发数据报。可以通过route命令手动修改路由表，是属于静态的路由更新方式，对于大型路由器，一般通过BGP（Border Gateway Protocol，边际网关协议）、RIP（Routing Information Protocol，路由信息协议）、OSPF（Open Shortest Path First，开放式最短路径优先）等协议来发现路径，并动态更新自己的路由表。
 
-## IP转发
-IP模块把不是发送给本机的IP数据报将由数据报转发子模块来处理，路由器都能执行数据报的转发操作，而主机一般只发送和接收数据报，这是因为主机上的`/proc/sys/net/ipv4/ip_forward`内核参数默认设置为0，我们可以修改这个值来使主机的数据报转发功能。
-IP数据报转发操作流程：
-* 检查数据报头部的TTL值，如果TTL值是0，则丢弃该数据报
-* 查看数据报头部的阉割路由选择选项，如果该选项被设置，则检测数据报的目标IP地址是否是本机的某个IP地址，如果不是，则发送一个ICMP源站选路失败报文给发送端
-* 如果有必要，则给源端发送一个ICMP重定向报文，以告诉它一个更合理的下一跳路由器
-* 将TTL减1
-* 处理IP头部选项
-* 如果有必要，则执行IP分片操作
+```mermaid
+graph TB
+    A[路由表更新] --> B[静态更新]
+    A --> C[动态更新]
+    
+    B --> B1[route命令<br/>手动配置]
+    B --> B2[ip route命令<br/>Linux工具]
+    
+    C --> C1[BGP<br/>边界网关协议]
+    C --> C2[RIP<br/>路由信息协议]
+    C --> C3[OSPF<br/>开放最短路径优先]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+```
 
-## 重定向
-### ICMP重定向报文
-利用ICMP重定向报文可以告诉目标机器IP数据报应该使用哪个路由器转发，并且以此来更新路由表（通常是更新路由表缓冲，而不是直接更改路由表）。
-`/proc/sys/net/ipv4/conf/all/send_redirects`内核参数指定是否允许发送ICMP重定向报文，`/proc/sys/net/ipv4/conf/all/accept_redirects`内核参数则指定是否允许接收ICMP重定向报文，一般来说主机只能接收ICMP从定向报文，而路由器只能发送ICMP重定向报文。
-### 主机重定向
-我们可以将目标主机设置开启转发功能，将本机网关设置为目标主机，这样就可以通过目标主机来访问Internet。
-主机重定向流程：
-* 主机向目标主机发送IP数据报
-* 目标主机向路由器发送数据，发现主机可以直接发送给它的路由器是比较合理的路径
-* 目标主机向主机发送一个ICMP重定向报文
-* 后序的IP数据报，主机都会直接发送给路由器
+## IP 转发
+
+IP 转发是指路由器将接收到的数据报转发到目标网络的过程。
+
+### 转发流程
+
+```mermaid
+flowchart TD
+    A[收到需要转发的数据报] --> B[检查TTL]
+    B --> C{TTL > 0?}
+    C -->|否| D[丢弃数据报<br/>发送ICMP超时]
+    C -->|是| E[检查源路由选项]
+    
+    E --> F{源路由设置?}
+    F -->|是| G{目标IP是本机?}
+    G -->|否| H[发送ICMP源站选路失败]
+    G -->|是| I[继续处理]
+    
+    F -->|否| I
+    I --> J[发送ICMP重定向<br/>如果需要]
+    J --> K[TTL减1]
+    K --> L[处理IP选项]
+    L --> M{数据报超过MTU?}
+    M -->|是| N[执行IP分片]
+    M -->|否| O[转发数据报]
+    N --> O
+    
+    style D fill:#ffcccc
+    style O fill:#ccffcc
+```
+
+### 启用 IP 转发
+
+```bash
+# Linux 系统
+# 查看当前设置
+cat /proc/sys/net/ipv4/ip_forward
+
+# 临时启用（重启后失效）
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# 永久启用
+# 编辑 /etc/sysctl.conf
+net.ipv4.ip_forward = 1
+# 然后执行
+sysctl -p
+```
+
+## ICMP 重定向
+
+### 重定向机制
+
+ICMP 重定向用于优化路由路径，告诉主机使用更合理的下一跳路由器。
+
+```mermaid
+sequenceDiagram
+    participant Host as 主机A
+    participant Router1 as 路由器1
+    participant Router2 as 路由器2
+    participant Server as 目标服务器
+    
+    Host->>Router1: 发送数据报到Server
+    Router1->>Router1: 发现Router2更直接
+    Router1->>Host: ICMP重定向报文<br/>建议使用Router2
+    Router1->>Router2: 转发数据报
+    Router2->>Server: 转发数据报
+    
+    Note over Host: 更新路由缓存
+    Host->>Router2: 后续数据报直接发送
+    Router2->>Server: 转发数据报
+```
+
+### 重定向类型
+
+| 类型 | 代码 | 说明 |
+|------|------|------|
+| 网络重定向 | 0 | 对网络的重定向 |
+| 主机重定向 | 1 | 对主机的重定向 |
+| 服务类型和网络重定向 | 2 | 对服务类型和网络的重定向 |
+| 服务类型和主机重定向 | 3 | 对服务类型和主机的重定向 |
+
+### 重定向配置
+
+```bash
+# 允许发送 ICMP 重定向报文（路由器）
+echo 1 > /proc/sys/net/ipv4/conf/all/send_redirects
+
+# 允许接收 ICMP 重定向报文（主机）
+echo 1 > /proc/sys/net/ipv4/conf/all/accept_redirects
+```
 
 # IPv6
-随着网络技术的发展IPv4已经无法满足需求，而且目前IPv4的地址已经分配完毕。IPv6协议不仅解决了IPv4地址不够用的情况，还做了很多改进。比如：增加了多播和流功能，为网络上多媒体内容的质量提供精细的控制；引入自动配置功能，使局域网管理更方便；增加了专门的网络安全功能等。
-## 头部结构
-IPv6头部由40字节固定头部和可变长的扩展头部组成
 
-![IPv6固定头部结构](http://img-1251474779.cos.ap-beijing.myqcloud.com/IP%E5%8D%8F%E8%AE%AE/IPv6header.png)
+## IPv6 概述
 
-* 4位版本号（version）对于IPv6来说，其值是6
-* 8位通信类型（traffic class）只是数据流通信类型或优先级，和IPv4的TOS类似
-* 20位流标签（flow label）是IPv6新加字段，对于某些对连接的服务质量有特殊要求的通信，比如音频或视频等实时数据传输
-* 16位荷载长度（payload length）指的是IPv6扩展头部和应用程序长度之和，不包括固定头部长度
-* 8位下一个包头（next header）指出紧跟IPv6固定头部后的包头类型，如扩展头（如果有的话）或某个上层协议头（比如TCP，UPD和ICMP），它类似于IPv4头部中的协议字段，且取值相同含义相同
-* 8位跳数限制（hop limit）和IPv4的TTL相同
-* 128位表示源IP和目的IP地址，16字节使IP地址的总量达到了$2^{128}$个，号称IPv6能使地球上每一粒沙子都能分配一个IP地址
+随着网络技术的发展，IPv4 地址空间已耗尽。IPv6 不仅解决了地址不足问题，还带来了多项改进。
 
-IPv4使用点分十进制表示IP地址，而IPv6地址则使用16进制字符串表示，比如`fe80:0000:0000:0000:0000:0000:0000:0001`。IPv6地址使用`:`分隔成8组，每组包含，使用16进制表示2个字节。由于0太多的话，这样表示过于麻烦，所以可以使用零压缩法将其简写，就是省略中间全是0的组，上面的例子就可以简写成`fe80::1`，零压缩法只能在IPv6地址中使用一次，不然无法知道中间的省略了多少个零。
+### IPv4 vs IPv6 对比
 
-## 扩展头
-可变长的扩展头部使得IPv6能支持更多的选项，并且很便于将来的扩展需要。它的长度可以是零，表示数据报没有使用任何扩展头部，一个数据报可以包含多个扩展头部，每个扩展头部的类型由前一个头部（固定头部或扩展头部）中的下一个报头字段指定，目前使用的扩展头部有：
+| 特性 | IPv4 | IPv6 |
+|------|------|------|
+| **地址长度** | 32 位（4 字节） | 128 位（16 字节） |
+| **地址数量** | 约 43 亿 | 约 3.4×10³⁸ |
+| **地址表示** | 点分十进制 | 冒号分隔十六进制 |
+| **头部长度** | 20-60 字节 | 40 字节（固定） |
+| **分片** | 发送端和路由器 | 仅发送端 |
+| **校验和** | 有 | 无（由上层协议处理） |
+| **选项** | 在头部中 | 在扩展头部中 |
+| **配置** | 手动或 DHCP | 自动配置（SLAAC） |
+| **安全性** | 可选（IPsec） | 内置（IPsec） |
 
-| 扩展头部      | 含义    | 
-| :-----------: | -------- |
-| Hop-by-Hop    | 逐跳选项头部，它包含每个路由器都必须检查和处理的特殊参数选项  |
-| Destination option     | 目的选项头部，指定由最终目的节点处理的选项 |
-| Routing     | 路由头部，指定数据报要经过哪些中转路由，功能类似于IPv4的松散源路由选择选项和记录路由选项 |
-| Fragment | 分片头部，处理分片和重组的细节 |
-|Authentication| 认证头部，提供数据源认证、数据完整性检查和反重播保护 |
-|Encapsulation Security Payload| 加密头部，提供加密服务 |
-|No next header| 没有后续扩展头部 |
+### IPv6 的优势
 
+```mermaid
+graph TB
+    A[IPv6优势] --> B[地址空间<br/>2^128个地址]
+    A --> C[自动配置<br/>SLAAC]
+    A --> D[内置安全<br/>IPsec]
+    A --> E[简化头部<br/>固定40字节]
+    A --> F[更好的QoS<br/>流标签]
+    A --> G[移动性支持<br/>移动IPv6]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccffcc
+    style D fill:#ccffcc
+```
+
+## IPv6 头部结构
+
+IPv6 头部由 40 字节固定头部和可变长的扩展头部组成。
+
+### 固定头部字段
+
+```mermaid
+graph TB
+    A[IPv6固定头部 40字节] --> B[版本 4位<br/>Version = 6]
+    A --> C[通信类型 8位<br/>Traffic Class]
+    A --> D[流标签 20位<br/>Flow Label]
+    A --> E[荷载长度 16位<br/>Payload Length]
+    A --> F[下一个包头 8位<br/>Next Header]
+    A --> G[跳数限制 8位<br/>Hop Limit]
+    A --> H[源地址 128位<br/>Source Address]
+    A --> I[目的地址 128位<br/>Destination Address]
+    
+    style A fill:#ffcccc
+```
+
+### 字段详细说明
+
+| 字段 | 位数 | 说明 |
+|------|------|------|
+| **版本（Version）** | 4 | IP 协议版本，IPv6 值为 6 |
+| **通信类型（Traffic Class）** | 8 | 数据流通信类型或优先级，类似 IPv4 的 TOS |
+| **流标签（Flow Label）** | 20 | 用于标识需要特殊 QoS 处理的数据流 |
+| **荷载长度（Payload Length）** | 16 | IPv6 扩展头部和应用程序数据长度之和 |
+| **下一个包头（Next Header）** | 8 | 下一个扩展头部或上层协议类型 |
+| **跳数限制（Hop Limit）** | 8 | 类似 IPv4 的 TTL |
+| **源地址** | 128 | 发送方 IPv6 地址 |
+| **目的地址** | 128 | 接收方 IPv6 地址 |
+
+### IPv6 地址表示
+
+#### 完整格式
+
+```
+fe80:0000:0000:0000:0000:0000:0000:0001
+```
+
+#### 零压缩格式
+
+```
+fe80::1
+```
+
+**零压缩规则**：
+- 可以省略连续的 0 组
+- 只能使用一次 `::`
+- 不能同时省略前导 0 和尾随 0
+
+#### 地址示例
+
+| 类型 | 示例 | 说明 |
+|------|------|------|
+| 环回地址 | `::1` | 本地回环 |
+| 链路本地 | `fe80::1` | 同一链路内通信 |
+| 全局单播 | `2001:0db8::1` | 公网地址 |
+| 多播 | `ff02::1` | 多播地址 |
+
+## IPv6 扩展头部
+
+IPv6 使用扩展头部代替 IPv4 的选项字段，提供更灵活的扩展机制。
+
+### 扩展头部链
+
+```mermaid
+graph LR
+    A[IPv6固定头部] --> B[扩展头部1]
+    B --> C[扩展头部2]
+    C --> D[扩展头部N]
+    D --> E[上层协议<br/>TCP/UDP/ICMP]
+    
+    A --> A1[Next Header = 扩展头部1类型]
+    B --> B1[Next Header = 扩展头部2类型]
+    C --> C1[Next Header = 扩展头部N类型]
+    D --> D1[Next Header = TCP/UDP/ICMP]
+    
+    style A fill:#ffcccc
+    style E fill:#ccffcc
+```
+
+### 扩展头部类型
+
+| 扩展头部 | Next Header 值 | 说明 |
+|---------|---------------|------|
+| **Hop-by-Hop Options** | 0 | 逐跳选项，每个路由器都必须处理 |
+| **Routing** | 43 | 路由头部，指定数据报经过的路由器 |
+| **Fragment** | 44 | 分片头部，处理分片和重组 |
+| **Encapsulating Security Payload** | 50 | 封装安全载荷，提供加密 |
+| **Authentication Header** | 51 | 认证头部，提供认证和完整性 |
+| **Destination Options** | 60 | 目的选项，仅由目的节点处理 |
+| **No Next Header** | 59 | 没有后续扩展头部 |
+
+### 扩展头部处理顺序
+
+```mermaid
+flowchart TD
+    A[IPv6固定头部] --> B[1. Hop-by-Hop Options]
+    B --> C[2. Destination Options<br/>路由前]
+    C --> D[3. Routing]
+    D --> E[4. Fragment]
+    E --> F[5. Authentication Header]
+    F --> G[6. Encapsulating Security Payload]
+    G --> H[7. Destination Options<br/>路由后]
+    H --> I[上层协议]
+    
+    style A fill:#ffcccc
+    style I fill:#ccffcc
+```
+
+## IPv6 分片
+
+### 与 IPv4 分片的区别
+
+```mermaid
+graph TB
+    A[分片机制] --> B[IPv4分片]
+    A --> C[IPv6分片]
+    
+    B --> B1[发送端分片]
+    B --> B2[路由器分片]
+    B --> B3[头部包含分片信息]
+    
+    C --> C1[仅发送端分片]
+    C --> C2[路由器不分片]
+    C --> C3[使用Fragment扩展头部]
+    
+    style B fill:#ffcccc
+    style C fill:#ccffcc
+```
+
+**IPv6 分片特点**：
+- 只有发送端可以分片
+- 路由器发现数据报超过 MTU 时，丢弃并发送 ICMPv6 Packet Too Big 消息
+- 使用 Fragment 扩展头部存储分片信息
+- 发送端根据 Path MTU Discovery 确定合适的 MTU
+
+## IPv4 与 IPv6 共存
+
+### 过渡机制
+
+```mermaid
+graph TB
+    A[IPv4/IPv6共存] --> B[双栈<br/>Dual Stack]
+    A --> C[隧道<br/>Tunneling]
+    A --> D[翻译<br/>Translation]
+    
+    B --> B1[同时支持IPv4和IPv6]
+    C --> C1[IPv6 over IPv4<br/>6to4, Teredo]
+    D --> D1[NAT64<br/>SIIT]
+    
+    style A fill:#ffcccc
+    style B fill:#ccffcc
+    style C fill:#ccccff
+    style D fill:#ffffcc
+```
+
+### 双栈（Dual Stack）
+
+主机同时支持 IPv4 和 IPv6，根据目标地址选择协议版本。
+
+### 隧道（Tunneling）
+
+将 IPv6 数据报封装在 IPv4 数据报中传输。
+
+### 翻译（Translation）
+
+在 IPv4 和 IPv6 之间进行协议转换。
+
+# IP 协议实际应用
+
+## 1. 网络诊断工具
+
+### ping 命令
+
+```bash
+# 使用 ICMP Echo Request/Reply
+ping 8.8.8.8
+
+# 显示详细信息
+ping -v 8.8.8.8
+
+# 设置 TTL
+ping -t 64 8.8.8.8
+```
+
+### traceroute 命令
+
+利用 TTL 字段实现路由追踪：
+
+```mermaid
+sequenceDiagram
+    participant Host as 主机
+    participant R1 as 路由器1
+    participant R2 as 路由器2
+    participant Server as 目标服务器
+    
+    Host->>R1: TTL=1, ICMP Echo
+    R1->>Host: TTL=0, ICMP Time Exceeded
+    
+    Host->>R1: TTL=2, ICMP Echo
+    R1->>R2: TTL=1
+    R2->>Host: TTL=0, ICMP Time Exceeded
+    
+    Host->>R1: TTL=3, ICMP Echo
+    R1->>R2: TTL=2
+    R2->>Server: TTL=1
+    Server->>Host: ICMP Echo Reply
+```
+
+## 2. 网络配置
+
+### 查看 IP 地址
+
+```bash
+# Linux
+ip addr show
+ifconfig
+
+# 查看路由表
+ip route show
+route -n
+```
+
+### 配置静态路由
+
+```bash
+# 添加路由
+ip route add 192.168.2.0/24 via 192.168.1.1
+
+# 删除路由
+ip route del 192.168.2.0/24
+
+# 添加默认路由
+ip route add default via 192.168.1.1
+```
+
+## 3. 网络监控
+
+### 使用 tcpdump 抓包
+
+```bash
+# 抓取所有 IP 数据报
+tcpdump -i eth0 ip
+
+# 抓取特定主机的数据报
+tcpdump -i eth0 host 192.168.1.1
+
+# 抓取特定网络的数据报
+tcpdump -i eth0 net 192.168.1.0/24
+```
+
+### 使用 Wireshark 分析
+
+- 查看 IP 头部字段
+- 分析分片情况
+- 追踪路由路径
+- 分析 TTL 变化
+
+# 常见问题
+
+## 1. MTU 不匹配
+
+**问题**：不同网络的 MTU 不同，导致分片。
+
+**解决**：
+- 使用 Path MTU Discovery
+- 调整应用层数据大小
+- 配置合适的 MTU
+
+## 2. 路由环路
+
+**问题**：数据报在路由器之间循环。
+
+**解决**：
+- TTL 机制防止无限循环
+- 路由协议检测环路
+- 合理配置路由表
+
+## 3. IP 地址冲突
+
+**问题**：同一网络中有相同 IP 地址。
+
+**解决**：
+- 使用 DHCP 自动分配
+- 静态配置时检查冲突
+- 使用 ARP 检测冲突
+
+## 4. 分片丢失
+
+**问题**：分片在传输过程中丢失，无法重组。
+
+**解决**：
+- 上层协议（如 TCP）重传
+- 使用 DF 标志禁止分片
+- 调整数据大小避免分片
+
+# 总结
+
+IP 协议是互联网的基础协议：
+
+## 核心特点
+
+- **无状态**：不维护连接状态
+- **无连接**：不需要预先建立连接
+- **不可靠**：不保证数据报到达
+
+## IPv4 vs IPv6
+
+| 方面 | IPv4 | IPv6 |
+|------|------|------|
+| 地址空间 | 32 位 | 128 位 |
+| 头部 | 20-60 字节 | 40 字节（固定） |
+| 分片 | 发送端和路由器 | 仅发送端 |
+| 配置 | 手动/DHCP | 自动配置 |
+| 安全性 | 可选 | 内置 |
+
+## 关键机制
+
+1. **路由**：根据路由表选择最佳路径
+2. **分片**：适应不同网络的 MTU
+3. **转发**：路由器转发数据报到目标网络
+4. **重定向**：优化路由路径
+
+理解 IP 协议有助于：
+- 理解网络通信原理
+- 排查网络问题
+- 优化网络性能
+- 设计网络架构
 
 # 参考文献
-* 《Linux高性能服务器编程》
 
+- 《Linux高性能服务器编程》
+- [IANA Protocol Numbers](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xml)
+- [RFC 791 - Internet Protocol](https://tools.ietf.org/html/rfc791)
+- [RFC 2460 - Internet Protocol, Version 6 (IPv6)](https://tools.ietf.org/html/rfc2460)

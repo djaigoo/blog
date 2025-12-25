@@ -3,7 +3,6 @@ author: djaigo
 title: linux-shell语法
 categories:
   - golang
-date: 2022-10-21 15:12:33
 tags:
   - shell
 ---

@@ -6,10 +6,9 @@ categories:
   - linux
 tags:
   - shell
-date: 2020-09-17 18:18:17
 ---
 
-sed是linux行文本处理命令，默认选项是`-e`
+sed（Stream Editor）是Linux中一个强大的流式文本编辑器，可以对文本进行非交互式的编辑。sed按行处理文本，支持正则表达式，可以进行查找、替换、删除、插入等操作。sed特别适合批量处理文本文件，是Linux系统中最常用的文本处理工具之一。
 ```sh
 ➜ sed --help
 用法: sed [选项]... {脚本(如果没有其他脚本)} [输入文件]...
@@ -50,6 +49,32 @@ sed是linux行文本处理命令，默认选项是`-e`
 sed脚本。其他非选项参数被视为输入文件，如果没有输入文件，那么程序将从标准
 输入读取数据。
 ```
+
+# 基本语法
+
+sed的基本语法格式为：
+```sh
+sed [选项] '脚本' [输入文件...]
+sed [选项] -f 脚本文件 [输入文件...]
+```
+
+其中：
+- `选项`：控制sed行为的参数
+- `脚本`：sed命令和地址的组合
+- `输入文件`：要处理的文件（可以是一个或多个文件，如果不指定则从标准输入读取）
+
+# 常用选项
+
+| 选项 | 说明 |
+|------|------|
+| `-n, --quiet, --silent` | 取消自动打印模式空间，只输出经过处理的行 |
+| `-e 脚本, --expression=脚本` | 添加脚本到程序的运行列表，可以多次使用 |
+| `-f 脚本文件, --file=脚本文件` | 从文件中读取sed脚本 |
+| `-i[SUFFIX], --in-place[=SUFFIX]` | 直接修改文件，如果指定SUFFIX则创建备份 |
+| `-r, --regexp-extended` | 使用扩展正则表达式（ERE），简化正则语法 |
+| `-s, --separate` | 将输入文件视为独立的文件，而不是连续的输入 |
+| `-u, --unbuffered` | 无缓冲模式，更频繁地刷新输出 |
+| `-z, --null-data` | 使用NUL字符作为行分隔符 |
 
 # sed 命令
 ## 行为命令
@@ -353,5 +378,585 @@ $ seq 100 | sed -n 'H;$x;$s/\n/+/g;$s/^+//;$p' | bc
 **#** 把注释扩展到下一个换行符以前。
 
 
+# 基本使用示例
+
+## 文本替换
+
+### 简单替换
+```sh
+# 替换每行第一个匹配的字符串
+➜ echo "hello world hello" | sed 's/hello/HI/'
+HI world hello
+
+# 替换所有匹配的字符串（使用g标志）
+➜ echo "hello world hello" | sed 's/hello/HI/g'
+HI world HI
+
+# 替换第N个匹配（使用数字标志）
+➜ echo "a a a a" | sed 's/a/b/2'
+a b a a
+```
+
+### 替换特定行
+```sh
+# 替换第一行
+➜ seq 5 | sed '1s/1/ONE/'
+ONE
+2
+3
+4
+5
+
+# 替换最后一行
+➜ seq 5 | sed '$s/5/FIVE/'
+1
+2
+3
+4
+FIVE
+
+# 替换第2到第4行
+➜ seq 5 | sed '2,4s/[0-9]/X/'
+1
+X
+X
+X
+5
+```
+
+### 条件替换
+```sh
+# 只替换包含特定模式的行
+➜ echo -e "apple\nbanana\napple" | sed '/apple/s/a/A/g'
+Apple
+banana
+Apple
+
+# 替换不包含特定模式的行
+➜ echo -e "apple\nbanana\napple" | sed '/apple/!s/a/A/g'
+apple
+bAnAnA
+apple
+```
+
+## 删除操作
+
+### 删除特定行
+```sh
+# 删除第一行
+➜ seq 5 | sed '1d'
+2
+3
+4
+5
+
+# 删除最后一行
+➜ seq 5 | sed '$d'
+1
+2
+3
+4
+
+# 删除第2到第4行
+➜ seq 5 | sed '2,4d'
+1
+5
+
+# 删除空行
+➜ echo -e "a\n\nb\n\nc" | sed '/^$/d'
+a
+b
+c
+
+# 删除包含特定模式的行
+➜ echo -e "apple\nbanana\napple" | sed '/apple/d'
+banana
+```
+
+### 删除匹配内容
+```sh
+# 删除行首空格
+➜ echo "   hello" | sed 's/^ *//'
+hello
+
+# 删除行尾空格
+➜ echo "hello   " | sed 's/ *$//'
+hello
+
+# 删除行首和行尾空格
+➜ echo "   hello   " | sed 's/^ *//;s/ *$//'
+hello
+```
+
+## 插入和追加
+
+### 插入文本
+```sh
+# 在第一行前插入
+➜ seq 3 | sed '1i\Header:'
+Header:
+1
+2
+3
+
+# 在匹配行前插入
+➜ echo -e "apple\nbanana" | sed '/banana/i\---'
+apple
+---
+banana
+
+# 在最后一行前插入
+➜ seq 3 | sed '$i\---'
+1
+2
+---
+3
+```
+
+### 追加文本
+```sh
+# 在第一行后追加
+➜ seq 3 | sed '1a\---'
+1
+---
+2
+3
+
+# 在匹配行后追加
+➜ echo -e "apple\nbanana" | sed '/apple/a\---'
+apple
+---
+banana
+
+# 在最后一行后追加
+➜ seq 3 | sed '$a\---'
+1
+2
+3
+---
+```
+
+## 修改行
+
+```sh
+# 替换整行
+➜ seq 3 | sed '2c\REPLACED'
+1
+REPLACED
+3
+
+# 替换匹配的行
+➜ echo -e "apple\nbanana\napple" | sed '/banana/c\REPLACED'
+apple
+REPLACED
+apple
+```
+
+## 打印操作
+
+```sh
+# 打印特定行（使用-n抑制默认输出）
+➜ seq 5 | sed -n '3p'
+3
+
+# 打印第2到第4行
+➜ seq 5 | sed -n '2,4p'
+2
+3
+4
+
+# 打印匹配的行
+➜ seq 10 | sed -n '/[2468]/p'
+2
+4
+6
+8
+
+# 打印行号
+➜ seq 3 | sed '='
+1
+1
+2
+2
+3
+3
+
+# 打印行号和内容（在同一行）
+➜ seq 3 | sed -n '=' | sed 'N;s/\n/ /'
+1 1
+2 2
+3 3
+```
+
+## 文件操作
+
+### 直接修改文件
+```sh
+# 直接修改文件（不创建备份）
+➜ sed -i 's/old/new/g' file.txt
+
+# 修改文件并创建备份
+➜ sed -i.bak 's/old/new/g' file.txt
+
+# macOS系统需要指定备份后缀（可以为空）
+➜ sed -i '' 's/old/new/g' file.txt
+```
+
+### 写入文件
+```sh
+# 将匹配的行写入文件
+➜ seq 10 | sed -n '/[2468]/w even.txt'
+➜ cat even.txt
+2
+4
+6
+8
+
+# 将处理结果写入文件
+➜ seq 5 | sed 's/[0-9]/X/' > output.txt
+```
+
+### 从文件读取
+```sh
+# 在匹配行后插入文件内容
+➜ echo -e "line1\nline2" | sed '/line1/r header.txt'
+line1
+(header.txt的内容)
+line2
+```
+
+# 高级用法
+
+## 多命令组合
+
+```sh
+# 使用分号分隔多个命令
+➜ echo "hello world" | sed 's/hello/HI/; s/world/WORLD/'
+HI WORLD
+
+# 使用-e选项指定多个命令
+➜ echo "hello world" | sed -e 's/hello/HI/' -e 's/world/WORLD/'
+HI WORLD
+
+# 从文件读取多个命令
+➜ cat script.sed
+s/hello/HI/
+s/world/WORLD/
+➜ echo "hello world" | sed -f script.sed
+HI WORLD
+```
+
+## 使用扩展正则表达式
+
+```sh
+# 使用-r选项启用扩展正则表达式
+➜ echo "abc123def" | sed -r 's/[0-9]+/NUM/'
+abcNUMdef
+
+# 扩展正则中()不需要转义
+➜ echo "hello world" | sed -r 's/(hello) (world)/\2 \1/'
+world hello
+```
+
+## 分组和反向引用
+
+```sh
+# 使用分组交换单词
+➜ echo "hello world" | sed 's/\(hello\) \(world\)/\2 \1/'
+world hello
+
+# 使用扩展正则（更简洁）
+➜ echo "hello world" | sed -r 's/(hello) (world)/\2 \1/'
+world hello
+
+# 重复使用分组
+➜ echo "123-456" | sed -r 's/([0-9]+)-([0-9]+)/\2-\1/'
+456-123
+```
+
+## 使用&引用匹配内容
+
+```sh
+# 在匹配内容前后添加字符
+➜ echo "hello" | sed 's/hello/[&]/'
+[hello]
+
+# 重复匹配内容
+➜ echo "test" | sed 's/test/& &/'
+test test
+```
+
+# 实际应用场景
+
+## 配置文件修改
+
+```sh
+# 注释掉包含特定配置的行
+➜ sed -i 's/^\(.*server.*\)$/#\1/' config.conf
+
+# 取消注释
+➜ sed -i 's/^#\(.*server.*\)$/\1/' config.conf
+
+# 修改配置值
+➜ sed -i 's/^port=.*/port=8080/' config.conf
+
+# 在配置块后添加新配置
+➜ sed -i '/\[server\]/a\port=8080' config.conf
+```
+
+## 日志处理
+
+```sh
+# 删除日志中的时间戳
+➜ sed 's/^\[.*\] //' log.txt
+
+# 提取错误日志
+➜ sed -n '/ERROR/p' log.txt
+
+# 删除空行和注释行
+➜ sed '/^$/d; /^#/d' config.txt
+
+# 格式化日志（添加时间戳）
+➜ sed "s/^/$(date '+%Y-%m-%d %H:%M:%S') /" log.txt
+```
+
+## 数据处理
+
+```sh
+# 将空格分隔转换为逗号分隔
+➜ echo "a b c d" | sed 's/ /,/g'
+a,b,c,d
+
+# 删除重复的空格
+➜ echo "a    b   c" | sed 's/  */ /g'
+a b c
+
+# 在每行前添加行号
+➜ seq 3 | sed '=' | sed 'N;s/\n/ /'
+1 1
+2 2
+3 3
+
+# 或者使用更简单的方法
+➜ seq 3 | sed = | sed 'N;s/^\([0-9]*\)\n\(.*\)/\1 \2/'
+1 1
+2 2
+3 3
+```
+
+## 文本格式化
+
+```sh
+# 在每行后添加空行
+➜ seq 3 | sed G
+1
+
+2
+
+3
+
+# 删除连续空行（只保留一个）
+➜ echo -e "a\n\n\nb" | sed '/^$/N;/^\n$/d'
+a
+
+b
+
+# 在段落之间添加分隔线
+➜ sed '/^$/a\---' text.txt
+```
+
+## 批量重命名和替换
+
+```sh
+# 批量替换文件中的字符串
+➜ find . -name "*.txt" -exec sed -i 's/old/new/g' {} \;
+
+# 批量添加文件头
+➜ for file in *.txt; do
+    sed -i "1i\# Header\n" "$file"
+  done
+```
+
+# 与其他命令的组合
+
+## sed + grep
+
+```sh
+# 先grep过滤，再sed处理
+➜ grep "ERROR" log.txt | sed 's/ERROR/CRITICAL/'
+
+# sed处理后再grep
+➜ sed 's/old/new/g' file.txt | grep "pattern"
+```
+
+## sed + awk
+
+```sh
+# sed预处理，awk处理
+➜ sed 's/,/ /g' data.csv | awk '{print $1, $3}'
+
+# awk处理，sed后处理
+➜ awk '{print $1}' file.txt | sed 's/^/prefix_/'
+```
+
+## sed + find
+
+```sh
+# find查找文件，sed批量处理
+➜ find . -name "*.conf" -exec sed -i 's/old/new/g' {} \;
+
+# 查找并替换特定文件类型
+➜ find . -type f -name "*.txt" | xargs sed -i 's/old/new/g'
+```
+
+## sed + xargs
+
+```sh
+# 处理多个文件
+➜ ls *.txt | xargs sed -i 's/old/new/g'
+
+# 处理包含空格的文件名
+➜ find . -name "*.txt" -print0 | xargs -0 sed -i 's/old/new/g'
+```
+
+# 常见问题与技巧
+
+## 处理特殊字符
+
+```sh
+# 替换包含斜杠的字符串（需要转义）
+➜ echo "path/to/file" | sed 's|path/to|/usr/local|'
+/usr/local/file
+
+# 或者使用不同的分隔符
+➜ echo "path/to/file" | sed 's#path/to#/usr/local#'
+/usr/local/file
+
+# 替换包含点的字符串
+➜ echo "192.168.1.1" | sed 's/\./-/g'
+192-168-1-1
+```
+
+## 处理多行
+
+```sh
+# 删除空行后的下一行
+➜ sed '/^$/{N;/\n.*$/d}' file.txt
+
+# 合并连续空行为一个
+➜ sed '/^$/{N;/^\n$/d}' file.txt
+
+# 在每两行之间插入分隔符
+➜ seq 6 | sed 'N;s/\n/---\n/'
+1
+---
+2
+3
+---
+4
+5
+---
+6
+```
+
+## 性能优化
+
+```sh
+# 使用-n选项减少输出（当只需要特定行时）
+➜ sed -n '10,20p' large_file.txt
+
+# 使用q命令提前退出
+➜ sed '/pattern/q' file.txt
+
+# 处理大文件时使用流式处理
+➜ cat large_file.txt | sed 's/old/new/g' > output.txt
+```
+
+## 调试技巧
+
+```sh
+# 使用l命令查看不可见字符
+➜ echo -e "hello\tworld" | sed 'l'
+hello\tworld$
+
+# 逐步测试sed命令
+➜ echo "test" | sed 's/t/T/'
+Test
+
+# 使用=查看行号
+➜ sed -n '10,20=' file.txt
+```
+
+## 常见陷阱
+
+### 1. 默认打印行为
+```sh
+# sed默认会打印所有行，即使没有匹配
+➜ echo "test" | sed 's/old/new/'
+test
+
+# 使用-n只打印处理的行
+➜ echo "test" | sed -n 's/old/new/p'
+# 无输出（因为没有匹配）
+```
+
+### 2. 替换范围
+```sh
+# 默认只替换第一个匹配
+➜ echo "a a a" | sed 's/a/b/'
+b a a
+
+# 使用g替换所有
+➜ echo "a a a" | sed 's/a/b/g'
+b b b
+```
+
+### 3. 行号引用
+```sh
+# $表示最后一行
+➜ seq 5 | sed '$d'
+1
+2
+3
+4
+
+# 不能使用变量作为行号（需要使用其他方法）
+```
+
+## 实用脚本示例
+
+### 清理配置文件
+```sh
+#!/bin/bash
+# 清理配置文件：删除注释和空行
+sed '/^#/d; /^$/d' config.conf > config_clean.conf
+```
+
+### 提取日志
+```sh
+#!/bin/bash
+# 提取特定时间段的日志
+sed -n '/2024-01-15 10:/,/2024-01-15 11:/p' log.txt
+```
+
+### 格式化输出
+```sh
+#!/bin/bash
+# 格式化CSV为表格
+sed 's/,/ | /g' data.csv | sed '1s/^/| /; 1s/$/ |/'
+```
+
+# 注意事项
+
+1. **备份文件**：使用`-i`选项修改文件前，建议先备份
+2. **测试命令**：在生产环境使用前，先用测试数据验证
+3. **特殊字符**：处理包含特殊字符的字符串时，注意转义或使用不同的分隔符
+4. **大文件处理**：处理大文件时，考虑使用流式处理，避免内存问题
+5. **跨平台兼容**：macOS和Linux的sed实现可能有差异，注意测试
+6. **正则表达式**：基本正则和扩展正则的语法不同，注意区分
+7. **默认行为**：sed默认会打印所有行，使用`-n`选项可以抑制默认输出
+
 # 参考文献
 * [菜鸟教程-Linux sed 命令](https://www.runoob.com/linux/linux-comm-sed.html)
+* [GNU sed Manual](https://www.gnu.org/software/sed/manual/)
+* [sed - An Introduction and Tutorial](https://www.grymoire.com/Unix/Sed.html)

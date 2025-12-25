@@ -6,7 +6,6 @@ categories:
   - linux
 tags:
   - shell
-date: 2020-10-14 19:50:16
 ---
 
 # sar简介

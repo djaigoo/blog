@@ -3,7 +3,6 @@ author: djaigo
 title: MQTT协议详解
 categories:
   - net
-date: 2025-01-27 15:00:00
 tags:
   - mqtt
   - 物联网
@@ -44,15 +43,56 @@ MQTT协议架构包含以下核心组件：
 3. **Topic（主题）**：消息的分类标识符
 4. **Message（消息）**：实际传输的数据
 
+```mermaid
+graph TB
+    subgraph "MQTT架构"
+        P1[发布者1<br/>Publisher]
+        P2[发布者2<br/>Publisher]
+        P3[发布者N<br/>Publisher]
+        
+        B[MQTT Broker<br/>代理服务器]
+        
+        S1[订阅者1<br/>Subscriber]
+        S2[订阅者2<br/>Subscriber]
+        S3[订阅者N<br/>Subscriber]
+        
+        T1[主题1<br/>Topic 1]
+        T2[主题2<br/>Topic 2]
+        T3[主题N<br/>Topic N]
+    end
+    
+    P1 -->|PUBLISH| B
+    P2 -->|PUBLISH| B
+    P3 -->|PUBLISH| B
+    
+    B -->|PUBLISH| S1
+    B -->|PUBLISH| S2
+    B -->|PUBLISH| S3
+    
+    P1 -.->|发布到| T1
+    P2 -.->|发布到| T2
+    P3 -.->|发布到| T3
+    
+    T1 -.->|订阅| S1
+    T2 -.->|订阅| S2
+    T3 -.->|订阅| S3
+    
+    style B fill:#90EE90
+    style T1 fill:#FFE4B5
+    style T2 fill:#FFE4B5
+    style T3 fill:#FFE4B5
+```
+
 ### 2.2 通信模式
 
-```
-发布者 (Publisher)          Broker          订阅者 (Subscriber)
-     |                      |                      |
-     |--- PUBLISH msg ----->|                      |
-     |                      |                      |
-     |                      |--- PUBLISH msg ----->|
-     |                      |                      |
+```mermaid
+sequenceDiagram
+    participant P as 发布者<br/>(Publisher)
+    participant B as Broker
+    participant S as 订阅者<br/>(Subscriber)
+    
+    P->>B: PUBLISH msg
+    B->>S: PUBLISH msg
 ```
 
 发布者将消息发送到Broker，Broker根据主题将消息分发给所有订阅该主题的订阅者。
@@ -82,10 +122,14 @@ MQTT协议架构包含以下核心组件：
 
 所有MQTT消息都以固定报头开始，最少2字节：
 
-```
-Bit:  7  6  5  4    3  2  1  0
-Byte 1:  Message Type  | Flags
-Byte 2:  Remaining Length (可变长度编码)
+```mermaid
+graph LR
+    A[MQTT消息] --> B[固定报头<br/>Fixed Header<br/>最少2字节]
+    B --> C[可变报头<br/>Variable Header]
+    C --> D[有效负载<br/>Payload]
+    
+    B --> E[Byte 1:<br/>Message Type<br/>Flags]
+    B --> F[Byte 2-N:<br/>Remaining Length<br/>可变长度编码]
 ```
 
 **消息类型（Message Type）**：
@@ -141,11 +185,14 @@ MQTT提供三种QoS等级，确保消息传递的可靠性：
 - **流程**：Publisher → Broker → Subscriber
 - **适用场景**：数据丢失可接受的场景，如传感器采样数据
 
-```
-发布者              Broker              订阅者
-  |                  |                     |
-  |--- PUBLISH ----->|                     |
-  |                  |--- PUBLISH -------->|
+```mermaid
+sequenceDiagram
+    participant P as 发布者
+    participant B as Broker
+    participant S as 订阅者
+    
+    P->>B: PUBLISH (QoS 0)
+    B->>S: PUBLISH (QoS 0)
 ```
 
 ### 5.2 QoS 1 - 至少一次（At least once）
@@ -154,13 +201,16 @@ MQTT提供三种QoS等级，确保消息传递的可靠性：
 - **流程**：需要PUBACK确认
 - **适用场景**：需要保证消息送达但不介意重复的场景
 
-```
-发布者              Broker              订阅者
-  |                  |                     |
-  |--- PUBLISH ----->|                     |
-  |<-- PUBACK -------|                     |
-  |                  |--- PUBLISH -------->|
-  |                  |<-- PUBACK ----------|
+```mermaid
+sequenceDiagram
+    participant P as 发布者
+    participant B as Broker
+    participant S as 订阅者
+    
+    P->>B: PUBLISH (QoS 1)
+    B-->>P: PUBACK
+    B->>S: PUBLISH (QoS 1)
+    S-->>B: PUBACK
 ```
 
 ### 5.3 QoS 2 - 恰好一次（Exactly once）
@@ -169,17 +219,23 @@ MQTT提供三种QoS等级，确保消息传递的可靠性：
 - **流程**：四步握手（PUBLISH → PUBREC → PUBREL → PUBCOMP）
 - **适用场景**：需要严格保证消息唯一性的场景，如支付系统
 
-```
-发布者              Broker              订阅者
-  |                  |                     |
-  |--- PUBLISH ----->|                     |
-  |<-- PUBREC -------|                     |
-  |--- PUBREL ------>|                     |
-  |<-- PUBCOMP ------|                     |
-  |                  |--- PUBLISH -------->|
-  |                  |<-- PUBREC ----------|
-  |                  |--- PUBREL --------->|
-  |                  |<-- PUBCOMP ---------|
+```mermaid
+sequenceDiagram
+    participant P as 发布者
+    participant B as Broker
+    participant S as 订阅者
+    
+    Note over P,B: 发布者到Broker
+    P->>B: PUBLISH (QoS 2)
+    B-->>P: PUBREC
+    P->>B: PUBREL
+    B-->>P: PUBCOMP
+    
+    Note over B,S: Broker到订阅者
+    B->>S: PUBLISH (QoS 2)
+    S-->>B: PUBREC
+    B->>S: PUBREL
+    S-->>B: PUBCOMP
 ```
 
 ## 6. 主题（Topic）和主题筛选器（Topic Filter）
@@ -203,6 +259,22 @@ MQTT提供三种QoS等级，确保消息传递的可靠性：
 - 匹配多个层级（必须放在最后）
 - 示例：`home/#` 匹配 `home/living-room/temperature` 和 `home/kitchen/light/status`
 
+```mermaid
+graph TB
+    A[主题筛选器] --> B[单层通配符 +]
+    A --> C[多层通配符 #]
+    
+    B --> D[home/+/temperature]
+    D --> E[✓ home/living-room/temperature]
+    D --> F[✓ home/kitchen/temperature]
+    D --> G[✗ home/living-room/kitchen/temperature]
+    
+    C --> H[home/#]
+    H --> I[✓ home/living-room/temperature]
+    H --> J[✓ home/kitchen/light/status]
+    H --> K[✓ home/任何/层级/结构]
+```
+
 ### 6.3 主题筛选器规则
 
 - 订阅时可以使用通配符
@@ -215,6 +287,26 @@ MQTT提供三种QoS等级，确保消息传递的可靠性：
 ### 7.1 概念
 
 Broker可以保存每个主题的最后一条保留消息，当新客户端订阅该主题时，立即收到这条消息。
+
+```mermaid
+sequenceDiagram
+    participant P as 发布者
+    participant B as Broker
+    participant S1 as 订阅者1
+    participant S2 as 订阅者2<br/>(新订阅者)
+    
+    Note over P,B: 发布保留消息
+    P->>B: PUBLISH<br/>(Retain=1, Topic, Message)
+    Note over B: Broker保存保留消息
+    
+    Note over S1,B: 已订阅的客户端
+    B->>S1: PUBLISH (正常转发)
+    
+    Note over S2,B: 新客户端订阅
+    S2->>B: SUBSCRIBE
+    B-->>S2: SUBACK
+    B->>S2: PUBLISH (立即发送保留消息)
+```
 
 ### 7.2 使用场景
 
@@ -238,6 +330,25 @@ PUBLISH
 ### 8.1 概念
 
 客户端在连接时设置遗嘱消息，当客户端异常断开（未发送DISCONNECT）时，Broker自动发布遗嘱消息。
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant B as Broker
+    participant S as 订阅者
+    
+    Note over C,B: 连接时设置遗嘱消息
+    C->>B: CONNECT<br/>(Will Topic, Will Message)
+    B-->>C: CONNACK
+    
+    Note over C: 正常工作...
+    
+    Note over C,B: 异常断开（未发送DISCONNECT）
+    C-xB: 连接断开
+    
+    Note over B,S: Broker自动发布遗嘱消息
+    B->>S: PUBLISH<br/>(Will Topic, Will Message)
+```
 
 ### 8.2 遗嘱消息参数
 
@@ -267,6 +378,28 @@ PUBLISH
 - 保存订阅信息
 - 重新连接时，恢复会话状态
 
+```mermaid
+graph TB
+    A[客户端连接] --> B{Clean Session?}
+    B -->|Clean Session = 1| C[临时会话]
+    B -->|Clean Session = 0| D[持久会话]
+    
+    C --> E[断开连接]
+    E --> F[删除会话信息]
+    F --> G[删除未确认消息]
+    F --> H[删除订阅信息]
+    
+    D --> I[断开连接]
+    I --> J[保留会话信息]
+    J --> K[保存未确认消息<br/>QoS > 0]
+    J --> L[保存订阅信息]
+    
+    F --> M[重新连接]
+    L --> N[重新连接]
+    M --> O[需要重新订阅]
+    N --> P[恢复订阅状态<br/>接收未确认消息]
+```
+
 ### 9.2 会话过期（MQTT 5.0）
 
 MQTT 5.0引入了Session Expiry Interval，允许设置会话过期时间。
@@ -279,6 +412,18 @@ MQTT 5.0引入了Session Expiry Interval，允许设置会话过期时间。
 - 如果在该时间内没有发送任何消息，客户端发送PINGREQ
 - Broker响应PINGRESP
 - 如果Broker在1.5倍Keep Alive时间内未收到任何消息，认为客户端断开
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant B as Broker
+    
+    Note over C,B: Keep Alive时间内无消息
+    C->>B: PINGREQ
+    B-->>C: PINGRESP
+    
+    Note over B: 如果1.5倍Keep Alive时间<br/>内未收到任何消息<br/>则认为客户端断开
+```
 
 ### 10.2 设置建议
 
@@ -295,6 +440,21 @@ MQTT 5.0引入了Session Expiry Interval，允许设置会话过期时间。
 3. **接收CONNACK消息**：Broker返回连接结果
    - Return Code 0：连接成功
    - 其他值：连接失败（如拒绝的协议版本、客户端ID被占用等）
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端<br/>(Client)
+    participant B as Broker
+    
+    Note over C,B: 1. 建立TCP连接
+    C->>B: TCP连接 (端口1883)
+    
+    Note over C,B: 2. 发送连接请求
+    C->>B: CONNECT<br/>(ClientID, Username, Password, Will等)
+    
+    Note over C,B: 3. 连接确认
+    B-->>C: CONNACK<br/>(Return Code: 0=成功)
+```
 
 ### 11.2 连接报文示例
 
@@ -351,6 +511,15 @@ Variable Header:
    - 包含每个主题的订阅结果
    - 返回实际授予的QoS等级（可能低于请求的QoS）
 
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant B as Broker
+    
+    C->>B: SUBSCRIBE<br/>(Topic Filter, Requested QoS)
+    B-->>C: SUBACK<br/>(Granted QoS)
+```
+
 ### 12.2 订阅示例
 
 **SUBSCRIBE消息**：
@@ -367,6 +536,15 @@ Return Code: 0x01 (QoS 1 - 订阅成功)
 ### 12.3 取消订阅
 
 发送UNSUBSCRIBE消息，Broker响应UNSUBACK确认。
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant B as Broker
+    
+    C->>B: UNSUBSCRIBE<br/>(Topic Filter)
+    B-->>C: UNSUBACK
+```
 
 ## 13. 消息发布流程
 
@@ -386,6 +564,30 @@ Return Code: 0x01 (QoS 1 - 订阅成功)
 3. **Broker转发**：
    - 根据订阅信息转发给订阅者
    - 如果设置了Retain，保存消息
+
+```mermaid
+flowchart TD
+    A[发布者构建PUBLISH消息] --> B{选择QoS等级}
+    
+    B -->|QoS 0| C[发送到Broker]
+    B -->|QoS 1| D[发送到Broker<br/>等待PUBACK]
+    B -->|QoS 2| E[发送到Broker<br/>四步握手]
+    
+    C --> F[Broker处理]
+    D --> F
+    E --> F
+    
+    F --> G{是否设置Retain?}
+    G -->|是| H[保存保留消息]
+    G -->|否| I[不保存]
+    
+    H --> J[根据订阅转发]
+    I --> J
+    
+    J --> K[转发给订阅者1]
+    J --> L[转发给订阅者2]
+    J --> M[转发给订阅者N]
+```
 
 ## 14. MQTT安全性
 
@@ -430,6 +632,30 @@ MQTT over TLS（端口8883）提供传输层加密：
 格式：`$share/{ShareName}/{TopicFilter}`
 
 示例：`$share/group1/sensor/temperature`
+
+```mermaid
+sequenceDiagram
+    participant P as 发布者
+    participant B as Broker
+    participant S1 as 订阅者1<br/>共享组
+    participant S2 as 订阅者2<br/>共享组
+    participant S3 as 订阅者3<br/>共享组
+    
+    Note over S1,S3: 订阅共享主题
+    S1->>B: SUBSCRIBE<br/>$share/group1/sensor/temp
+    S2->>B: SUBSCRIBE<br/>$share/group1/sensor/temp
+    S3->>B: SUBSCRIBE<br/>$share/group1/sensor/temp
+    
+    Note over P,B: 发布消息
+    P->>B: PUBLISH<br/>sensor/temp
+    
+    Note over B,S3: 负载均衡：只发送给一个订阅者
+    B->>S1: PUBLISH<br/>(轮询或随机选择)
+    
+    Note over P: 再次发布
+    P->>B: PUBLISH<br/>sensor/temp
+    B->>S2: PUBLISH<br/>(下一个订阅者)
+```
 
 ### 15.5 请求/响应模式
 

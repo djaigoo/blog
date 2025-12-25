@@ -6,7 +6,6 @@ categories:
   - linux
 tags:
   - shell
-date: 2020-01-15 10:09:36
 enable html: false
 ---
 

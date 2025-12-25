@@ -1,7 +1,6 @@
 ---
 author: djaigo
 title: Linux awk命令
-date: 2019-12-19
 img: https://img-1251474779.cos.ap-beijing.myqcloud.com/linux.png
 categories: 
   - linux
@@ -579,6 +578,605 @@ Minimum = 10
 Maximum = 20
 ```
 
+# 格式化输出
+
+## printf函数
+
+`printf`函数提供了更强大的格式化输出功能，类似于C语言的printf函数。
+
+### 基本格式
+
+```sh
+printf(format, expr1, expr2, ...)
+```
+
+### 格式化控制符
+
+| 格式符 | 说明 | 示例 |
+|--------|------|------|
+| `%d` | 十进制有符号整数 | `printf("%d", 123)` → `123` |
+| `%u` | 十进制无符号整数 | `printf("%u", 123)` → `123` |
+| `%f` | 浮点数（默认6位小数） | `printf("%f", 3.14)` → `3.140000` |
+| `%.2f` | 保留2位小数的浮点数 | `printf("%.2f", 3.14159)` → `3.14` |
+| `%s` | 字符串 | `printf("%s", "hello")` → `hello` |
+| `%c` | 单个字符 | `printf("%c", 65)` → `A` |
+| `%e` | 指数形式的浮点数 | `printf("%e", 1000)` → `1.000000e+03` |
+| `%x` | 十六进制（小写） | `printf("%x", 255)` → `ff` |
+| `%X` | 十六进制（大写） | `printf("%X", 255)` → `FF` |
+| `%o` | 八进制 | `printf("%o", 64)` → `100` |
+| `%g` | 自动选择合适的表示法 | `printf("%g", 3.14)` → `3.14` |
+
+### 宽度和对齐
+
+```sh
+# 指定宽度（右对齐）
+➜ awk 'BEGIN{printf("|%10s|\n", "hello")}'
+|     hello|
+
+# 左对齐（使用-）
+➜ awk 'BEGIN{printf("|%-10s|\n", "hello")}'
+|hello     |
+
+# 数字宽度和对齐
+➜ awk 'BEGIN{printf("|%10d|\n|%-10d|\n", 123, 123)}'
+|       123|
+|123       |
+```
+
+### 实际示例
+
+```sh
+# 格式化输出表格
+➜ echo -e "Alice 25 5000\nBob 30 8000\nCharlie 28 6000" | \
+  awk '{printf("%-10s %5d %10.2f\n", $1, $2, $3)}'
+Alice        25    5000.00
+Bob          30    8000.00
+Charlie      28    6000.00
+
+# 格式化日期和时间
+➜ awk 'BEGIN{printf("日期: %04d-%02d-%02d\n", 2024, 1, 15)}'
+日期: 2024-01-15
+```
+
+# 常见使用示例
+
+## 文本处理
+
+### 提取特定列
+
+```sh
+# 提取第1列和第3列
+➜ echo -e "a b c d\ne f g h" | awk '{print $1, $3}'
+a c
+e g
+
+# 提取最后一列
+➜ echo -e "a b c d\ne f g h" | awk '{print $NF}'
+d
+h
+
+# 提取倒数第二列
+➜ echo -e "a b c d\ne f g h" | awk '{print $(NF-1)}'
+c
+g
+```
+
+### 条件筛选
+
+```sh
+# 筛选第2列大于10的行
+➜ echo -e "a 5 b\na 15 b\na 8 b" | awk '$2 > 10'
+a 15 b
+
+# 筛选包含特定字符串的行
+➜ echo -e "hello world\ngoodbye world\nhello again" | awk '/hello/'
+hello world
+hello again
+
+# 多条件筛选
+➜ echo -e "a 5 b\na 15 b\na 8 b" | awk '$2 > 10 && $1 == "a"'
+a 15 b
+```
+
+### 统计计算
+
+```sh
+# 计算总和
+➜ seq 10 | awk '{sum += $1} END {print sum}'
+55
+
+# 计算平均值
+➜ seq 10 | awk '{sum += $1; count++} END {print sum/count}'
+5.5
+
+# 计算最大值和最小值
+➜ seq 10 | awk 'BEGIN{max=0} {if($1>max) max=$1} END{print max}'
+10
+
+➜ seq 10 | awk 'BEGIN{min=999} {if($1<min) min=$1} END{print min}'
+1
+```
+
+## 文件处理
+
+### 处理/etc/passwd
+
+```sh
+# 提取用户名（第1列，以:分隔）
+➜ awk -F: '{print $1}' /etc/passwd
+
+# 提取UID大于1000的用户
+➜ awk -F: '$3 > 1000 {print $1, $3}' /etc/passwd
+
+# 统计用户数量
+➜ awk -F: 'END {print NR}' /etc/passwd
+```
+
+### 处理日志文件
+
+```sh
+# 统计访问次数最多的IP
+➜ awk '{ip[$1]++} END {for(i in ip) print ip[i], i}' access.log | sort -rn | head -10
+
+# 统计HTTP状态码
+➜ awk '{status[$9]++} END {for(s in status) print s, status[s]}' access.log
+
+# 提取特定时间段的日志
+➜ awk '/2024-01-15 10:/ && /2024-01-15 11:/' access.log
+```
+
+### 处理CSV文件
+
+```sh
+# 处理逗号分隔的文件
+➜ awk -F, '{print $1, $3}' data.csv
+
+# 处理包含引号的CSV
+➜ awk -F'","' '{gsub(/"/, ""); print $1, $2}' data.csv
+```
+
+## 数据转换
+
+### 字符串替换
+
+```sh
+# 替换字符串
+➜ echo "hello world" | awk '{gsub(/world/, "awk"); print}'
+hello awk
+
+# 替换第一个匹配
+➜ echo "hello world world" | awk '{sub(/world/, "awk"); print}'
+hello awk world
+
+# 替换特定列
+➜ echo "a b c" | awk '{gsub(/b/, "B", $2); print}'
+a B c
+```
+
+### 大小写转换
+
+```sh
+# 转换为小写
+➜ echo "HELLO WORLD" | awk '{print tolower($0)}'
+hello world
+
+# 转换为大写
+➜ echo "hello world" | awk '{print toupper($0)}'
+HELLO WORLD
+
+# 首字母大写
+➜ echo "hello world" | awk '{print toupper(substr($1,1,1)) substr($1,2)}'
+Hello
+```
+
+## 数组应用
+
+### 统计词频
+
+```sh
+# 统计每列出现的次数
+➜ echo -e "a b a c b a" | awk '{for(i=1;i<=NF;i++) count[$i]++} END {for(word in count) print word, count[word]}'
+a 3
+b 2
+c 1
+```
+
+### 去重
+
+```sh
+# 基于第一列去重
+➜ echo -e "a 1\na 2\nb 3\nb 4" | awk '!seen[$1]++'
+a 1
+b 3
+```
+
+### 分组统计
+
+```sh
+# 按第一列分组求和
+➜ echo -e "a 10\na 20\nb 30\nb 40" | awk '{sum[$1] += $2} END {for(k in sum) print k, sum[k]}'
+a 30
+b 70
+```
+
+# 实际应用场景
+
+## 系统监控
+
+### 进程监控
+
+```sh
+# 统计各用户进程数
+➜ ps aux | awk 'NR>1 {user[$1]++} END {for(u in user) print u, user[u]}'
+
+# 统计进程CPU使用率
+➜ ps aux | awk 'NR>1 {cpu += $3} END {print "Total CPU:", cpu"%"}'
+
+# 查找占用内存最多的进程
+➜ ps aux | sort -k4 -rn | awk 'NR==2 {print $11, $4"%"}'
+```
+
+### 磁盘使用
+
+```sh
+# 统计磁盘使用情况
+➜ df -h | awk 'NR>1 {gsub(/%/, "", $5); if($5 > 80) print $1, $5"%"}'
+
+# 计算总使用空间
+➜ df | awk 'NR>1 {sum += $3} END {print sum/1024/1024 "GB"}'
+```
+
+## 日志分析
+
+### Web服务器日志
+
+```sh
+# 统计访问量前10的页面
+➜ awk '{print $7}' access.log | sort | uniq -c | sort -rn | head -10
+
+# 统计每小时访问量
+➜ awk '{split($4, a, ":"); hour=a[2]; count[hour]++} END {for(h in count) print h":00", count[h]}' access.log
+
+# 统计响应时间分布
+➜ awk '{time=int($NF/1000); if(time<1) range="<1s"; else if(time<5) range="1-5s"; else range=">5s"; count[range]++} END {for(r in count) print r, count[r]}' access.log
+```
+
+### 系统日志
+
+```sh
+# 统计错误日志
+➜ awk '/ERROR/ {error++} /WARN/ {warn++} END {print "ERROR:", error, "WARN:", warn}' system.log
+
+# 提取特定时间段的日志
+➜ awk '/2024-01-15 10:/, /2024-01-15 11:/' system.log
+```
+
+## 数据处理
+
+### 数据清洗
+
+```sh
+# 删除空行
+➜ awk 'NF > 0' file.txt
+
+# 删除重复行
+➜ awk '!seen[$0]++' file.txt
+
+# 删除包含特定字符串的行
+➜ awk '!/pattern/' file.txt
+```
+
+### 数据转换
+
+```sh
+# 将空格分隔转换为逗号分隔
+➜ echo "a b c d" | awk '{for(i=1;i<=NF;i++) {if(i>1) printf ","; printf $i} print ""}'
+a,b,c,d
+
+# 添加行号
+➜ awk '{print NR, $0}' file.txt
+
+# 添加文件名
+➜ awk '{print FILENAME, $0}' file.txt
+```
+
+## 报表生成
+
+```sh
+# 生成简单报表
+➜ cat data.txt | awk '
+BEGIN {
+    print "=== 销售报表 ==="
+    print "产品\t数量\t金额"
+    print "-------------------"
+}
+{
+    product[$1] += $2
+    amount[$1] += $3
+}
+END {
+    for(p in product) {
+        printf "%-10s %5d %10.2f\n", p, product[p], amount[p]
+    }
+    print "-------------------"
+}'
+```
+
+# 与其他命令的组合
+
+## awk + grep
+
+```sh
+# 先grep过滤，再awk处理
+➜ grep "ERROR" log.txt | awk '{print $1, $NF}'
+
+# awk处理后再grep
+➜ awk '{print $1, $3}' data.txt | grep "pattern"
+```
+
+## awk + sort
+
+```sh
+# awk处理后排序
+➜ awk '{print $2, $1}' data.txt | sort -k1
+
+# 统计后排序
+➜ awk '{count[$1]++} END {for(k in count) print count[k], k}' | sort -rn
+```
+
+## awk + sed
+
+```sh
+# 先用sed替换，再用awk处理
+➜ sed 's/old/new/g' file.txt | awk '{print $1}'
+
+# awk处理后再sed替换
+➜ awk '{print $1}' file.txt | sed 's/pattern/replacement/'
+```
+
+## awk + xargs
+
+```sh
+# awk提取文件名，xargs执行命令
+➜ awk '{print $NF}' filelist.txt | xargs ls -l
+
+# 处理包含空格的文件名
+➜ awk '{print $NF}' filelist.txt | xargs -I {} ls -l {}
+```
+
+## awk + find
+
+```sh
+# find查找文件，awk处理文件名
+➜ find . -name "*.log" | awk -F/ '{print $NF}'
+
+# find查找并awk统计
+➜ find . -type f | awk -F. '{ext[$NF]++} END {for(e in ext) print e, ext[e]}'
+```
+
+# 高级技巧
+
+## 多文件处理
+
+```sh
+# 处理多个文件，分别统计
+➜ awk '{count[FILENAME]++} END {for(f in count) print f, count[f]}' file1.txt file2.txt
+
+# 处理多个文件，统一统计
+➜ awk '{total++} END {print total}' file1.txt file2.txt
+```
+
+## 自定义分隔符
+
+```sh
+# 使用多个字符作为分隔符
+➜ echo "a::b::c" | awk -F'::' '{print $1, $2, $3}'
+a b c
+
+# 使用正则表达式作为分隔符
+➜ echo "a123b456c" | awk -F'[0-9]+' '{print $1, $2, $3}'
+a b c
+```
+
+## 处理特殊字符
+
+```sh
+# 处理包含特殊字符的字段
+➜ echo 'a "b c" d' | awk -F'"' '{print $1, $2, $3}'
+a  b c  d
+
+# 处理制表符分隔的文件
+➜ awk -F'\t' '{print $1, $2}' file.tsv
+```
+
+## 性能优化
+
+```sh
+# 使用next跳过不需要处理的行
+➜ awk '/^#/ {next} {print}' file.txt
+
+# 使用exit提前退出
+➜ awk '/pattern/ {print; exit}' file.txt
+
+# 使用数组索引优化查找
+➜ awk 'BEGIN {arr["key"]=1} $1 in arr {print}' file.txt
+```
+
+## 错误处理
+
+```sh
+# 检查文件是否存在
+➜ awk 'BEGIN {
+    if ((getline < "file.txt") < 0) {
+        print "File not found" > "/dev/stderr"
+        exit 1
+    }
+    close("file.txt")
+}'
+
+# 处理除零错误
+➜ awk '{if($2 != 0) print $1/$2; else print "Division by zero"}' data.txt
+```
+
+# 常见问题与技巧
+
+## 字段引用
+
+```sh
+# 动态引用字段
+➜ awk '{n=2; print $n}' file.txt  # 打印第2列
+
+# 使用变量作为字段索引
+➜ awk '{col=NF; print $col}' file.txt  # 打印最后一列
+```
+
+## 字符串连接
+
+```sh
+# 字符串连接（空格或直接连接）
+➜ awk '{print $1 $2}' file.txt      # 直接连接
+➜ awk '{print $1, $2}' file.txt     # 用OFS分隔（默认空格）
+➜ awk '{print $1 "_" $2}' file.txt  # 自定义分隔符
+```
+
+## 数值比较陷阱
+
+```sh
+# 字符串比较 vs 数值比较
+➜ echo "10" | awk '{if($1 > 9) print "OK"}'      # 字符串比较，可能出错
+➜ echo "10" | awk '{if($1+0 > 9) print "OK"}'    # 数值比较，正确
+➜ echo "10" | awk '{if(int($1) > 9) print "OK"}' # 数值比较，正确
+```
+
+## 数组遍历顺序
+
+```sh
+# for...in 遍历顺序不确定
+➜ awk 'BEGIN{a[1]=1;a[2]=2;a[3]=3; for(i in a) print i, a[i]}'
+# 输出顺序可能不是 1,2,3
+
+# 使用数字索引保证顺序
+➜ awk 'BEGIN{a[1]=1;a[2]=2;a[3]=3; for(i=1;i<=3;i++) print i, a[i]}'
+1 1
+2 2
+3 3
+```
+
+## 处理大文件
+
+```sh
+# 使用next跳过不需要的行
+➜ awk '/^#/ {next} {process}' large_file.txt
+
+# 使用exit提前退出
+➜ awk '/pattern/ {print; exit}' large_file.txt
+
+# 分批处理
+➜ awk 'NR%1000==0 {print NR " lines processed"}' large_file.txt
+```
+
+## 调试技巧
+
+```sh
+# 打印调试信息
+➜ awk '{print "DEBUG: processing line", NR, $0}' file.txt
+
+# 使用-v传入调试标志
+➜ awk -v debug=1 '{if(debug) print "Processing:", $0}' file.txt
+
+# 检查字段数量
+➜ awk 'NF != 3 {print "Line", NR, "has", NF, "fields:", $0}' file.txt
+```
+
+# 实用脚本示例
+
+## 统计脚本
+
+```sh
+#!/usr/bin/awk -f
+# 统计脚本：计算总和、平均值、最大值、最小值
+
+BEGIN {
+    sum = 0
+    count = 0
+    max = -999999
+    min = 999999
+}
+
+{
+    if ($1+0 == $1) {  # 检查是否为数字
+        sum += $1
+        count++
+        if ($1 > max) max = $1
+        if ($1 < min) min = $1
+    }
+}
+
+END {
+    if (count > 0) {
+        printf "统计结果:\n"
+        printf "  总和: %d\n", sum
+        printf "  平均值: %.2f\n", sum/count
+        printf "  最大值: %d\n", max
+        printf "  最小值: %d\n", min
+        printf "  数量: %d\n", count
+    }
+}
+```
+
+## 日志分析脚本
+
+```sh
+#!/usr/bin/awk -f
+# 分析访问日志，统计IP访问次数
+
+{
+    ip = $1
+    ip_count[ip]++
+}
+
+END {
+    print "IP访问统计:"
+    print "============"
+    for (ip in ip_count) {
+        printf "%-15s %d次\n", ip, ip_count[ip]
+    }
+}
+```
+
+## 数据转换脚本
+
+```sh
+#!/usr/bin/awk -f
+# 将空格分隔转换为CSV格式
+
+BEGIN {
+    OFS = ","
+}
+
+{
+    # 处理包含逗号的字段
+    for (i = 1; i <= NF; i++) {
+        if ($i ~ /,/) {
+            $i = "\"" $i "\""
+        }
+    }
+    print
+}
+```
+
+# 注意事项
+
+1. **字段分隔符**：默认FS是空格和Tab，使用`-F`可以自定义分隔符
+2. **数值比较**：字符串"10"可能小于"9"（字符串比较），使用`$1+0`或`int($1)`转换为数值
+3. **数组遍历**：`for...in`遍历关联数组的顺序是不确定的，需要顺序时使用数字索引
+4. **变量作用域**：在BEGIN中定义的变量在整个脚本中可用
+5. **性能考虑**：处理大文件时，使用`next`跳过不需要的行可以提高性能
+6. **正则表达式**：awk使用扩展正则表达式，某些特殊字符需要转义
+7. **多行记录**：默认RS是换行符，可以通过修改RS处理多行记录
+
 # 参考文献
 * [维基百科](https://zh.wikipedia.org/wiki/AWK)
 * [菜鸟教程](https://www.runoob.com/linux/linux-comm-awk.html)
+* [GNU Awk User's Guide](https://www.gnu.org/software/gawk/manual/)
+* [AWK程序设计语言](https://book.douban.com/subject/1236994/)

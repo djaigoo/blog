@@ -7,7 +7,6 @@ categories:
 tags:
   - mpg
   - infra
-date: 2020-08-07 19:40:47
 ---
 
 # MPG

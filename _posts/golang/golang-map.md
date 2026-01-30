@@ -325,6 +325,56 @@ flowchart TD
 - 如果 hint > 0，预分配桶数组，减少扩容次数
 - 使用 `makeBucketArray` 分配桶数组
 
+### makemap 实现（简化）
+
+```go
+const (
+    bucketCntBits = 3
+    bucketCnt     = 1 << bucketCntBits  // 8
+    loadFactorNum = 13
+    loadFactorDen = 2  // 负载因子约 6.5
+)
+
+func makemap(t *maptype, hint int, h *hmap) *hmap {
+    if hint < 0 || hint > int(maxSliceCap(t.bucket.size)) {
+        hint = 0
+    }
+
+    if h == nil {
+        h = new(hmap)
+    }
+    h.hash0 = fastrand()
+
+    B := uint8(0)
+    for overLoadFactor(hint, B) {
+        B++
+    }
+    h.B = B
+
+    if h.B != 0 {
+        var nextOverflow *bmap
+        h.buckets, nextOverflow = makeBucketArray(t, h.B, nil)
+        if nextOverflow != nil {
+            h.extra = new(mapextra)
+            h.extra.nextOverflow = nextOverflow
+        }
+    }
+    return h
+}
+
+// overLoadFactor 判断 count 是否超过 2^B 桶的负载因子阈值
+func overLoadFactor(count int, B uint8) bool {
+    return count > bucketCnt && uintptr(count) > loadFactorNum*(bucketShift(B)/loadFactorDen)
+}
+
+func bucketShift(b uint8) uintptr {
+    return uintptr(1) << (b & (sys.PtrSize*8 - 1))
+}
+
+// maptype 由编译器生成，包含 key/value 类型、hasher、bucket 大小等
+// dataOffset 为 bmap 中 keys 相对 bmap 的偏移（tophash 之后）
+```
+
 ## makeBucketArray (创建桶数组)
 
 分配并初始化桶数组。
@@ -352,6 +402,30 @@ flowchart TD
 2. **内存分配**: 分配桶数组内存
 3. **预分配溢出桶**: 如果 B >= 4，预分配一些溢出桶
 4. **初始化**: 将所有桶的 tophash 初始化为 0
+
+### makeBucketArray 实现（简化）
+
+```go
+func makeBucketArray(t *maptype, b uint8, dirtyalloc unsafe.Pointer) (buckets unsafe.Pointer, nextOverflow *bmap) {
+    base := bucketShift(b)
+    nbuckets := base
+    if b >= 4 {
+        nbuckets += bucketShift(b - 4)  // 预分配若干溢出桶
+    }
+
+    if dirtyalloc == nil {
+        buckets = newarray(t.bucket, int(nbuckets))
+    } else {
+        buckets = dirtyalloc
+    }
+
+    if b >= 4 {
+        last := (*bmap)(add(buckets, (nbuckets-1)*uintptr(t.bucketsize)))
+        last.setoverflow(t, (*bmap)(buckets))  // 最后一个桶的 overflow 指向第一块预分配溢出区
+    }
+    return buckets, nextOverflow
+}
+```
 
 ## mapaccess1 (访问 map - 单值返回)
 
@@ -394,6 +468,76 @@ flowchart TD
 - **tophash 预过滤**: 先比较 8 位 tophash，避免完整 key 比较
 - **内存对齐**: keys 和 values 分开存储，提高缓存命中率
 
+### mapaccess1 实现（简化）
+
+```go
+const (
+    emptyRest  = 0  // 该槽位及之后都为空
+    emptyOne   = 1  // 该槽位为空
+    evacuatedX = 2  // 已迁移到新桶前半部分
+    evacuatedY = 3  // 已迁移到新桶后半部分
+    minTopHash = 4  // tophash 最小值，0/1/2/3 为特殊含义
+)
+
+func mapaccess1(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
+    if h == nil || h.count == 0 {
+        return unsafe.Pointer(&zeroVal[0])
+    }
+    if h.flags&hashWriting != 0 {
+        throw("concurrent map read and map write")
+    }
+    hash := t.hasher(key, uintptr(h.hash0))
+    m := bucketMask(h.B)
+    b := (*bmap)(add(h.buckets, (hash&m)*uintptr(t.bucketsize)))
+    top := tophash(hash)
+
+    if h.oldbuckets != nil {
+        if !h.sameSizeGrow() {
+            m >>= 1  // 旧桶数量为一半
+        }
+        oldb := (*bmap)(add(h.oldbuckets, (hash&m)*uintptr(t.bucketsize)))
+        if !evacuated(oldb) {
+            b = oldb  // 若旧桶未迁移，在旧桶中查找
+        }
+    }
+
+    for ; b != nil; b = b.overflow(t) {
+        for i := uintptr(0); i < bucketCnt; i++ {
+            if b.tophash[i] != top {
+                if b.tophash[i] == emptyRest {
+                    break
+                }
+                continue
+            }
+            k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+            if t.indirectkey() {
+                k = *((*unsafe.Pointer)(k))
+            }
+            if t.key.equal(key, k) {
+                v := add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.valuesize))
+                if t.indirectvalue() {
+                    v = *((*unsafe.Pointer)(v))
+                }
+                return v
+            }
+        }
+    }
+    return unsafe.Pointer(&zeroVal[0])
+}
+
+func bucketMask(b uint8) uintptr {
+    return bucketShift(b) - 1
+}
+
+func tophash(hash uintptr) uint8 {
+    top := uint8(hash >> (sys.PtrSize*8 - 8))
+    if top < minTopHash {
+        top += minTopHash
+    }
+    return top
+}
+```
+
 ## mapassign (赋值操作)
 
 向 map 中插入或更新键值对。
@@ -433,6 +577,100 @@ flowchart TD
 - `count > bucketCnt * 2^B * 6.5` (负载因子 > 6.5)
 - 溢出桶过多
 
+### mapassign 实现（简化）
+
+```go
+func mapassign(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
+    if h == nil {
+        panic("assignment to nil map")
+    }
+    if h.flags&hashWriting != 0 {
+        throw("concurrent map writes")
+    }
+    hash := t.hasher(key, uintptr(h.hash0))
+    h.flags ^= hashWriting
+
+    if h.buckets == nil {
+        h.buckets = newobject(t.bucket)
+    }
+
+again:
+    bucket := hash & bucketMask(h.B)
+    if h.growing() {
+        growWork(t, h, bucket)
+    }
+    b := (*bmap)(add(h.buckets, bucket*uintptr(t.bucketsize)))
+    top := tophash(hash)
+
+    var inserti *uint8
+    var insertk unsafe.Pointer
+    var insertv unsafe.Pointer
+bucketloop:
+    for {
+        for i := uintptr(0); i < bucketCnt; i++ {
+            if b.tophash[i] != top {
+                if isEmpty(b.tophash[i]) && inserti == nil {
+                    inserti = &b.tophash[i]
+                    insertk = add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+                    insertv = add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.valuesize))
+                }
+                if b.tophash[i] == emptyRest {
+                    break bucketloop
+                }
+                continue
+            }
+            k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+            if t.indirectkey() {
+                k = *((*unsafe.Pointer)(k))
+            }
+            if !t.key.equal(key, k) {
+                continue
+            }
+            // 已存在，更新 value
+            v := add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.valuesize))
+            if t.indirectvalue() {
+                v = *((*unsafe.Pointer)(v))
+            }
+            h.flags &^= hashWriting
+            return v
+        }
+        ovf := b.overflow(t)
+        if ovf == nil {
+            break
+        }
+        b = ovf
+    }
+
+    if !h.growing() && (overLoadFactor(h.count+1, h.B) || tooManyOverflowBuckets(h.noverflow, h.B)) {
+        hashGrow(t, h)
+        goto again
+    }
+
+    if inserti == nil {
+        newb := h.newoverflow(t, b)
+        inserti = &newb.tophash[0]
+        insertk = add(unsafe.Pointer(newb), dataOffset)
+        insertv = add(insertk, bucketCnt*uintptr(t.keysize))
+    }
+
+    if t.indirectkey() {
+        kmem := newobject(t.key)
+        *(*unsafe.Pointer)(insertk) = kmem
+        insertk = kmem
+    }
+    if t.indirectvalue() {
+        vmem := newobject(t.elem)
+        *(*unsafe.Pointer)(insertv) = vmem
+        insertv = vmem
+    }
+    typedmemmove(t.key, insertk, key)
+    *inserti = top
+    h.count++
+    h.flags &^= hashWriting
+    return insertv
+}
+```
+
 ## mapdelete (删除操作)
 
 从 map 中删除指定的键值对。
@@ -468,6 +706,61 @@ flowchart TD
 - `emptyRest`: 该槽位及之后都为空
 - `emptyOne`: 该槽位为空，但后面可能有数据
 
+### mapdelete 实现（简化）
+
+```go
+func mapdelete(t *maptype, h *hmap, key unsafe.Pointer) {
+    if h == nil || h.count == 0 {
+        return
+    }
+    if h.flags&hashWriting != 0 {
+        throw("concurrent map writes")
+    }
+
+    hash := t.hasher(key, uintptr(h.hash0))
+    h.flags ^= hashWriting
+    bucket := hash & bucketMask(h.B)
+    if h.growing() {
+        growWork(t, h, bucket)
+    }
+    b := (*bmap)(add(h.buckets, bucket*uintptr(t.bucketsize)))
+    top := tophash(hash)
+
+search:
+    for ; b != nil; b = b.overflow(t) {
+        for i := uintptr(0); i < bucketCnt; i++ {
+            if b.tophash[i] != top {
+                if b.tophash[i] == emptyRest {
+                    break search
+                }
+                continue
+            }
+            k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+            k2 := k
+            if t.indirectkey() {
+                k2 = *((*unsafe.Pointer)(k2))
+            }
+            if !t.key.equal(key, k2) {
+                continue
+            }
+            // 清除 key/value（若为指针则置 nil）
+            if t.indirectkey() {
+                *(*unsafe.Pointer)(k) = nil
+            }
+            if t.indirectvalue() {
+                v := add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.valuesize))
+                *(*unsafe.Pointer)(v) = nil
+            }
+            b.tophash[i] = emptyOne
+            h.count--
+            // 若该槽位之后全为空，可向前回溯设为 emptyRest 以加速查找
+            goto search
+        }
+    }
+    h.flags &^= hashWriting
+}
+```
+
 ## mapiterinit (初始化迭代器)
 
 初始化 map 迭代器，设置随机起始位置。
@@ -495,6 +788,89 @@ flowchart TD
 2. **随机起始偏移**: `it.offset = uint8(r >> h.B & (bucketCnt - 1))`
 3. **初始化字段**: 设置迭代器的各种字段
 4. **处理扩容**: 如果 map 正在扩容，需要处理新旧桶
+
+### mapiterinit 与 mapiternext 实现（简化）
+
+```go
+func mapiterinit(t *maptype, h *hmap, it *hiter) {
+    it.t = t
+    it.h = h
+    it.B = h.B
+    it.buckets = h.buckets
+    r := uintptr(fastrand())
+    it.startBucket = r & bucketMask(h.B)
+    it.offset = uint8(r >> (64 - 8 - h.B)) & (bucketCnt - 1)
+    it.bucket = it.startBucket
+    it.wrapped = false
+    it.bptr = nil
+    if h.oldbuckets != nil {
+        it.oldbucket = uintptr(r & bucketMask(h.B-1))
+    }
+    mapiternext(it)
+}
+
+func mapiternext(it *hiter) {
+    h := it.h
+    if h.flags&hashWriting != 0 {
+        throw("concurrent map iteration and map write")
+    }
+    t := it.t
+    bucket := it.bucket
+    b := it.bptr
+    i := it.i
+    bucketCnt := uintptr(bucketCnt)
+
+next:
+    if b == nil {
+        if bucket == it.startBucket && it.wrapped {
+            it.key = nil
+            it.value = nil
+            return  // 遍历结束
+        }
+        if h.oldbuckets != nil && bucket < h.oldbucketmask() {
+            oldbucket := bucket
+            b = (*bmap)(add(h.oldbuckets, oldbucket*uintptr(t.bucketsize)))
+            if !evacuated(b) {
+                it.bucket = bucket
+                it.bptr = b
+                it.i = 0
+                goto next
+            }
+        }
+        b = (*bmap)(add(h.buckets, bucket*uintptr(t.bucketsize)))
+        bucket++
+        if bucket == bucketShift(it.B) {
+            bucket = 0
+            it.wrapped = true
+        }
+        i = 0
+    }
+    for i < bucketCnt {
+        offi := (i + it.offset) & (bucketCnt - 1)
+        if isEmpty(b.tophash[offi]) || b.tophash[offi] == evacuatedEmpty {
+            i++
+            continue
+        }
+        k := add(unsafe.Pointer(b), dataOffset+offi*uintptr(t.keysize))
+        v := add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+offi*uintptr(t.valuesize))
+        if t.indirectkey() {
+            k = *((*unsafe.Pointer)(k))
+        }
+        if t.indirectvalue() {
+            v = *((*unsafe.Pointer)(v))
+        }
+        it.key = k
+        it.value = v
+        it.bucket = bucket
+        it.bptr = b
+        it.i = i + 1
+        return
+    }
+    b = b.overflow(t)
+    i = 0
+    goto next
+}
+```
 
 ### 随机性保证
 
@@ -621,6 +997,36 @@ flowchart TD
 - **每次迁移**: 每次操作迁移 1-2 个桶
 - **避免阻塞**: 避免一次性迁移造成长时间阻塞
 
+### hashGrow 与 growWork 实现（简化）
+
+```go
+func hashGrow(t *maptype, h *hmap) {
+    bigger := uint8(1)
+    if !overLoadFactor(h.count+1, h.B) {
+        bigger = 0  // 等量扩容，仅整理溢出桶
+        h.flags |= sameSizeGrow
+    }
+    oldbuckets := h.buckets
+    newbuckets, nextOverflow := makeBucketArray(t, h.B+bigger, nil)
+    h.buckets = newbuckets
+    h.oldbuckets = oldbuckets
+    h.nevacuate = 0
+    h.noverflow = 0
+    if h.extra != nil {
+        h.extra.oldoverflow = h.extra.overflow
+        h.extra.overflow = nil
+        h.extra.nextOverflow = nextOverflow
+    }
+}
+
+func growWork(t *maptype, h *hmap, bucket uintptr) {
+    evacuate(t, h, bucket&h.oldbucketmask())
+    if h.growing() {
+        evacuate(t, h, h.nevacuate)
+    }
+}
+```
+
 ## evacuate (迁移桶)
 
 将旧桶数组中的键值对迁移到新桶数组。
@@ -659,6 +1065,87 @@ flowchart TD
 
 - **X 方向**: 迁移到相同索引的桶（等量扩容）
 - **Y 方向**: 迁移到索引 + 旧桶数量的桶（翻倍扩容）
+
+### evacuate 实现（简化）
+
+```go
+func evacuate(t *maptype, h *hmap, oldbucket uintptr) {
+    b := (*bmap)(add(h.oldbuckets, oldbucket*uintptr(t.bucketsize)))
+    newbit := h.noldbuckets()
+    if !evacuated(b) {
+        var xy [2]evacDst
+        x := &xy[0]
+        x.b = (*bmap)(add(h.buckets, oldbucket*uintptr(t.bucketsize)))
+        x.k = add(unsafe.Pointer(x.b), dataOffset)
+        x.v = add(x.k, bucketCnt*uintptr(t.keysize))
+
+        if !h.sameSizeGrow() {
+            y := &xy[1]
+            y.b = (*bmap)(add(h.buckets, (oldbucket+newbit)*uintptr(t.bucketsize)))
+            y.k = add(unsafe.Pointer(y.b), dataOffset)
+            y.v = add(y.k, bucketCnt*uintptr(t.keysize))
+        }
+
+        for ; b != nil; b = b.overflow(t) {
+            k := add(unsafe.Pointer(b), dataOffset)
+            v := add(k, bucketCnt*uintptr(t.keysize))
+            for i := 0; i < bucketCnt; i, k, v = i+1, add(k, uintptr(t.keysize)), add(v, uintptr(t.valuesize)) {
+                top := b.tophash[i]
+                if isEmpty(top) {
+                    b.tophash[i] = evacuatedEmpty
+                    continue
+                }
+                var useY uint8
+                if !h.sameSizeGrow() {
+                    hash := t.hasher(k, uintptr(h.hash0))
+                    if hash&newbit != 0 {
+                        useY = 1
+                    }
+                }
+                dst := &xy[useY]
+                if dst.i == bucketCnt {
+                    dst.b = h.newoverflow(t, dst.b)
+                    dst.i = 0
+                    dst.k = add(unsafe.Pointer(dst.b), dataOffset)
+                    dst.v = add(dst.k, bucketCnt*uintptr(t.keysize))
+                }
+                dst.b.tophash[dst.i&(bucketCnt-1)] = top
+                typedmemmove(t.key, dst.k, k)
+                typedmemmove(t.elem, dst.v, v)
+                dst.i++
+                dst.k = add(dst.k, uintptr(t.keysize))
+                dst.v = add(dst.v, uintptr(t.valuesize))
+                b.tophash[i] = evacuatedX + useY
+            }
+        }
+    }
+
+    if oldbucket == h.nevacuate {
+        advanceEvacuationMark(h, t, newbit)
+    }
+}
+
+// h.growing() 为 h.oldbuckets != nil；h.sameSizeGrow() 为等量扩容标志
+// h.noldbuckets() 返回旧桶数量；bucketEvacuated 判断某旧桶是否已迁移
+
+func advanceEvacuationMark(h *hmap, t *maptype, newbit uintptr) {
+    h.nevacuate++
+    stop := h.nevacuate + 1024
+    if stop > newbit {
+        stop = newbit
+    }
+    for h.nevacuate != stop && bucketEvacuated(t, h, h.nevacuate) {
+        h.nevacuate++
+    }
+    if h.nevacuate == newbit {
+        h.oldbuckets = nil
+        if h.extra != nil {
+            h.extra.oldoverflow = nil
+        }
+        h.flags &^= sameSizeGrow
+    }
+}
+```
 
 ## advanceEvacuationMark (推进迁移标记)
 

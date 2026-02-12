@@ -512,113 +512,193 @@ func main() {
 }
 ```
 
-## Python UDP 服务器
+## Go 语言 UDP 广播
 
-```python
-import socket
+广播指在同一网段内向所有主机发送数据，目标地址为**受限广播** `255.255.255.255` 或**定向广播**（如 `192.168.1.255`）。发送前需开启 socket 的 `SO_BROADCAST` 选项。
 
-# 创建 UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+### 广播发送端
 
-# 绑定地址
-server_address = ('localhost', 8080)
-sock.bind(server_address)
+```go
+package main
 
-print(f"UDP Server listening on {server_address}")
+import (
+    "fmt"
+    "net"
+    "syscall"
+)
 
-while True:
-    # 接收数据
-    data, client_address = sock.recvfrom(1024)
-    print(f"Received {len(data)} bytes from {client_address}: {data.decode()}")
-    
-    # 回显数据
-    sock.sendto(data, client_address)
-```
-
-## Python UDP 客户端
-
-```python
-import socket
-
-# 创建 UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-# 服务器地址
-server_address = ('localhost', 8080)
-
-# 发送数据
-message = b"Hello, UDP Server!"
-sock.sendto(message, server_address)
-
-# 接收响应
-data, server = sock.recvfrom(1024)
-print(f"Received: {data.decode()}")
-
-sock.close()
-```
-
-## C 语言 UDP 示例
-
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-// UDP 服务器
-int udp_server() {
-    int sockfd;
-    struct sockaddr_in server_addr, client_addr;
-    char buffer[1024];
-    socklen_t addr_len = sizeof(client_addr);
-    
-    // 创建 socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("socket");
-        return -1;
+func main() {
+    // 广播目标：255.255.255.255 表示本网段所有主机
+    addr, err := net.ResolveUDPAddr("udp4", "255.255.255.255:9999")
+    if err != nil {
+        fmt.Printf("ResolveUDPAddr failed: %v\n", err)
+        return
     }
-    
-    // 设置服务器地址
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(8080);
-    
-    // 绑定地址
-    if (bind(sockfd, (struct sockaddr *)&server_addr, 
-             sizeof(server_addr)) < 0) {
-        perror("bind");
-        close(sockfd);
-        return -1;
+
+    conn, err := net.DialUDP("udp4", nil, addr)
+    if err != nil {
+        fmt.Printf("DialUDP failed: %v\n", err)
+        return
     }
-    
-    printf("UDP Server listening on port 8080\n");
-    
-    // 接收数据
-    while (1) {
-        int n = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0,
-                        (struct sockaddr *)&client_addr, &addr_len);
-        if (n < 0) {
-            perror("recvfrom");
-            continue;
-        }
-        
-        buffer[n] = '\0';
-        printf("Received from %s: %s\n", 
-               inet_ntoa(client_addr.sin_addr), buffer);
-        
-        // 回显数据
-        sendto(sockfd, buffer, n, 0,
-               (struct sockaddr *)&client_addr, addr_len);
+    defer conn.Close()
+
+    // 开启广播（必须设置，否则发往广播地址会报错）
+    rc, err := conn.SyscallConn()
+    if err != nil {
+        fmt.Printf("SyscallConn failed: %v\n", err)
+        return
     }
-    
-    close(sockfd);
-    return 0;
+    rc.Control(func(fd uintptr) {
+        err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
+    })
+    if err != nil {
+        fmt.Printf("SetsockoptInt SO_BROADCAST failed: %v\n", err)
+        return
+    }
+
+    message := []byte("Hello, broadcast!")
+    _, err = conn.Write(message)
+    if err != nil {
+        fmt.Printf("Write failed: %v\n", err)
+        return
+    }
+    fmt.Println("Broadcast sent")
 }
 ```
+
+### 广播接收端
+
+```go
+package main
+
+import (
+    "fmt"
+    "net"
+)
+
+func main() {
+    addr, err := net.ResolveUDPAddr("udp4", ":9999")
+    if err != nil {
+        fmt.Printf("ResolveUDPAddr failed: %v\n", err)
+        return
+    }
+
+    conn, err := net.ListenUDP("udp4", addr)
+    if err != nil {
+        fmt.Printf("ListenUDP failed: %v\n", err)
+        return
+    }
+    defer conn.Close()
+
+    fmt.Println("Broadcast receiver listening on :9999")
+    buffer := make([]byte, 1024)
+    for {
+        n, remote, err := conn.ReadFromUDP(buffer)
+        if err != nil {
+            fmt.Printf("ReadFromUDP failed: %v\n", err)
+            continue
+        }
+        fmt.Printf("Received %d bytes from %s: %s\n", n, remote.String(), string(buffer[:n]))
+    }
+}
+```
+
+## Go 语言 UDP 多播
+
+多播（组播）向加入同一组地址的主机发送数据，常用 D 类地址（如 `224.0.0.0`～`239.255.255.255`）。接收端需先**加入多播组**（`IP_ADD_MEMBERSHIP`），再在绑定端口上收包。
+
+### 多播发送端
+
+```go
+package main
+
+import (
+    "fmt"
+    "net"
+)
+
+func main() {
+    // 多播组地址（D 类），例如 239.0.0.1
+    groupAddr, err := net.ResolveUDPAddr("udp4", "239.0.0.1:9998")
+    if err != nil {
+        fmt.Printf("ResolveUDPAddr failed: %v\n", err)
+        return
+    }
+
+    conn, err := net.DialUDP("udp4", nil, groupAddr)
+    if err != nil {
+        fmt.Printf("DialUDP failed: %v\n", err)
+        return
+    }
+    defer conn.Close()
+
+    message := []byte("Hello, multicast!")
+    _, err = conn.Write(message)
+    if err != nil {
+        fmt.Printf("Write failed: %v\n", err)
+        return
+    }
+    fmt.Println("Multicast sent")
+}
+```
+
+### 多播接收端
+
+```go
+package main
+
+import (
+    "fmt"
+    "net"
+    "syscall"
+)
+
+func main() {
+    addr, err := net.ResolveUDPAddr("udp4", "0.0.0.0:9998")
+    if err != nil {
+        fmt.Printf("ResolveUDPAddr failed: %v\n", err)
+        return
+    }
+
+    conn, err := net.ListenUDP("udp4", addr)
+    if err != nil {
+        fmt.Printf("ListenUDP failed: %v\n", err)
+        return
+    }
+    defer conn.Close()
+
+    // 加入多播组 239.0.0.1（接口 0 表示任意接口）
+    rc, err := conn.SyscallConn()
+    if err != nil {
+        fmt.Printf("SyscallConn failed: %v\n", err)
+        return
+    }
+    var opErr error
+    rc.Control(func(fd uintptr) {
+        opErr = syscall.SetsockoptIPMreq(int(fd), syscall.IPPROTO_IP, syscall.IP_ADD_MEMBERSHIP,
+            &syscall.IPMreq{Multiaddr: [4]byte{239, 0, 0, 1}})
+    })
+    if opErr != nil {
+        fmt.Printf("IP_ADD_MEMBERSHIP failed: %v\n", opErr)
+        return
+    }
+
+    fmt.Println("Multicast receiver listening on :9998, group 239.0.0.1")
+    buffer := make([]byte, 1024)
+    for {
+        n, remote, err := conn.ReadFromUDP(buffer)
+        if err != nil {
+            fmt.Printf("ReadFromUDP failed: %v\n", err)
+            continue
+        }
+        fmt.Printf("Received %d bytes from %s: %s\n", n, remote.String(), string(buffer[:n]))
+    }
+}
+```
+
+**说明**：
+- **广播**：发送端需 `SO_BROADCAST`；接收端只需在对应端口 `ListenUDP` 即可收到本网段广播。
+- **多播**：发送端往组地址发即可；接收端必须对该 socket 设置 `IP_ADD_MEMBERSHIP` 加入组（如 239.0.0.1），否则收不到多播包。上述多播示例使用 Linux/Unix 的 `syscall`，Windows 下需改用 `syscall.IPMreq` 对应结构或 `golang.org/x/net/ipv4`。
 
 # UDP 的优缺点
 

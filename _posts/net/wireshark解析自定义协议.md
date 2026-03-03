@@ -7,6 +7,7 @@ categories:
 tags:
   - lua
   - wireshark
+  - protobuf
   - 协议解析
   - 网络分析
 ---
@@ -675,6 +676,281 @@ do
 end
 ```
 
+## 示例 4: 解析 Protobuf 数据
+
+Protocol Buffers（Protobuf）是二进制、非自描述格式，在 Wireshark 中解析有两种常见方式：**使用内置 Protobuf 解析器**（需提供 .proto）和 **Lua 手写 Wire Format 解析**（无需 .proto，适合调试或逆向）。
+
+### Protobuf 在 Wireshark 中的两种方式
+
+```mermaid
+graph LR
+    A[Protobuf 数据] --> B{有 .proto?}
+    B -->|是| C[内置解析器]
+    B -->|否/需轻量解析| D[Lua Wire Format]
+    C --> E[Edit -> Preferences -> Protobuf]
+    C --> F[pinfo.private pb_msg_type]
+    D --> G[Varint / Length-delimited]
+    
+    style C fill:#ccffcc
+    style D fill:#ccccff
+```
+
+### 方式一：使用 Wireshark 内置 Protobuf 解析器
+
+Wireshark 自 2.6 起支持 Protobuf，需配置 **Protobuf 搜索路径**（存放 .proto 的目录），解析器根据消息类型从这些路径加载定义。
+
+#### 1. 配置 .proto 搜索路径
+
+- 打开 **Edit -> Preferences -> Protocols -> ProtoBuf -> Protobuf search paths**
+- 添加包含 `.proto` 的目录（可多个），若有 `import` 依赖，需同时加入依赖所在目录
+- 勾选 **Load all files** 可在启动时预加载
+
+#### 2. 在 Lua 中调用内置解析器
+
+通过 `Dissector.get("protobuf")` 获取解析器，并用 `pinfo.private["pb_msg_type"]` 指定根消息类型（格式：`"message,包名.消息类型"`）：
+
+```lua
+local protobuf_dissector = Dissector.get("protobuf")
+-- 指定本条 payload 的根消息类型（需在 .proto 搜索路径中能找到）
+pinfo.private["pb_msg_type"] = "message,tutorial.AddressBook"
+pcall(Dissector.call, protobuf_dissector, tvb, pinfo, tree)
+```
+
+#### 3. 完整示例：UDP/TCP 上承载 Protobuf（带 4 字节长度头）
+
+下面脚本提供「纯 Protobuf UDP」「纯 Protobuf TCP」以及「指定消息类型的 AddressBook」解析器，并支持 **Decode As**：
+
+```lua
+do
+    local protobuf_dissector = Dissector.get("protobuf")
+
+    -- 创建基于 UDP 或 TCP 的 Protobuf 解析器
+    -- UDP：整包为一个 Protobuf 消息
+    -- TCP：[4 字节大端长度][消息][4 字节长度][消息]...
+    -- @param name   解析器名称
+    -- @param desc   描述
+    -- @param for_udp 是否注册到 UDP（可用 Decode As）
+    -- @param for_tcp 是否注册到 TCP
+    -- @param msgtype 根消息类型，如 "tutorial.AddressBook"，nil 表示不指定类型
+    local function create_protobuf_dissector(name, desc, for_udp, for_tcp, msgtype)
+        local proto = Proto(name, desc)
+        local f_length = ProtoField.uint32(name .. ".length", "Length", base.DEC)
+        proto.fields = { f_length }
+
+        proto.dissector = function(tvb, pinfo, tree)
+            local subtree = tree:add(proto, tvb())
+            if for_udp and pinfo.port_type == 3 then  -- UDP
+                if msgtype then
+                    pinfo.private["pb_msg_type"] = "message," .. msgtype
+                end
+                pcall(Dissector.call, protobuf_dissector, tvb, pinfo, subtree)
+            elseif for_tcp and pinfo.port_type == 2 then  -- TCP
+                local offset = 0
+                local remaining_len = tvb:len()
+                while remaining_len > 0 do
+                    if remaining_len < 4 then
+                        pinfo.desegment_offset = offset
+                        pinfo.desegment_len = DESEGMENT_ONE_MORE_SEGMENT
+                        return
+                    end
+                    local data_len = tvb(offset, 4):uint()
+                    if remaining_len - 4 < data_len then
+                        pinfo.desegment_offset = offset
+                        pinfo.desegment_len = data_len - (remaining_len - 4)
+                        return
+                    end
+                    subtree:add(f_length, tvb(offset, 4))
+                    if msgtype then
+                        pinfo.private["pb_msg_type"] = "message," .. msgtype
+                    end
+                    pcall(Dissector.call, protobuf_dissector,
+                          tvb(offset + 4, data_len):tvb(), pinfo, subtree)
+                    offset = offset + 4 + data_len
+                    remaining_len = remaining_len - 4 - data_len
+                end
+            end
+            pinfo.cols.protocol:set(name)
+        end
+
+        if for_udp then DissectorTable.get("udp.port"):add_for_decode_as(proto) end
+        if for_tcp then DissectorTable.get("tcp.port"):add_for_decode_as(proto) end
+        return proto
+    end
+
+    -- 不指定消息类型的通用解析器（Decode As 用）
+    create_protobuf_dissector("protobuf_udp", "Protobuf UDP", true, false, nil)
+    create_protobuf_dissector("protobuf_tcp", "Protobuf TCP", false, true, nil)
+    -- 指定根消息类型（需在 Protobuf 搜索路径中有对应 .proto）
+    create_protobuf_dissector("AddrBook", "Tutorial AddressBook",
+                              true, true, "tutorial.AddressBook")
+end
+```
+
+使用步骤：将脚本放到 Wireshark 个人配置目录的 `plugins` 下，配置好 Protobuf 搜索路径后，对 UDP/TCP 包使用 **Decode As** 选择对应协议即可。
+
+#### 4. 可选：Protobuf UDP 消息类型表
+
+若协议是「UDP + 单包单条 Protobuf 消息」，可在 **Edit -> Preferences -> Protocols -> ProtoBuf -> Protobuf UDP Message Types** 中配置「UDP 端口 -> 消息类型」映射，无需 Lua 即可按端口自动用指定类型解析。
+
+---
+
+### 方式二：Lua 手写 Protobuf Wire Format 解析
+
+在没有 .proto 或只需要轻量解析（看字段号、wire type、长度）时，可以在 Lua 里按 [Protobuf 编码规则](https://developers.google.com/protocol-buffers/docs/encoding) 解析。
+
+#### Wire 格式简述
+
+- 每条字段：**Tag（Varint）** + **Payload**。
+- **Tag** = `(field_number << 3) | wire_type`，其中 `wire_type` 常用：
+  - **0**：Varint（int32/64, bool, enum）
+  - **2**：Length-delimited（string, bytes, 嵌套 message）
+- **Varint**：每字节 7 位有效位，最高位为延续位；小端序拼接。
+- **Length-delimited**：先一个 Varint 表示长度 L，再 L 字节数据。
+
+#### Lua 示例：解析 Varint 与 Tag
+
+Wireshark 内嵌 Lua 5.2，可使用标准库 `bit32` 做位运算：
+
+```lua
+-- 从 buf 的 offset 起读取一个 Varint，返回 (value, new_offset)
+local function read_varint(buf, offset)
+    local result = 0
+    local shift = 0
+    local len = buf:len()
+    while offset < len do
+        local b = buf(offset, 1):uint()
+        offset = offset + 1
+        result = result + bit32.lshift(bit32.band(b, 0x7F), shift)
+        if bit32.band(b, 0x80) == 0 then
+            return result, offset
+        end
+        shift = shift + 7
+        if shift >= 64 then
+            return nil, offset  -- 异常
+        end
+    end
+    return nil, offset
+end
+
+-- 从 tag 解码 field_number 与 wire_type
+-- tag = (field_number << 3) | wire_type
+local function decode_tag(tag)
+    local wire_type = bit32.band(tag, 0x7)
+    local field_number = bit32.rshift(tag, 3)
+    return field_number, wire_type
+end
+```
+
+（若运行环境提供 `bit` 而非 `bit32`，可改用 `bit.band`、`bit.lshift`、`bit.rshift`。）
+
+#### 简单 Protobuf Wire 解析器示例
+
+下面脚本不依赖 .proto，只在协议树中展示「字段号、Wire 类型、长度或 Varint 值」，便于调试或逆向：
+
+```lua
+do
+    local proto = Proto('pbwire', 'Protobuf Wire (generic)')
+    local f_tag   = ProtoField.uint32("pbwire.tag", "Tag", base.HEX)
+    local f_fnum  = ProtoField.uint32("pbwire.field", "Field Number", base.DEC)
+    local f_wtype = ProtoField.uint32("pbwire.wire_type", "Wire Type", base.DEC)
+    local f_len   = ProtoField.uint32("pbwire.length", "Length", base.DEC)
+    local f_val   = ProtoField.bytes("pbwire.value", "Value")
+    proto.fields = { f_tag, f_fnum, f_wtype, f_len, f_val }
+
+    local WIRE_VARINT = 0
+    local WIRE_64BIT  = 1
+    local WIRE_LEN    = 2
+    local WIRE_32BIT  = 5
+
+    local function read_varint(buf, offset)
+        local result = 0
+        local shift = 0
+        local len = buf:len()
+        while offset < len do
+            local b = buf(offset, 1):uint()
+            offset = offset + 1
+            result = result + bit32.lshift(bit32.band(b, 0x7F), shift)
+            if bit32.band(b, 0x80) == 0 then
+                return result, offset
+            end
+            shift = shift + 7
+            if shift >= 64 then return nil, offset end
+        end
+        return nil, offset
+    end
+
+    local function dissect_pb_wire(buf, pinfo, root)
+        if buf:len() == 0 then return false end
+        local subtree = root:add(proto, buf(), "Protobuf Wire")
+        local offset = 0
+        local len = buf:len()
+        while offset < len do
+            local tag, new_off = read_varint(buf, offset)
+            if not tag or new_off > len then break end
+            local fnum = bit32.rshift(tag, 3)
+            local wtype = bit32.band(tag, 0x7)
+            local item = subtree:add(proto, buf(offset, new_off - offset))
+            item:add(f_tag, buf(offset, new_off - offset))
+            item:add(f_fnum, fnum):append_text(" (" .. tostring(fnum) .. ")")
+            item:add(f_wtype, wtype)
+            offset = new_off
+            if wtype == WIRE_VARINT then
+                local val, next_off = read_varint(buf, offset)
+                if val and next_off <= len then
+                    item:add(f_val, buf(offset, next_off - offset)):append_text(" (" .. tostring(val) .. ")")
+                    offset = next_off
+                else
+                    break
+                end
+            elseif wtype == WIRE_64BIT or wtype == WIRE_32BIT then
+                local size = (wtype == WIRE_32BIT) and 4 or 8
+                if offset + size <= len then
+                    item:add(f_val, buf(offset, size))
+                    offset = offset + size
+                else
+                    break
+                end
+            elseif wtype == WIRE_LEN then
+                local l, next_off = read_varint(buf, offset)
+                if not l or l < 0 or next_off + l > len then break end
+                item:add(f_len, l)
+                item:add(f_val, buf(next_off, l))
+                offset = next_off + l
+            else
+                break
+            end
+        end
+        pinfo.cols.protocol:set("PbWire")
+        pinfo.cols.info:set("Protobuf wire (generic)")
+        return true
+    end
+
+    proto.dissector = function(tvb, pinfo, tree)
+        local data_dis = Dissector.get("data")
+        if dissect_pb_wire(tvb, pinfo, tree) then
+            -- 解析成功
+        else
+            data_dis:call(tvb, pinfo, tree)
+        end
+    end
+    DissectorTable.get("tcp.port"):add_for_decode_as(proto)
+    DissectorTable.get("udp.port"):add_for_decode_as(proto)
+end
+```
+
+使用方式：对已知为 Protobuf 的 TCP/UDP 流使用 **Decode As** 选择「Protobuf Wire (generic)」，即可在包内看到字段号、wire type 和原始值/长度，便于对照 .proto 或逆向。
+
+---
+
+### 小结
+
+| 方式 | 适用场景 | 需要 |
+|------|----------|------|
+| 内置 Protobuf 解析器 | 有 .proto、需要完整字段名与类型 | 配置搜索路径，可选 UDP 端口表或 Lua 指定 `pb_msg_type` |
+| Lua Wire Format 解析 | 无 .proto、调试、逆向、只看字段号与 wire 类型 | 仅 Lua 脚本，可配合 Decode As |
+
+实际项目中可先用手写 Wire 解析确认字段布局，再在拿到 .proto 后切换到内置解析器获得完整解析。
+
 # 高级功能
 
 ## 1. 协议分层
@@ -1033,5 +1309,7 @@ Wireshark Lua 插件开发要点：
 
 - [Chapter 11. Wireshark's Lua API Reference Manual](https://www.wireshark.org/docs/wsdg_html_chunked/wsluarm_modules.html)
 - [Wireshark Lua API Examples](https://wiki.wireshark.org/Lua/Examples)
+- [Wireshark Protobuf Wiki](https://wiki.wireshark.org/Protobuf)（内置解析器、搜索路径、Lua 调用方式）
+- [Protocol Buffers Encoding](https://developers.google.com/protocol-buffers/docs/encoding)（Wire 格式）
 - [Redis Wireshark Plugin](https://github.com/jzwinck/redis-wireshark)
 - [Wireshark Redis Plugin](https://github.com/djaigoo/wireshark-redis)

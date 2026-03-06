@@ -574,8 +574,226 @@ flowchart TD
 
 ### 扩容触发条件
 
-- `count > bucketCnt * 2^B * 6.5` (负载因子 > 6.5)
-- 溢出桶过多
+在 **插入新 key 时**（`mapassign`）若当前**未在扩容**，且满足以下任一条件则会触发扩容：
+
+1. **负载因子过高**：`overLoadFactor(h.count+1, h.B)`  
+   - 即 `count+1 > bucketCnt * 2^B * (13/2)`，等价于约 **负载因子 > 6.5**（13/2），元素过多，需要翻倍桶数以降低冲突。
+2. **溢出桶过多**：`tooManyOverflowBuckets(h.noverflow, h.B)`  
+   - 即溢出桶数量达到约 `2^B` 量级，说明很多桶拉链过长，做**等量扩容**只做“整理”，不增加桶数，主要减少 overflow 链。
+
+触发时调用 `hashGrow(t, h)` 进入扩容流程；随后 `goto again` 重新定位 bucket（可能先执行一次 `growWork`）。
+
+### map 的扩容过程总览
+
+扩容分为**准备**和**渐进式迁移**两阶段，不一次性搬完所有数据，避免单次操作阻塞过久。
+
+```mermaid
+flowchart TD
+    subgraph 触发
+        T1[插入时检查]
+        T1 --> C{overLoadFactor?}
+        C -->|是| Type1[翻倍扩容 B++]
+        C -->|否| C2{tooManyOverflowBuckets?}
+        C2 -->|是| Type2[等量扩容 整理溢出桶]
+    end
+    subgraph 准备阶段
+        H[hashGrow]
+        H --> A[分配新桶数组]
+        A --> B[oldbuckets = buckets, buckets = newbuckets]
+        B --> Z[nevacuate = 0]
+    end
+    subgraph 迁移阶段_每次写删时
+        G[growWork]
+        G --> E1[evacuate 当前访问的旧桶]
+        E1 --> E2[evacuate nevacuate 指向的桶]
+        E2 --> ADV[advanceEvacuationMark]
+        ADV --> DONE{nevacuate == noldbuckets?}
+        DONE -->|是| CLEAR[清空 oldbuckets]
+        DONE -->|否| NEXT[下次操作继续]
+    end
+    Type1 --> H
+    Type2 --> H
+    Z --> G
+    NEXT --> G
+```
+
+- **准备阶段（hashGrow）**：只分配新桶数组、把当前 `buckets` 赋给 `oldbuckets`、`buckets` 指向新数组，并置 `nevacuate = 0`、清空 overflow 计数等；**不在此阶段迁移任何 key**。
+- **迁移阶段（渐进式）**：之后每次执行 **mapassign 或 mapdelete** 时，若 `h.growing()` 为真，会先调用 **growWork**：
+  - 先对**当前操作命中的旧桶**（`bucket & oldbucketmask()`）执行一次 **evacuate**；
+  - 再对 **nevacuate** 所指向的旧桶执行一次 evacuate（按顺序“补”迁未迁的桶）；
+  - 若本次 evacuate 的旧桶恰好是 `nevacuate` 指向的桶，则调用 **advanceEvacuationMark** 推进 `nevacuate`（一次最多推进 1024 个），当 `nevacuate == noldbuckets()` 时说明全部迁完，清空 `oldbuckets` 和 `extra.oldoverflow`，扩容结束。
+
+因此，**扩容过程**可以概括为：触发 → hashGrow 准备新桶并挂上 oldbuckets → 之后每次写/删时 growWork 迁 1～2 个旧桶并推进 nevacuate → 全部迁完后释放旧桶。
+
+#### 两种扩容类型
+
+| 类型       | 触发条件               | 新桶数量   | 目的                         |
+|------------|------------------------|------------|------------------------------|
+| **翻倍扩容** | `overLoadFactor` 为真 | `2^(B+1)`  | 降低负载因子，减少冲突       |
+| **等量扩容** | 仅 `tooManyOverflowBuckets` | `2^B` 不变 | 整理溢出链，桶数不变、结构更紧凑 |
+
+#### evacuate：单桶迁移与 X/Y 分流
+
+**evacuate(t, h, oldbucket)** 把旧桶 `oldbucket` 及其溢出链上的所有 key-value 迁到新桶数组：
+
+- **等量扩容（sameSizeGrow）**：旧桶内元素全部迁到新桶数组中**相同索引**的桶（即 **X 方向**）；只做“平移”，不打散。
+- **翻倍扩容**：新桶数量为旧的两倍，用 **hash & newbit**（`newbit = noldbuckets()`）判断每个 key 去**原索引**（X）还是**原索引 + newbit**（Y）：
+  - `hash & newbit == 0` → 仍在 X（新桶索引 = oldbucket）；
+  - `hash & newbit != 0` → 迁到 Y（新桶索引 = oldbucket + newbit）。
+
+迁移时会把旧 bmap 的 tophash 置为 **evacuatedX** 或 **evacuatedY**，这样在 **mapaccess/mapassign/mapdelete** 时若发现 tophash 为 evacuated，可直接在新桶中查找，无需再读旧桶。
+
+#### advanceEvacuationMark：推进迁移进度
+
+在 **evacuate** 返回前，若本次迁移的正是 `nevacuate` 指向的桶（`oldbucket == h.nevacuate`），会调用 **advanceEvacuationMark**：
+
+- 将 `h.nevacuate` 自增，并**连续跳过**已迁移的桶（最多再推进 1024 个或到 noldbuckets），避免单次操作耗时过长；
+- 若推进后 `h.nevacuate == noldbuckets()`，说明所有旧桶已迁完，则置 `h.oldbuckets = nil`、清 `extra.oldoverflow`、清除 `sameSizeGrow` 标志，扩容彻底结束。
+
+#### 扩容数据流转（Mermaid 图示）
+
+以下用 Mermaid 表示扩容过程中 **hmap 指针**与**键值对在旧桶/新桶间的流向**。
+
+**1. hashGrow 前后：hmap 与桶数组指针关系**
+
+```mermaid
+flowchart LR
+    subgraph hashGrow前
+        H1["hmap<br/>buckets → 桶数组"]
+        A1["桶数组<br/>2^B 个 bmap"]
+        H1 --> A1
+    end
+
+    subgraph hashGrow后_准备阶段
+        H2["hmap"]
+        O["oldbuckets<br/>→ 旧桶数组"]
+        N["buckets<br/>→ 新桶数组"]
+        H2 --> O
+        H2 --> N
+        O --> A2["旧桶数组<br/>2^B 或 2^B+1 待迁"]
+        N --> A3["新桶数组<br/>翻倍: 2^B+1 个<br/>等量: 2^B 个"]
+    end
+
+    hashGrow前 --> hashGrow后_准备阶段
+```
+
+- **前**：`h.buckets` 指向当前桶数组，`h.oldbuckets == nil`。
+- **后**：`h.oldbuckets` 指向原桶数组（待迁），`h.buckets` 指向新分配的桶数组；**键值对仍在旧桶中**，尚未迁移。
+
+**2. 翻倍扩容（B→B+1）：单桶 evacuate 时键值对的数据流（X/Y 分流）**
+
+设旧桶数量为 `newbit`（即 `noldbuckets()`），新桶数量为 `2*newbit`。旧桶 `oldbucket` 内每个 key 根据 **hash & newbit** 迁到新桶的 **X（原下标）** 或 **Y（原下标 + newbit）**。
+
+```mermaid
+flowchart LR
+    subgraph 旧桶数组_oldbuckets["oldbuckets (2^B 个)"]
+        O0["old[0]"]
+        O1["old[1]"]
+        O2["old[2]"]
+        O3["old[3]"]
+    end
+
+    subgraph 新桶数组_buckets["buckets (2^B+1 个)"]
+        N0["new[0]"]
+        N1["new[1]"]
+        N2["new[2]"]
+        N3["new[3]"]
+        N4["new[4]"]
+        N5["new[5]"]
+        N6["new[6]"]
+        N7["new[7]"]
+    end
+
+    O0 -->|"hash&newbit==0 → X"| N0
+    O0 -->|"hash&newbit!=0 → Y"| N4
+    O1 -->|X| N1
+    O1 -->|Y| N5
+    O2 -->|X| N2
+    O2 -->|Y| N6
+    O3 -->|X| N3
+    O3 -->|Y| N7
+```
+
+- **X 方向**：新桶下标 = 旧桶下标（key 留在“低半区”）。
+- **Y 方向**：新桶下标 = 旧桶下标 + newbit（key 迁到“高半区”）。
+- 每个旧桶内的 key 按自己的 hash 分别进入新数组的两个桶，实现打散、降低冲突。
+
+**3. 等量扩容：单桶 evacuate 时键值对的数据流**
+
+等量扩容不增加桶数，只整理溢出链，键值对按**相同下标**从旧桶迁到新桶。
+
+```mermaid
+flowchart LR
+    subgraph 旧桶数组["oldbuckets (2^B 个)"]
+        O0["old[0]"]
+        O1["old[1]"]
+        O2["old[2]"]
+    end
+
+    subgraph 新桶数组["buckets (2^B 个)"]
+        M0["new[0]"]
+        M1["new[1]"]
+        M2["new[2]"]
+    end
+
+    O0 -->|"同下标迁移"| M0
+    O1 -->|"同下标迁移"| M1
+    O2 -->|"同下标迁移"| M2
+```
+
+**4. 渐进迁移过程中的整体状态（nevacuate 与已迁/未迁桶）**
+
+每次写/删只会迁 1～2 个旧桶；`nevacuate` 表示“小于该下标的旧桶均已迁完”。
+
+```mermaid
+flowchart TB
+    subgraph 迁移中状态
+        subgraph hmap状态
+            NV["nevacuate = 2<br/>（0、1 已迁完）"]
+        end
+        subgraph oldbuckets["oldbuckets"]
+            direction LR
+            O0["[0] 已迁<br/>tophash=evacuatedX/Y"]
+            O1["[1] 已迁"]
+            O2["[2] 未迁"]
+            O3["[3] 未迁"]
+        end
+        subgraph buckets["buckets (新)"]
+            direction LR
+            N0["[0] 已有数据"]
+            N1["[1] 已有数据"]
+            N2["[2] 待写入"]
+            N3["[3] 待写入"]
+        end
+    end
+
+    NV --> O0
+    NV --> O2
+    O0 -.->|"evacuate 完成"| N0
+    O1 -.->|"evacuate 完成"| N1
+    O2 -->|"下次 growWork 迁"| N2
+    O3 -->|"再下次迁"| N3
+```
+
+- **已迁旧桶**：tophash 被置为 `evacuatedX`/`evacuatedY`，查找时直接走新桶。
+- **nevacuate**：自增到“下一个未迁桶”的下标；当 `nevacuate == noldbuckets()` 时，所有旧桶迁完，清空 `oldbuckets`。
+
+**5. 扩容数据流转总览（从触发到结束）**
+
+```mermaid
+stateDiagram-v2
+    [*] --> 正常: 日常读写
+    正常 --> 触发: 负载因子>6.5 或 溢出桶过多
+    触发 --> 准备: hashGrow
+    准备 --> 迁移中: oldbuckets≠nil, buckets=新数组
+    迁移中 --> 迁移中: 每次写/删 evacuate 1～2 桶
+    迁移中 --> 完成: nevacuate == noldbuckets
+    完成 --> 正常: oldbuckets=nil, 仅用新桶
+```
+
+- **准备**：仅切换指针，数据仍在旧桶。
+- **迁移中**：数据从 oldbuckets 经 evacuate 流入 buckets（翻倍时 X/Y 分流，等量时同下标）。
+- **完成**：释放 oldbuckets，后续读写只访问 buckets。
 
 ### mapassign 实现（简化）
 
@@ -670,6 +888,57 @@ bucketloop:
     return insertv
 }
 ```
+
+### mapassign 逻辑概述
+mapassign 负责在 map 上完成一次“写入”：要么在空位插入新 key/value，要么在已有 key 上更新 value。返回值是 value 的写入地址，编译器会在此地址上写入用户给的 value。
+1. 前置检查
+nil map：若 h == nil，直接 panic("assignment to nil map")。
+并发写：若 h.flags 里已有 hashWriting，说明存在并发写，throw("concurrent map writes")。
+
+2. 算 hash、占位写标志
+用 t.hasher(key, h.hash0) 得到 hash。
+执行 h.flags ^= hashWriting，表示“当前有 goroutine 在写 map”。
+
+3. 惰性创建桶数组
+若 h.buckets == nil，先 newobject(t.bucket) 分配桶数组（只建一层，即 2^0 个 bucket）。
+
+4. 定位 bucket（again 标号）
+bucket := hash & bucketMask(h.B) 得到当前 B 下该 key 对应的 bucket 下标。
+若 map 正在扩容（h.growing()），先对该 bucket 做一次 growWork，再继续用“当前表”的逻辑（可能已经迁移完）。
+用 b = (*bmap)(add(h.buckets, bucket*uintptr(t.bucketsize))) 得到目标 bucket，并算出该 key 的 top = tophash(hash)。
+
+5. 在 bucket 链上找“写哪”或“更新哪”（bucketloop）
+用 inserti、insertk、insertv 记录第一个可用的空位（若还没找到相同 key 的话就用这个空位插入）。
+顺序遍历当前 bucket 的 8 个槽位：
+tophash 不相等：
+若该槽是“空”且还没记过空位，则记下该槽的 tophash 指针、key 地址、value 地址到 inserti/insertk/insertv。
+若该槽是 emptyRest，说明后面都是空的，直接 break bucketloop。
+tophash 相等：再比较 key；若 key 相等，说明是更新：
+算出 value 地址，清除 hashWriting，直接返回该 value 的地址（由上层写 value）。
+若本 bucket 没找到空位且没命中 key，看 b.overflow(t)：
+有 overflow 就 b = ovf，继续循环；
+没有就 break 出 bucketloop。
+
+6. 是否需要扩容
+若当前没在扩容，且满足“多一个元素就过载”或“overflow 太多”：
+调用 hashGrow(t, h) 开始扩容（或准备等量扩容）。
+goto again：重新算 bucket、可能先做一次 growWork，再从头找/插入。
+
+7. 若没找到空位：挂 overflow bucket
+若遍历完整条 bucket 链后 inserti == nil，说明当前链上 8 个槽都满了，调用 h.newoverflow(t, b) 挂一个新 overflow bucket，把 inserti/insertk/insertv 设到这个新 bucket 的第一个槽。
+
+8. 写入 key、tophash、count
+若 key 或 value 是指针间接存储（indirectkey / indirectvalue），先为 key/value 分配堆对象，再把指针写到 bucket 里，insertk/insertv 指向实际要写的位置。
+typedmemmove(t.key, insertk, key) 把 key 拷到 insertk。
+*inserti = top 写入 tophash。
+h.count++。
+h.flags &^= hashWriting 清除写标志。
+返回 insertv，编译器会向这个地址写入用户提供的 value。
+
+
+小结（一句话 + 流程）
+一句话：先根据 hash 找到 bucket 和 tophash，在 bucket 链上要么找到相同 key 则返回其 value 地址（更新），要么找到第一个空位（或新 overflow）记录在 inserti/insertk/insertv，必要时先扩容再重试，最后在空位写入 key 和 tophash、增加 count，并返回 value 的写入地址。
+流程：检查 → hash → 找 bucket → 扩容判断与 growWork → 遍历 bucket 链（找空位或相同 key）→ 需要时挂 overflow → 写 key/tophash、count++ → 返回 value 地址。
 
 ## mapdelete (删除操作)
 
@@ -966,36 +1235,37 @@ flowchart TD
 
 ### 关键步骤
 
-1. **判断扩容类型**: 根据溢出桶数量决定
-2. **分配新桶数组**: 分配 `2^(B+1)` 或 `2^B` 个桶
-3. **设置指针**: `h.oldbuckets = h.buckets`, `h.buckets = newbuckets`
-4. **渐进式迁移**: 不立即迁移，在后续操作中逐步迁移
+1. **判断扩容类型**：若 `!overLoadFactor(h.count+1, h.B)` 则为等量扩容（`bigger = 0`，并设置 `sameSizeGrow` 标志），否则为翻倍扩容（`bigger = 1`）。
+2. **分配新桶数组**：`makeBucketArray(t, h.B+bigger, nil)` 得到新桶数组及预分配的 overflow 链。
+3. **切换指针**：`h.oldbuckets = h.buckets`，`h.buckets = newbuckets`，`h.nevacuate = 0`，`h.noverflow = 0`；若有 `extra`，则把当前 overflow 记到 `oldoverflow`，新 overflow 从 `nextOverflow` 开始。
+4. **不在此处迁移**：hashGrow 只做准备工作，实际迁移在后续的 mapassign/mapdelete 中通过 growWork → evacuate 渐进完成。
 
 ## growWork (执行扩容工作)
 
-在 map 操作过程中执行部分扩容工作。
+在 **mapassign** 和 **mapdelete** 中，若检测到 `h.growing()`（即 `oldbuckets != nil`），会先调用 **growWork** 做一部分迁移，再继续本次读写逻辑。每次调用最多迁移 **2 个旧桶**。
 
 ### 实现逻辑
 
 ```mermaid
 flowchart TD
-    Start["growWork"] --> Check{正在扩容?}
-    Check -->|否| Return
-    Check -->|是| Evacuate["迁移一个桶"]
-    Evacuate --> Check2{迁移完成?}
-    Check2 -->|否| Return
-    Check2 -->|是| Clear["清除 oldbuckets"]
-    Clear --> Return["返回"]
+    Start["growWork(t, h, bucket)"] --> Check{正在扩容?}
+    Check -->|否| Return["返回"]
+    Check -->|是| E1["evacuate(当前操作的旧桶)"]
+    E1 --> E2["evacuate(nevacuate 指向的桶)"]
+    E2 --> Return
     
     style Start fill:#e1f5ff
     style Return fill:#e8f5e9
 ```
 
+- **第一次 evacuate**：参数为 `bucket & h.oldbucketmask()`，即**本次访问对应的旧桶**。这样“访问到谁就迁谁”，后续查找可直接走新桶。
+- **第二次 evacuate**：参数为 `h.nevacuate`，按顺序迁“下一个还没迁的桶”，保证最终所有旧桶都会被迁完。
+
 ### 渐进式扩容
 
-- **分散成本**: 将扩容成本分散到多次操作中
-- **每次迁移**: 每次操作迁移 1-2 个桶
-- **避免阻塞**: 避免一次性迁移造成长时间阻塞
+- **分散成本**：扩容代价摊到每次写/删操作，单次只迁 1～2 个桶。
+- **避免阻塞**：不在 hashGrow 时一次性迁移，避免长停顿。
+- **迁移完成**：当所有旧桶都迁完后，在 **advanceEvacuationMark** 中清空 `oldbuckets`，扩容结束。
 
 ### hashGrow 与 growWork 实现（简化）
 
@@ -1055,16 +1325,17 @@ flowchart TD
 
 ### 关键步骤
 
-1. **遍历桶**: 遍历桶内所有有效槽位
-2. **重新哈希**: 对每个 key 重新计算哈希值
-3. **新位置**: 根据新哈希值计算在新桶数组中的位置
-4. **迁移数据**: 将键值对复制到新位置
-5. **处理溢出桶**: 递归处理溢出桶
+1. **遍历桶**：遍历该旧桶及其 overflow 链上的所有 bmap，对每个有效槽位（非 empty）处理。
+2. **确定新桶位置**：  
+   - **等量扩容**：不重算 hash，直接迁到新桶数组的**相同索引**（X）。  
+   - **翻倍扩容**：对 key 调用 `t.hasher` 得到 hash，用 `hash & newbit` 判断去 X（原索引）还是 Y（原索引 + newbit）。
+3. **写入新桶**：若目标新桶的 8 个槽已满，则 `newoverflow` 挂新溢出桶；将 tophash、key、value 拷贝到新桶，并把旧槽 tophash 置为 `evacuatedX` 或 `evacuatedY`。
+4. **推进进度**：若本旧桶索引等于 `h.nevacuate`，则调用 **advanceEvacuationMark** 推进迁移进度，必要时清空 `oldbuckets`。
 
-### 迁移策略
+### 迁移策略（X/Y）
 
-- **X 方向**: 迁移到相同索引的桶（等量扩容）
-- **Y 方向**: 迁移到索引 + 旧桶数量的桶（翻倍扩容）
+- **X 方向**：新桶索引 = 旧桶索引（等量扩容时全部走 X；翻倍时 `hash&newbit == 0` 的 key 走 X）。
+- **Y 方向**：仅翻倍扩容存在，新桶索引 = 旧桶索引 + newbit（`hash&newbit != 0`）。等量扩容无 Y。
 
 ### evacuate 实现（简化）
 
@@ -1171,9 +1442,19 @@ flowchart TD
 
 ### 作用
 
-- **进度跟踪**: 跟踪扩容迁移的进度
-- **优化查找**: 在查找时，如果旧桶已迁移，直接在新桶中查找
-- **清理时机**: 当所有桶迁移完成后，可以清理旧桶数组
+- **进度跟踪**：`nevacuate` 表示“小于该下标的旧桶都已迁完”，每次 evacuate 后若迁的是当前 nevacuate 桶，则推进该标记（最多再推进 1024 个已迁桶）。
+- **清理时机**：当 `nevacuate == noldbuckets()` 时，所有旧桶已迁完，清空 `oldbuckets`、`extra.oldoverflow`，并清除 `sameSizeGrow`，扩容结束。
+- **查找优化**：mapaccess/mapassign/mapdelete 中若发现目标桶在 oldbuckets 且 tophash 为 evacuatedX/evacuatedY，会转去新桶查找，无需再读旧桶。
+
+### 扩容过程小结
+
+| 阶段 | 动作 |
+|------|------|
+| **触发** | mapassign 时若未在扩容且（负载因子>6.5 或 溢出桶过多），调用 hashGrow |
+| **hashGrow** | 分配新桶，oldbuckets←buckets，buckets←新桶，nevacuate←0；不迁数据 |
+| **growWork** | 每次写/删若在扩容，先 evacuate(当前旧桶)、再 evacuate(nevacuate)；每次最多迁 2 桶 |
+| **evacuate** | 将指定旧桶及其 overflow 链上的 key-value 按 X/Y 规则迁到新桶，并标记 tophash |
+| **advanceEvacuationMark** | 推进 nevacuate；若 nevacuate==noldbuckets 则清空 oldbuckets，扩容完成 |
 
 ## reflect 相关函数
 

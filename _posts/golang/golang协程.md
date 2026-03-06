@@ -495,6 +495,62 @@ func ready(gp *g, traceskip int, next bool) {
 
 **总结**：`gopark` 是 Go 运行时实现阻塞操作的核心机制，它让 goroutine 能够高效地等待各种条件，避免了忙等待，提高了 CPU 利用率。
 
+### 进入阻塞的系统调用
+
+当 G 在执行过程中调用了**会阻塞的系统调用**（如 `read`、`accept`、`epoll_wait` 等）时，会进入与 `gopark` 不同的路径：G 不会变成 `_Gwaiting`，而是变为 **`_Gsyscall`**，同时当前 P 被标记为 **`_Psyscall`**。这样在 G 阻塞在内核期间，该 P 可以被其他 M 接管，继续运行队列里的其他 G，从而避免“一个 G 卡在 syscall 导致整个 P 闲置”。
+
+#### 进入系统调用时的状态变化
+
+```mermaid
+sequenceDiagram
+    participant G as 当前 G
+    participant M as 当前 M
+    participant P as 当前 P
+    participant Sched as 调度器/其他 M
+
+    G->>M: 即将执行阻塞型 syscall（如 read）
+    M->>M: entersyscall() / entersyscallblock()
+    Note over G: _Grunning → _Gsyscall
+    Note over P: _Prunning → _Psyscall
+    M->>P: P 与 M 仍关联，但 P 可被“窃取”
+    Sched->>P: 其他 M 可窃取该 P 运行本地队列的 G
+    Note over G,M: G 与 M 一起阻塞在内核
+    G->>M: 系统调用返回
+    M->>M: exitsyscall()
+    Note over G: _Gsyscall → _Grunnable
+    M->>M: 尝试重新获取 P（原 P 或空闲 P）
+    alt 获取到 P
+        M->>G: 继续执行 G
+    else 获取不到 P
+        M->>Sched: 将 G 放入全局队列，M 休眠
+    end
+```
+
+- **G 的状态**：`_Grunning` → **`_Gsyscall`**  
+  - 表示“当前正在执行系统调用”，既不是可运行，也不是在用户态等待某条件（后者用 `_Gwaiting`）。
+- **P 的状态**：`_Prunning` → **`_Psyscall`**  
+  - 表示“绑定的 M 正在系统调用中”，调度器可以把该 P 从当前 M 上解绑，交给别的 M 去跑该 P 本地队列里的 G（即 P 被“窃取”）。
+
+因此，**进入阻塞的系统调用时，协程状态是 `_Gsyscall`**，而不是 `_Gwaiting`。  
+`_Gwaiting` 用于在用户态被 runtime 挂起等待（channel、锁、timer、网络 poll 等）；`_Gsyscall` 专门表示“正在内核里执行 syscall”。
+
+#### 与 gopark（_Gwaiting）的区别
+
+| 维度       | 阻塞的系统调用（_Gsyscall）     | gopark（_Gwaiting）           |
+|------------|---------------------------------|-------------------------------|
+| 触发方式   | 用户代码或 runtime 调用 syscall | runtime 内部（channel、锁等） |
+| G 状态     | `_Gsyscall`                     | `_Gwaiting`                   |
+| 阻塞位置   | 内核态（卡在 syscall）          | 用户态（被 runtime 挂起）     |
+| P 状态     | `_Psyscall`，P 可被其他 M 窃取  | P 仍可继续跑其他 G（当前 G 已解绑） |
+| 恢复方式   | syscall 返回后 `exitsyscall`    | 其他 G 调用 `goready` 等唤醒   |
+
+#### 系统调用返回后
+
+- `exitsyscall()` 会把 G 从 **`_Gsyscall`** 改回 **`_Grunnable`**。
+- 当前 M 会尝试重新绑定一个 P（优先拿回原来的 P），若拿到则继续执行该 G；若拿不到则把 G 放进全局运行队列，M 休眠，等待被再次唤醒。
+
+这样在 G 进入阻塞的系统调用时，**协程状态为 `_Gsyscall`**，P 可被复用，从而在大量阻塞 IO 场景下仍能保持较高的并发度。
+
 ### 被抢占
 
 为了防止某个协程长时间占用 CPU，Go 实现了抢占式调度。
@@ -581,6 +637,8 @@ func newstack() {
     // ...
 }
 ```
+
+
 
 # 回收协程
 
